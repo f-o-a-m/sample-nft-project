@@ -9,8 +9,18 @@
     },
     "main": "index.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "pulp build"
     },
     "author": "",
-    "license": "ISC"
+    "license": "ISC",
+    "dependencies": {
+        "bn.js": "^4.11.0",
+        "ethjs-provider-http": "^0.1.6",
+        "mkdirp": "^0.5.1",
+        "keccak": "^1.0.2",
+        "secp256k1": "^3.0.1",
+        "rlp": "^2.0.0",
+        "solc": "^0.4.24"
+    }
 }

@@ -7,6 +7,6 @@ contract SimpleStorage {
 
     function setCount(uint _count) public {
         count = _count;
-        CountSet(_count);
+        emit CountSet(_count);
     }
 }
