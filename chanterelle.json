@@ -1,0 +1,13 @@
+{
+    "name": "sample-nft-project",
+    "version": "0.0.1",
+    "source-dir": "contracts",
+    "modules": [ "SimpleStorage"
+               ],
+    "dependencies": ["zeppelin-solidity"],
+    "solc-output-selection": [],
+    "purescript-generator": {
+        "output-path": "src",
+        "module-prefix": "Contracts"
+    }
+}
