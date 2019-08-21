@@ -9,7 +9,8 @@
     },
     "main": "index.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "test": "pulp test",
+	"deploy": "chanterelle compile; chanterelle codegen; npm run build; chanterelle deploy ./output/Main/index.js", 
         "build": "pulp build"
     },
     "author": "",
