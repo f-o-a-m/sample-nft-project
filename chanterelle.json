@@ -4,6 +4,8 @@
     "source-dir": "contracts",
     "modules": [ "SimpleStorage"
 	             , "SignalMarket"
+               , "FoamToken"
+               , "SignalToken"
                ],
     "dependencies": [ "openzeppelin-solidity"
                     , "erc20-tokens"
