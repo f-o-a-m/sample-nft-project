@@ -3,9 +3,11 @@
     "version": "0.0.1",
     "source-dir": "contracts",
     "modules": [ "SimpleStorage"
-	       , "SignalMarket"
+	             , "SignalMarket"
                ],
-    "dependencies": ["zeppelin-solidity"],
+    "dependencies": [ "openzeppelin-solidity"
+                    , "erc20-tokens"
+                    ],
     "solc-output-selection": [],
     "purescript-generator": {
         "output-path": "src",

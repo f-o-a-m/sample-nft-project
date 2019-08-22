@@ -5,19 +5,13 @@ import Prelude
 import Chanterelle.Deploy (deployContract)
 import Chanterelle.Internal.Deploy (DeployReceipt)
 import Chanterelle.Internal.Types (DeployM, DeployConfig(..), ContractConfig, NoArgs, noArgs, constructorNoArgs)
-import Chanterelle.Internal.Logging (log, LogLevel(Info))
-import Chanterelle.Internal.Utils (pollTransactionReceipt)
 import Control.Monad.Reader.Class (ask)
 import Data.Lens ((?~))
 import Data.Maybe (fromJust)
-import Data.Either (fromRight)
-import Effect.Aff.Class (liftAff)
-import Network.Ethereum.Web3 (Address, ChainCursor(Latest), _from, _gas, _to, defaultTransactionOptions, runWeb3, uIntNFromBigNumber)
-import Network.Ethereum.Web3.Api (eth_blockNumber)
-import Network.Ethereum.Web3.Solidity.Sizes (s256)
-import Network.Ethereum.Core.BigNumber (parseBigNumber, decimal, embed)
+import Network.Ethereum.Core.BigNumber (decimal, parseBigNumber)
+import Network.Ethereum.Web3 (_from, _gas, defaultTransactionOptions)
+
 import Partial.Unsafe (unsafePartial)
-import Contracts.SimpleStorage as SS
 
 -- `chanterelle` - required for deployment
 simpleStorageConfig :: ContractConfig NoArgs
