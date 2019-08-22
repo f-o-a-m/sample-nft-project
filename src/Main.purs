@@ -39,10 +39,9 @@ foamTokenConfig =
   }
 
 -- when constructor has arguments
-type SignalTokenConstructorArgs = (_token :: Address)
+type SignalToken = (_token :: Address)
 
-makeSignalTokenConfig :: Record SignalTokenConstructorArgs ->
-                         ContractConfig SignalTokenConstructorArgs
+makeSignalTokenConfig :: Record SignalToken -> ContractConfig SignalToken
 makeSignalTokenConfig { _token } =
   {
     filepath: "./build/SignalToken.json"
@@ -51,10 +50,9 @@ makeSignalTokenConfig { _token } =
   , unvalidatedArgs: pure { _token }
   }
 
-type SignalMarketConstructorArgs = (_signalToken :: Address, _foamToken :: Address)
+type SignalMarket = (_signalToken :: Address, _foamToken :: Address)
 
-makeSignalMarketConfig :: Record SignalMarketConstructorArgs ->
-                          ContractConfig SignalMarketConstructorArgs
+makeSignalMarketConfig :: Record SignalMarket -> ContractConfig SignalMarket
 makeSignalMarketConfig { _signalToken, _foamToken } =
   {
     filepath: "./build/SignalMarket.json"
@@ -68,6 +66,8 @@ makeSignalMarketConfig { _signalToken, _foamToken } =
 type DeployResults =
   ( simpleStorage :: DeployReceipt NoArgs
   , foamToken :: DeployReceipt NoArgs
+  , signalToken :: DeployReceipt SignalToken
+  , signalMarket :: DeployReceipt SignalMarket
   )
 
 -- web3 connection
@@ -81,4 +81,10 @@ deployScript = do
                                          # _gas ?~ bigGasLimit
   simpleStorage <- deployContract txOpts simpleStorageConfig
   foamToken <- deployContract txOpts foamTokenConfig
-  pure { simpleStorage, foamToken }
+  signalToken <- deployContract txOpts $
+                 makeSignalTokenConfig { _token: foamToken.deployAddress }
+  signalMarket <- deployContract txOpts $
+                  makeSignalMarketConfig { _signalToken: signalToken.deployAddress
+                                         , _foamToken: foamToken.deployAddress
+                                         }
+  pure { simpleStorage, foamToken, signalToken, signalMarket }
