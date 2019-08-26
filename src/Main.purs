@@ -68,6 +68,7 @@ type DeployResults =
   , foamToken :: DeployReceipt NoArgs
   , signalToken :: DeployReceipt SignalToken
   , signalMarket :: DeployReceipt SignalMarket
+  , tokenFaucet :: Address
   )
 
 -- web3 connection
@@ -87,4 +88,4 @@ deployScript = do
                   makeSignalMarketConfig { _signalToken: signalToken.deployAddress
                                          , _foamToken: foamToken.deployAddress
                                          }
-  pure { simpleStorage, foamToken, signalToken, signalMarket }
+  pure { simpleStorage, foamToken, signalToken, signalMarket, tokenFaucet: primaryAccount }
