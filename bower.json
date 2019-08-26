@@ -14,7 +14,7 @@
   ],
   "dependencies": {
     "purescript-prelude": "^4.1.1",
-    "purescript-chanterelle": "f-o-a-m/chanterelle#v3.0.0"
+    "purescript-chanterelle": "f-o-a-m/chanterelle#^3.0.0"
   },
   "devDependencies": {
     "purescript-spec": "^4.0.0"
