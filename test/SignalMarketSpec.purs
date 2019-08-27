@@ -5,22 +5,27 @@ import Prelude
 import Chanterelle.Internal.Deploy (DeployReceipt)
 import Chanterelle.Internal.Types (NoArgs)
 import Chanterelle.Internal.Utils.Web3 (pollTransactionReceipt)
-import Chanterelle.Test (TestConfig, assertWeb3)
+import Chanterelle.Test (TestConfig, assertWeb3, takeEvent)
 import Contracts.FoamToken as FoamToken
+import Contracts.SignalToken as SignalToken
 import Control.Parallel (parTraverse_)
 import Data.Array ((!!))
 import Data.ByteString as BS
 import Data.Either (Either(..))
 import Data.Lens ((?~))
 import Data.Maybe (fromJust)
+import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Main (SignalMarket)
-import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _from, _to, defaultTransactionOptions, embed, fromByteString, uIntNFromBigNumber, unUIntN)
-import Network.Ethereum.Web3.Solidity.Sizes (s256)
+import Effect.Class (liftEffect)
+import Main (SignalMarket, SignalToken)
+import Network.Ethereum.Core.HexString (toByteString)
+import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _from, _to, defaultTransactionOptions, embed, fromByteString, mkHexString, uIntNFromBigNumber, unUIntN)
+import Network.Ethereum.Web3.Solidity.Sizes (s256, s32)
 import Partial.Unsafe (unsafeCrashWith, unsafePartial, unsafePartialBecause)
 import Test.Spec (SpecT, beforeAll_, describe, it, pending')
-import Test.Spec.Assertions (shouldSatisfy)
+import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
+import Type.Proxy (Proxy(..))
 
 -- @TODO: make an issue to add this to chanterelle (Chanterelle.Test module)
 awaitTxSuccess :: HexString -> Provider -> Aff Unit
@@ -74,19 +79,20 @@ faucet { recipient, foamToken, tokenFaucet } =
 spec
   :: forall r .
      TestConfig ( foamToken :: DeployReceipt NoArgs
+                , signalToken :: DeployReceipt SignalToken
                 , tokenFaucet :: Address
                 , signalMarket :: DeployReceipt SignalMarket | r)
   -> SpecT Aff Unit Aff Unit
 spec { provider
      , accounts
      , foamToken: {deployAddress: foamToken}
+     , signalToken: {deployAddress: signalToken}
      , signalMarket: {deployAddress: signalMarket}
      , tokenFaucet
      } = do
-  -- beforeAll_ ?s
-  -- set up 2 accounts
-  -- give tokens to one of them (faucet)
   describe "interact with signal market" do
+    -- set up 2 accounts
+    -- give tokens to each of them (via faucet)
     let account1 = unsafePartial $ fromJust $ accounts !! 1
         account2 = unsafePartial $ fromJust $ accounts !! 2
     beforeAll_ (do
@@ -105,7 +111,24 @@ spec { provider
       -- you need to approve some tokens before this
       -- then use mint
       -- @TODO start this in a branch
-      pending' "can make a signal token (ERC-721)" do
+      it "can make a signal token (ERC-721)" do
+        -- approval process
+        let txOpts = defaultTransactionOptions # _to ?~ foamToken
+                                               # _from ?~ account1
+            approvalAmount = mkUIntN s256 100
+            approveAction = FoamToken.approve txOpts { _spender: signalToken
+                                                     , _value: approvalAmount
+                                                     }
+        Tuple _ (FoamToken.Approval appr) <- assertWeb3 provider $
+          takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
+        appr.value `shouldEqual` approvalAmount
+        -- minting process
+        let txOpts = defaultTransactionOptions # _to ?~ signalToken
+                                               # _from ?~ foamToken
+            geohash = mkBytesN s32 "420"
+            radius = mkUIntN s256 10
+            stake = mkUIntN s256 1
+            mintAction = SignalToken.mintSignal txOpts { owner: account1, stake, geohash, radius }
         pure unit
 
       pending' "can verify the signal market is deployed" do
