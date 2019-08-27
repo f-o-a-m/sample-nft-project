@@ -17,10 +17,8 @@ import Data.Maybe (fromJust)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect.Class (liftEffect)
 import Main (SignalMarket, SignalToken)
-import Network.Ethereum.Core.HexString (toByteString)
-import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _from, _to, defaultTransactionOptions, embed, fromByteString, mkHexString, uIntNFromBigNumber, unUIntN)
+import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _from, _to, defaultTransactionOptions, embed, fromByteString, uIntNFromBigNumber, unUIntN)
 import Network.Ethereum.Web3.Solidity.Sizes (s256, s32)
 import Partial.Unsafe (unsafeCrashWith, unsafePartial, unsafePartialBecause)
 import Test.Spec (SpecT, beforeAll_, describe, it, pending')
@@ -123,12 +121,13 @@ spec { provider
           takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
         appr.value `shouldEqual` approvalAmount
         -- minting process
-        let txOpts = defaultTransactionOptions # _to ?~ signalToken
-                                               # _from ?~ foamToken
-            geohash = mkBytesN s32 "420"
+        let geohash = mkBytesN s32 "420"
             radius = mkUIntN s256 10
             stake = mkUIntN s256 1
-            mintAction = SignalToken.mintSignal txOpts { owner: account1, stake, geohash, radius }
+            owner = account1
+            mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken) { owner, stake, geohash, radius }
+        Tuple _ (SignalToken.Transfer minted) <- assertWeb3 provider $
+          takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
         pure unit
 
       pending' "can verify the signal market is deployed" do
