@@ -18,8 +18,6 @@ import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect.Class (liftEffect)
-import Effect.Console (log)
 import Main (SignalMarket, SignalToken)
 import Network.Ethereum.Core.HexString (mkHexString)
 import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _from, _gas, _to, defaultTransactionOptions, embed, fromByteString, mkAddress, uIntNFromBigNumber, unUIntN)
@@ -52,7 +50,8 @@ assertStorageCall p f = liftAff do
   eRes <- assertWeb3 p f
   case eRes of
     Right x -> pure x
-    Left err -> unsafeCrashWith $ "expected Right in `assertStorageCall`, got error" <> show err
+    Left err -> unsafeCrashWith $
+                "expected Right in `assertStorageCall`, got error" <> show err
 
 mkUIntN
   :: forall n.
@@ -60,7 +59,8 @@ mkUIntN
   => DLProxy n
   -> Int
   -> UIntN n
-mkUIntN p n = unsafePartialBecause "I know how to make a UInt" $ fromJust $ uIntNFromBigNumber p $ embed n
+mkUIntN p n = unsafePartialBecause "I know how to make a UInt" $
+              fromJust $ uIntNFromBigNumber p $ embed n
 
 mkBytesN
   :: forall n.
@@ -68,7 +68,8 @@ mkBytesN
      => DLProxy n
   -> String
   -> BytesN n
-mkBytesN p s = unsafePartialBecause "I know how to make Bytes" $ fromJust $ fromByteString p =<< flip BS.fromString BS.Hex s
+mkBytesN p s = unsafePartialBecause "I know how to make Bytes" $
+               fromJust $ fromByteString p =<< flip BS.fromString BS.Hex s
 
 faucet
   :: { recipient :: Address
@@ -109,15 +110,14 @@ spec { provider
           txHash <- assertWeb3 provider $ faucet { recipient, foamToken, tokenFaucet }
           awaitTxSuccess txHash provider
       ) $ do
-      -- liftEffect <<< log $ "acc1: " <> (show account1)
-      -- liftEffect <<< log $ "acc2: " <> (show account2)
       it "can run the faucet" do
         let txOpts = defaultTransactionOptions # _to ?~ foamToken
-        a1balance <- assertStorageCall provider $ FoamToken.balanceOf txOpts Latest { _owner: account1 }
-        a2balance <- assertStorageCall provider $ FoamToken.balanceOf txOpts Latest { _owner: account2 }
+        a1balance <- assertStorageCall provider $
+                     FoamToken.balanceOf txOpts Latest { _owner: account1 }
+        a2balance <- assertStorageCall provider $
+                     FoamToken.balanceOf txOpts Latest { _owner: account2 }
         unUIntN a1balance `shouldSatisfy` (_ > zero)
         unUIntN a2balance `shouldSatisfy` (_ > zero)
-
       -- you need to approve some tokens before this
       -- then use mint
       it "can make a signal token (ERC-721)" do
@@ -140,29 +140,24 @@ spec { provider
             owner = account1
             mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
                                                 { owner, stake, geohash, radius }
-        -- @NOTE: this handles a single event (the `Transfer`).
-        -- the other token properties are under event `SignalToken.TrackedToken`
+        -- SignalToken.Transfer
+        -- @TODO: figure out how to get both the transfer and `TrackedToken` event
         Tuple _ (SignalToken.Transfer trx) <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
         -- verify ownership/transfer
         trx._to `shouldEqual` owner
         -- a newly minted signal is always from the `zeroAddr`
         trx._from `shouldEqual` zeroAddr
-        -- -- `Signaltoken.TrackedToken`
-        -- Tuple _ (SignalToken.TrackedToken token) <- assertWeb3 provider $
-        --   takeEvent (Proxy :: Proxy SignalToken.TrackedToken) signalToken mintAction
-        -- -- verify ownership/transfer
-        -- token.geohash `shouldEqual` geohash -- ?? 0x4200000000000000000000000000000000000000000000000000000000000000 ≠ 0x42
-        -- token.radius `shouldEqual` radius
-
       -- @NOTE: at this point all contracts are already deployed
       -- to test for a successfully deployed contract, verify that
       -- all global get functions are pointed to the correct contract addresses
       it "can verify the signal market is deployed" do
         let txOpts = defaultTransactionOptions # _to ?~ signalMarket
         -- global constructor calls
-        foamTokenAddr <- assertStorageCall provider $ SignalMarket.foamToken txOpts Latest
-        signalTokenAddr <- assertStorageCall provider $ SignalMarket.signalToken txOpts Latest
+        foamTokenAddr <- assertStorageCall provider $
+                         SignalMarket.foamToken txOpts Latest
+        signalTokenAddr <- assertStorageCall provider $
+                           SignalMarket.signalToken txOpts Latest
         foamTokenAddr `shouldEqual` foamToken
         signalTokenAddr `shouldEqual` signalTokenAddr
 
