@@ -13,12 +13,13 @@ contract SignalMarket {
     signalToken = SignalToken(_signalToken);
   }
 
-  function markTokenForSale() {
-    
+  function markTokenForSale(address owner, uint256 tokenID, uint256 price) public returns (uint256 tokenID) {
+    // @TODO: need to check if token is actually owned by owner
+    return tokenID;
   }
 
-  function buyToken() {
-    
+  function buyToken(uint256 tokenID, uint256 payment) public {
+    // maybe some sort of owner transfer
   }
 
 }
