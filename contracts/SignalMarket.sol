@@ -12,4 +12,13 @@ contract SignalMarket {
     foamToken = FoamToken(_foamToken);
     signalToken = SignalToken(_signalToken);
   }
+
+  function markTokenForSale() {
+    
+  }
+
+  function buyToken() {
+    
+  }
+
 }
