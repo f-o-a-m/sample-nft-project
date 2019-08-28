@@ -17,8 +17,10 @@ import Data.Maybe (fromJust)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Class (liftEffect)
+import Effect.Console (log)
 import Main (SignalMarket, SignalToken)
-import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _from, _to, defaultTransactionOptions, embed, fromByteString, uIntNFromBigNumber, unUIntN)
+import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _from, _gas, _to, defaultTransactionOptions, embed, fromByteString, uIntNFromBigNumber, unUIntN)
 import Network.Ethereum.Web3.Solidity.Sizes (s256, s32)
 import Partial.Unsafe (unsafeCrashWith, unsafePartial, unsafePartialBecause)
 import Test.Spec (SpecT, beforeAll_, describe, it, pending')
@@ -98,7 +100,8 @@ spec { provider
           txHash <- assertWeb3 provider $ faucet { recipient, foamToken, tokenFaucet }
           awaitTxSuccess txHash provider
       ) $ do
-
+      liftEffect <<< log $ "acc1: " <> (show account1)
+      liftEffect <<< log $ "acc2: " <> (show account2)
       it "can run the faucet" do
         let txOpts = defaultTransactionOptions # _to ?~ foamToken
         a1balance <- assertStorageCall provider $ FoamToken.balanceOf txOpts Latest { _owner: account1 }
@@ -125,9 +128,11 @@ spec { provider
             radius = mkUIntN s256 10
             stake = mkUIntN s256 1
             owner = account1
-            mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken) { owner, stake, geohash, radius }
-        Tuple _ (SignalToken.Transfer minted) <- assertWeb3 provider $
-          takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
+            mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken # _gas ?~ embed 8000000)
+                                                { owner, stake, geohash, radius }
+        txHash <- assertWeb3 provider $ mintAction
+        liftEffect <<< log $ (show txHash)
+        awaitTxSuccess txHash provider
         pure unit
 
       pending' "can verify the signal market is deployed" do
