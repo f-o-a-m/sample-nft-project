@@ -13,19 +13,25 @@ import Data.Array ((!!))
 import Data.ByteString as BS
 import Data.Either (Either(..))
 import Data.Lens ((?~))
-import Data.Maybe (fromJust)
+import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
 import Main (SignalMarket, SignalToken)
-import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _from, _gas, _to, defaultTransactionOptions, embed, fromByteString, uIntNFromBigNumber, unUIntN)
+import Network.Ethereum.Core.HexString (mkHexString)
+import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _from, _gas, _to, defaultTransactionOptions, embed, fromByteString, mkAddress, uIntNFromBigNumber, unUIntN)
 import Network.Ethereum.Web3.Solidity.Sizes (s256, s32)
 import Partial.Unsafe (unsafeCrashWith, unsafePartial, unsafePartialBecause)
 import Test.Spec (SpecT, beforeAll_, describe, it, pending')
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
 import Type.Proxy (Proxy(..))
+
+unsafeFromJust :: forall a. String -> Maybe a -> a
+unsafeFromJust msg = case _ of
+  Nothing -> unsafeCrashWith $ "unsafeFromJust: " <> msg
+  Just a -> a
 
 -- @TODO: make an issue to add this to chanterelle (Chanterelle.Test module)
 awaitTxSuccess :: HexString -> Provider -> Aff Unit
@@ -93,7 +99,9 @@ spec { provider
   describe "interact with signal market" do
     -- set up 2 accounts
     -- give tokens to each of them (via faucet)
-    let account1 = unsafePartial $ fromJust $ accounts !! 1
+    let zeroAddr = unsafeFromJust "Must be valid Address 000..." $
+                   mkAddress =<< mkHexString "0x0000000000000000000000000000000000000000"
+        account1 = unsafePartial $ fromJust $ accounts !! 1
         account2 = unsafePartial $ fromJust $ accounts !! 2
     beforeAll_ (do
         flip parTraverse_ [account1, account2] \recipient -> do
@@ -111,7 +119,6 @@ spec { provider
 
       -- you need to approve some tokens before this
       -- then use mint
-      -- @TODO start this in a branch
       it "can make a signal token (ERC-721)" do
         -- approval process
         let txOpts = defaultTransactionOptions # _to ?~ foamToken
@@ -128,12 +135,23 @@ spec { provider
             radius = mkUIntN s256 10
             stake = mkUIntN s256 1
             owner = account1
+            -- @NOTE: for some reason, this hangs without `_gas` being set to its max limit
             mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken # _gas ?~ embed 8000000)
                                                 { owner, stake, geohash, radius }
-        txHash <- assertWeb3 provider $ mintAction
-        liftEffect <<< log $ (show txHash)
-        awaitTxSuccess txHash provider
-        pure unit
+        -- @NOTE: this handles a single event (the `Transfer`).
+        -- the other token properties are under event `SignalToken.TrackedToken`
+        Tuple _ (SignalToken.Transfer trx) <- assertWeb3 provider $
+          takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
+        -- verify ownership/transfer
+        trx._to `shouldEqual` owner
+        trx._from `shouldEqual` zeroAddr
+
+        -- -- `Signaltoken.TrackedToken`
+        -- Tuple _ (SignalToken.TrackedToken token) <- assertWeb3 provider $
+        --   takeEvent (Proxy :: Proxy SignalToken.TrackedToken) signalToken mintAction
+        -- -- verify ownership/transfer
+        -- token.geohash `shouldEqual` geohash -- ?? 0x4200000000000000000000000000000000000000000000000000000000000000 ≠ 0x42
+        -- token.radius `shouldEqual` radius
 
       pending' "can verify the signal market is deployed" do
         pure unit
