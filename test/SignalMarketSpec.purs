@@ -159,7 +159,9 @@ spec { provider
       -- to test for a successfully deployed contract, verify that
       -- all global get functions are pointed to the correct contract addresses
       it "can verify the signal market is deployed" do
-        let txOpts = defaultTransactionOptions # _gas ?~ embed 8000000
+        let txOpts = defaultTransactionOptions # _to ?~ signalMarket
+                                               # _gas ?~ embed 8000000
+        -- global constructor calls
         foamTokenAddr <- assertStorageCall provider $ SignalMarket.foamToken txOpts Latest
         signalTokenAddr <- assertStorageCall provider $ SignalMarket.signalToken txOpts Latest
         foamTokenAddr `shouldEqual` foamToken
