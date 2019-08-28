@@ -122,6 +122,7 @@ spec { provider
       -- then use mint
       it "can make a signal token (ERC-721)" do
         -- approval process
+        -- @NOTE: `_gas` sets the max amount the user is willing to pay
         let txOpts = defaultTransactionOptions # _to ?~ foamToken
                                                # _from ?~ account1
                                                # _gas ?~ embed 8000000
@@ -137,7 +138,6 @@ spec { provider
             radius = mkUIntN s256 10
             stake = mkUIntN s256 1
             owner = account1
-            -- @NOTE: for some reason, this hangs without `_gas` being set to its max limit
             mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
                                                 { owner, stake, geohash, radius }
         -- @NOTE: this handles a single event (the `Transfer`).
@@ -160,7 +160,6 @@ spec { provider
       -- all global get functions are pointed to the correct contract addresses
       it "can verify the signal market is deployed" do
         let txOpts = defaultTransactionOptions # _to ?~ signalMarket
-                                               # _gas ?~ embed 8000000
         -- global constructor calls
         foamTokenAddr <- assertStorageCall provider $ SignalMarket.foamToken txOpts Latest
         signalTokenAddr <- assertStorageCall provider $ SignalMarket.signalToken txOpts Latest
