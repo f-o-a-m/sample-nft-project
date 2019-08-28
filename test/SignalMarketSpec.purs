@@ -7,6 +7,7 @@ import Chanterelle.Internal.Types (NoArgs)
 import Chanterelle.Internal.Utils.Web3 (pollTransactionReceipt)
 import Chanterelle.Test (TestConfig, assertWeb3, takeEvent)
 import Contracts.FoamToken as FoamToken
+import Contracts.SignalMarket as SignalMarket
 import Contracts.SignalToken as SignalToken
 import Control.Parallel (parTraverse_)
 import Data.Array ((!!))
@@ -108,8 +109,8 @@ spec { provider
           txHash <- assertWeb3 provider $ faucet { recipient, foamToken, tokenFaucet }
           awaitTxSuccess txHash provider
       ) $ do
-      liftEffect <<< log $ "acc1: " <> (show account1)
-      liftEffect <<< log $ "acc2: " <> (show account2)
+      -- liftEffect <<< log $ "acc1: " <> (show account1)
+      -- liftEffect <<< log $ "acc2: " <> (show account2)
       it "can run the faucet" do
         let txOpts = defaultTransactionOptions # _to ?~ foamToken
         a1balance <- assertStorageCall provider $ FoamToken.balanceOf txOpts Latest { _owner: account1 }
@@ -121,8 +122,10 @@ spec { provider
       -- then use mint
       it "can make a signal token (ERC-721)" do
         -- approval process
+        -- @NOTE: `_gas` sets the max amount the user is willing to pay
         let txOpts = defaultTransactionOptions # _to ?~ foamToken
                                                # _from ?~ account1
+                                               # _gas ?~ embed 8000000
             approvalAmount = mkUIntN s256 100
             approveAction = FoamToken.approve txOpts { _spender: signalToken
                                                      , _value: approvalAmount
@@ -135,8 +138,7 @@ spec { provider
             radius = mkUIntN s256 10
             stake = mkUIntN s256 1
             owner = account1
-            -- @NOTE: for some reason, this hangs without `_gas` being set to its max limit
-            mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken # _gas ?~ embed 8000000)
+            mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
                                                 { owner, stake, geohash, radius }
         -- @NOTE: this handles a single event (the `Transfer`).
         -- the other token properties are under event `SignalToken.TrackedToken`
@@ -144,8 +146,8 @@ spec { provider
           takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
         -- verify ownership/transfer
         trx._to `shouldEqual` owner
+        -- a newly minted signal is always from the `zeroAddr`
         trx._from `shouldEqual` zeroAddr
-
         -- -- `Signaltoken.TrackedToken`
         -- Tuple _ (SignalToken.TrackedToken token) <- assertWeb3 provider $
         --   takeEvent (Proxy :: Proxy SignalToken.TrackedToken) signalToken mintAction
@@ -153,8 +155,16 @@ spec { provider
         -- token.geohash `shouldEqual` geohash -- ?? 0x4200000000000000000000000000000000000000000000000000000000000000 ≠ 0x42
         -- token.radius `shouldEqual` radius
 
-      pending' "can verify the signal market is deployed" do
-        pure unit
+      -- @NOTE: at this point all contracts are already deployed
+      -- to test for a successfully deployed contract, verify that
+      -- all global get functions are pointed to the correct contract addresses
+      it "can verify the signal market is deployed" do
+        let txOpts = defaultTransactionOptions # _to ?~ signalMarket
+        -- global constructor calls
+        foamTokenAddr <- assertStorageCall provider $ SignalMarket.foamToken txOpts Latest
+        signalTokenAddr <- assertStorageCall provider $ SignalMarket.signalToken txOpts Latest
+        foamTokenAddr `shouldEqual` foamToken
+        signalTokenAddr `shouldEqual` signalTokenAddr
 
       pending' "can list signal tokens for sale" do
         pure unit
