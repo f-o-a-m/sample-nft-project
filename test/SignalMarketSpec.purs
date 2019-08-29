@@ -18,6 +18,8 @@ import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Class (liftEffect)
+import Effect.Console (log)
 import Main (SignalMarket, SignalToken)
 import Network.Ethereum.Core.HexString (mkHexString)
 import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _from, _gas, _to, defaultTransactionOptions, embed, fromByteString, mkAddress, uIntNFromBigNumber, unUIntN)
@@ -161,7 +163,52 @@ spec { provider
         foamTokenAddr `shouldEqual` foamToken
         signalTokenAddr `shouldEqual` signalTokenAddr
 
-      pending' "can list signal tokens for sale" do
+      it "can list signal tokens for sale" do
+        -- @NOTE: approve a signal token for transfer to SignalMarket contract
+        -- SignalToken.approve :: TransactionOptions NoPay -> { _to :: Address, _tokenId :: (UIntN (D2 :& D5 :& DOne D6)) } -> Web3 HexString
+
+        -- SignalMarket.forSale :: TransactionOptions NoPay -> { _tokenId :: (UIntN (D2 :& D5 :& DOne D6)), _price :: (UIntN (D2 :& D5 :& DOne D6)) } -> Web3 HexString
+        -- newtype SignalForSale = SignalForSale {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6)),saleId :: (UIntN (D2 :& D5 :& DOne D6))}
+
+        -- signalToSale :: TransactionOptions NoPay -> ChainCursor -> (UIntN (D2 :& D5 :& DOne D6)) -> Web3 (Either CallError (UIntN (D2 :& D5 :& DOne D6)))
+
+        let txOpts = defaultTransactionOptions # _from ?~ account1
+                                               # _gas ?~ embed 8000000
+            approvalAmount = mkUIntN s256 100
+            approveAction =
+              FoamToken.approve (txOpts # _to ?~ foamToken)
+                                { _spender: signalToken
+                                , _value: approvalAmount
+                                }
+            geohash = mkBytesN s32 "420"
+            radius = mkUIntN s256 10
+            stake = mkUIntN s256 1
+            owner = account1
+            mintAction =
+              SignalToken.mintSignal (txOpts # _to ?~ signalToken)
+                                     { owner, stake, geohash, radius }
+            signalApproveAction _tokenId =
+              SignalToken.approve (txOpts # _to ?~ signalToken)
+                                  { _to: signalMarket, _tokenId }
+            forSaleAction _tokenId =
+              SignalMarket.forSale (txOpts # _to ?~ signalMarket)
+                                   { _tokenId, _price: mkUIntN s256 200 }
+
+        -- approve some foam
+        foamApproveHash <- assertWeb3 provider approveAction
+        awaitTxSuccess foamApproveHash provider
+        -- then mint a new signal token
+        Tuple _ (SignalToken.TrackedToken token) <- assertWeb3 provider $
+          takeEvent (Proxy :: Proxy SignalToken.TrackedToken) signalToken mintAction
+        -- approve minted signal for signal market
+        signalApproveHash <- assertWeb3 provider $ signalApproveAction token.tokenID
+        awaitTxSuccess signalApproveHash provider
+        -- mark signal as for sale
+        -- Tuple _ (SignalMarket.SignalForSale sale) <- assertWeb3 provider $
+        --   takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket (forSaleAction token.tokenID)
+        saleHash <- assertWeb3 provider (forSaleAction token.tokenID)
+        awaitTxSuccess saleHash provider
+        liftEffect <<< log $ show saleHash
         pure unit
 
       pending' "can buy signal tokens" do
