@@ -7,18 +7,17 @@ import "openzeppelin-solidity/contracts/token/ERC721/ERC721Holder.sol";
 contract SignalMarket is ERC721Holder {
 
   struct Sale {
-    uint256 signalId;
+    uint256 tokenId;
     uint256 price;
     address owner;
   }
 
-  Sale[] public sales;
   FoamToken public foamToken;
   SignalToken public signalToken;
 
-  mapping(uint256 => uint256) public signalToSale;
+  mapping(uint256 => Sale) public signalToSale;
 
-  event SignalForSale(uint256 signalId, uint256 price, uint256 saleId);
+  event SignalForSale(uint256 signalId, uint256 price);
 
   constructor(address _signalToken, address _foamToken) public {
     // these are basically type conversions; they are _not_ constructors
@@ -33,23 +32,20 @@ contract SignalMarket is ERC721Holder {
     // Check for caller ownership
     require(signalToken.ownerOf(_tokenId) == msg.sender);
 
-    // given ownership to SignalMarket
+    // give ownership to SignalMarket
     signalToken.safeTransferFrom(msg.sender, address(this), _tokenId);
 
     // create sale struct
     Sale memory s = Sale({
-      signalId: _tokenId,
+      tokenId: _tokenId,
       price: _price,
       owner: msg.sender
     });
 
-    // make saleId
-    uint256 saleId = sales.push(s) - 1;
-
-    signalToSale[_tokenId] = saleId;
+    signalToSale[_tokenId] = s;
 
     // emit new sale
-    emit SignalForSale(_tokenId, _price, saleId);
+    emit SignalForSale(_tokenId, _price);
   }
 
   /* function buy(uint256 tokenID, uint256 payment) public { */

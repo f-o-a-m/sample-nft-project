@@ -39,16 +39,16 @@ constructor x0 bc r = uncurryFields  r $ constructor' x0 bc
 --------------------------------------------------------------------------------
 
 
-newtype SignalForSale = SignalForSale {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6)),saleId :: (UIntN (D2 :& D5 :& DOne D6))}
+newtype SignalForSale = SignalForSale {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6))}
 
 derive instance newtypeSignalForSale :: Newtype SignalForSale _
 
 instance eventFilterSignalForSale :: EventFilter SignalForSale where
 	eventFilter _ addr = defaultFilter
 		# _address .~ Just addr
-		# _topics .~ Just [Just ( unsafePartial $ fromJust $ mkHexString "f9e67756bf381d7d896f3a05c6b13c39bbe9bd264cc0ae3edc9b9e0ccdb76a36")]
+		# _topics .~ Just [Just ( unsafePartial $ fromJust $ mkHexString "3f703ec6164447ab69dade32a14d88d3d0f02b71dcf5a037a126207bc57f1482")]
 
-instance indexedEventSignalForSale :: IndexedEvent (Tuple0 ) (Tuple3 (Tagged (SProxy "signalId") (UIntN (D2 :& D5 :& DOne D6))) (Tagged (SProxy "price") (UIntN (D2 :& D5 :& DOne D6))) (Tagged (SProxy "saleId") (UIntN (D2 :& D5 :& DOne D6)))) SignalForSale where
+instance indexedEventSignalForSale :: IndexedEvent (Tuple0 ) (Tuple2 (Tagged (SProxy "signalId") (UIntN (D2 :& D5 :& DOne D6))) (Tagged (SProxy "price") (UIntN (D2 :& D5 :& DOne D6)))) SignalForSale where
   isAnonymous _ = false
 
 derive instance genericSignalForSale :: Generic SignalForSale _
@@ -93,24 +93,14 @@ onERC721Received :: TransactionOptions NoPay -> Address -> Address -> (UIntN (D2
 onERC721Received x0 x1 x2 x3 x4 = sendTx x0 ((tagged $ Tuple4 x1 x2 x3 x4) :: OnERC721ReceivedFn)
 
 --------------------------------------------------------------------------------
--- | SalesFn
---------------------------------------------------------------------------------
-
-
-type SalesFn = Tagged (SProxy "sales(uint256)") (Tuple1 (UIntN (D2 :& D5 :& DOne D6)))
-
-sales :: TransactionOptions NoPay -> ChainCursor -> (UIntN (D2 :& D5 :& DOne D6)) -> Web3 (Either CallError (Tuple3 (UIntN (D2 :& D5 :& DOne D6)) (UIntN (D2 :& D5 :& DOne D6)) Address))
-sales x0 cm x2 = call x0 cm ((tagged $ Tuple1 x2) :: SalesFn)
-
---------------------------------------------------------------------------------
 -- | SignalToSaleFn
 --------------------------------------------------------------------------------
 
 
 type SignalToSaleFn = Tagged (SProxy "signalToSale(uint256)") (Tuple1 (UIntN (D2 :& D5 :& DOne D6)))
 
-signalToSale :: TransactionOptions NoPay -> ChainCursor -> (UIntN (D2 :& D5 :& DOne D6)) -> Web3 (Either CallError (UIntN (D2 :& D5 :& DOne D6)))
-signalToSale x0 cm x2 = map unTuple1 <$> call x0 cm ((tagged $ Tuple1 x2) :: SignalToSaleFn)
+signalToSale :: TransactionOptions NoPay -> ChainCursor -> (UIntN (D2 :& D5 :& DOne D6)) -> Web3 (Either CallError (Tuple3 (UIntN (D2 :& D5 :& DOne D6)) (UIntN (D2 :& D5 :& DOne D6)) Address))
+signalToSale x0 cm x2 = call x0 cm ((tagged $ Tuple1 x2) :: SignalToSaleFn)
 
 --------------------------------------------------------------------------------
 -- | SignalTokenFn

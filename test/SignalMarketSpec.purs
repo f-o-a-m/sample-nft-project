@@ -201,17 +201,18 @@ spec { provider
         -- then mint a new signal token
         Tuple _ (SignalToken.TrackedToken token) <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy SignalToken.TrackedToken) signalToken mintAction
-        liftEffect <<< log $ "Signal Minted"
+        liftEffect <<< log $ "Signal Minted w/ Token ID: " <> show token.tokenID
         -- approve minted signal for signal market
         signalApproveHash <- assertWeb3 provider $ signalApproveAction token.tokenID
         awaitTxSuccess signalApproveHash provider
         liftEffect <<< log $ "Signal Token Approved"
-        -- mark signal as for sale
+        -- -- mark signal as for sale
         -- Tuple _ (SignalMarket.SignalForSale sale) <- assertWeb3 provider $
         --   takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket (forSaleAction token.tokenID)
-        saleHash <- assertWeb3 provider (forSaleAction token.tokenID)
-        awaitTxSuccess saleHash provider
-        liftEffect <<< log $ show saleHash
+        -- -- check hash
+        -- saleHash <- assertWeb3 provider (forSaleAction token.tokenID)
+        -- awaitTxSuccess saleHash provider
+        -- liftEffect <<< log $ show saleHash
         pure unit
 
       pending' "can buy signal tokens" do
