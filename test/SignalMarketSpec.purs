@@ -120,48 +120,48 @@ spec { provider
                      FoamToken.balanceOf txOpts Latest { _owner: account2 }
         unUIntN a1balance `shouldSatisfy` (_ > zero)
         unUIntN a2balance `shouldSatisfy` (_ > zero)
-      -- you need to approve some tokens before this
-      -- then use mint
-      it "can make a signal token (ERC-721)" do
-        -- approval process
-        -- @NOTE: `_gas` sets the max amount the user is willing to pay
-        let txOpts = defaultTransactionOptions # _to ?~ foamToken
-                                               # _from ?~ account1
-                                               # _gas ?~ embed 8000000
-            approvalAmount = mkUIntN s256 100
-            approveAction = FoamToken.approve txOpts { _spender: signalToken
-                                                     , _value: approvalAmount
-                                                     }
-        Tuple _ (FoamToken.Approval appr) <- assertWeb3 provider $
-          takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
-        appr.value `shouldEqual` approvalAmount
-        -- minting process
-        let geohash = mkBytesN s32 "420"
-            radius = mkUIntN s256 10
-            stake = mkUIntN s256 1
-            owner = account1
-            mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
-                                                { owner, stake, geohash, radius }
-        -- SignalToken.Transfer
-        -- @TODO: figure out how to get both the transfer and `TrackedToken` event
-        Tuple _ (SignalToken.Transfer trx) <- assertWeb3 provider $
-          takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
-        -- verify ownership/transfer
-        trx._to `shouldEqual` owner
-        -- a newly minted signal is always from the `zeroAddr`
-        trx._from `shouldEqual` zeroAddr
-      -- @NOTE: at this point all contracts are already deployed
-      -- to test for a successfully deployed contract, verify that
-      -- all global get functions are pointed to the correct contract addresses
-      it "can verify the signal market is deployed" do
-        let txOpts = defaultTransactionOptions # _to ?~ signalMarket
-        -- global constructor calls
-        foamTokenAddr <- assertStorageCall provider $
-                         SignalMarket.foamToken txOpts Latest
-        signalTokenAddr <- assertStorageCall provider $
-                           SignalMarket.signalToken txOpts Latest
-        foamTokenAddr `shouldEqual` foamToken
-        signalTokenAddr `shouldEqual` signalTokenAddr
+      -- -- you need to approve some tokens before this
+      -- -- then use mint
+      -- it "can make a signal token (ERC-721)" do
+      --   -- approval process
+      --   -- @NOTE: `_gas` sets the max amount the user is willing to pay
+      --   let txOpts = defaultTransactionOptions # _to ?~ foamToken
+      --                                          # _from ?~ account1
+      --                                          # _gas ?~ embed 8000000
+      --       approvalAmount = mkUIntN s256 100
+      --       approveAction = FoamToken.approve txOpts { _spender: signalToken
+      --                                                , _value: approvalAmount
+      --                                                }
+      --   Tuple _ (FoamToken.Approval appr) <- assertWeb3 provider $
+      --     takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
+      --   appr.value `shouldEqual` approvalAmount
+      --   -- minting process
+      --   let geohash = mkBytesN s32 "420"
+      --       radius = mkUIntN s256 10
+      --       stake = mkUIntN s256 1
+      --       owner = account1
+      --       mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
+      --                                           { owner, stake, geohash, radius }
+      --   -- SignalToken.Transfer
+      --   -- @TODO: figure out how to get both the transfer and `TrackedToken` event
+      --   Tuple _ (SignalToken.Transfer trx) <- assertWeb3 provider $
+      --     takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
+      --   -- verify ownership/transfer
+      --   trx._to `shouldEqual` owner
+      --   -- a newly minted signal is always from the `zeroAddr`
+      --   trx._from `shouldEqual` zeroAddr
+      -- -- @NOTE: at this point all contracts are already deployed
+      -- -- to test for a successfully deployed contract, verify that
+      -- -- all global get functions are pointed to the correct contract addresses
+      -- it "can verify the signal market is deployed" do
+      --   let txOpts = defaultTransactionOptions # _to ?~ signalMarket
+      --   -- global constructor calls
+      --   foamTokenAddr <- assertStorageCall provider $
+      --                    SignalMarket.foamToken txOpts Latest
+      --   signalTokenAddr <- assertStorageCall provider $
+      --                      SignalMarket.signalToken txOpts Latest
+      --   foamTokenAddr `shouldEqual` foamToken
+      --   signalTokenAddr `shouldEqual` signalTokenAddr
 
       it "can list signal tokens for sale" do
         -- @NOTE: approve a signal token for transfer to SignalMarket contract
@@ -197,12 +197,15 @@ spec { provider
         -- approve some foam
         foamApproveHash <- assertWeb3 provider approveAction
         awaitTxSuccess foamApproveHash provider
+        liftEffect <<< log $ "Approved Foam"
         -- then mint a new signal token
         Tuple _ (SignalToken.TrackedToken token) <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy SignalToken.TrackedToken) signalToken mintAction
+        liftEffect <<< log $ "Signal Minted"
         -- approve minted signal for signal market
         signalApproveHash <- assertWeb3 provider $ signalApproveAction token.tokenID
         awaitTxSuccess signalApproveHash provider
+        liftEffect <<< log $ "Signal Token Approved"
         -- mark signal as for sale
         -- Tuple _ (SignalMarket.SignalForSale sale) <- assertWeb3 provider $
         --   takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket (forSaleAction token.tokenID)
