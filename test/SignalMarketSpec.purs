@@ -4,7 +4,6 @@ import Prelude
 
 import Chanterelle.Internal.Deploy (DeployReceipt)
 import Chanterelle.Internal.Types (NoArgs)
-import Chanterelle.Internal.Utils.Web3 (pollTransactionReceipt)
 import Chanterelle.Test (TestConfig, assertWeb3, takeEvent)
 import Contracts.FoamToken as FoamToken
 import Contracts.SignalMarket as SignalMarket
@@ -19,7 +18,7 @@ import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
-import Effect.Console (log)
+import Effect.Class.Console (log)
 import Main (SignalMarket, SignalToken)
 import Network.Ethereum.Core.HexString (mkHexString)
 import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _from, _gas, _to, defaultTransactionOptions, embed, fromByteString, mkAddress, uIntNFromBigNumber, unUIntN)
@@ -28,19 +27,12 @@ import Partial.Unsafe (unsafeCrashWith, unsafePartial, unsafePartialBecause)
 import Test.Spec (SpecT, beforeAll_, describe, it, pending')
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
 import Type.Proxy (Proxy(..))
+import Utils (awaitTxSuccess)
 
 unsafeFromJust :: forall a. String -> Maybe a -> a
 unsafeFromJust msg = case _ of
   Nothing -> unsafeCrashWith $ "unsafeFromJust: " <> msg
   Just a -> a
-
--- @TODO: make an issue to add this to chanterelle (Chanterelle.Test module)
-awaitTxSuccess :: HexString -> Provider -> Aff Unit
-awaitTxSuccess txHash provider = do
-  TransactionReceipt txReceipt <- pollTransactionReceipt txHash provider
-  case txReceipt.status of
-    Succeeded -> pure unit
-    Failed -> unsafeCrashWith $ "Transaction Failed w/ hash " <> show txHash
 
 assertStorageCall
   :: forall m a.
@@ -107,6 +99,8 @@ spec { provider
                    mkAddress =<< mkHexString "0x0000000000000000000000000000000000000000"
         account1 = unsafePartial $ fromJust $ accounts !! 1
         account2 = unsafePartial $ fromJust $ accounts !! 2
+        txOpts1 = defaultTransactionOptions # _from ?~ account1
+                                            # _gas ?~ embed 8000000
     beforeAll_ (do
         flip parTraverse_ [account1, account2] \recipient -> do
           txHash <- assertWeb3 provider $ faucet { recipient, foamToken, tokenFaucet }
@@ -172,11 +166,9 @@ spec { provider
 
         -- signalToSale :: TransactionOptions NoPay -> ChainCursor -> (UIntN (D2 :& D5 :& DOne D6)) -> Web3 (Either CallError (UIntN (D2 :& D5 :& DOne D6)))
 
-        let txOpts = defaultTransactionOptions # _from ?~ account1
-                                               # _gas ?~ embed 8000000
-            approvalAmount = mkUIntN s256 100
+        let approvalAmount = mkUIntN s256 100
             approveAction =
-              FoamToken.approve (txOpts # _to ?~ foamToken)
+              FoamToken.approve (txOpts1 # _to ?~ foamToken)
                                 { _spender: signalToken
                                 , _value: approvalAmount
                                 }
@@ -185,34 +177,40 @@ spec { provider
             stake = mkUIntN s256 1
             owner = account1
             mintAction =
-              SignalToken.mintSignal (txOpts # _to ?~ signalToken)
-                                     { owner, stake, geohash, radius }
+              SignalToken.mintSignal (txOpts1 # _to ?~ signalToken) { owner
+                                                                    , stake
+                                                                    , geohash
+                                                                    , radius
+                                                                    }
             signalApproveAction _tokenId =
-              SignalToken.approve (txOpts # _to ?~ signalToken)
-                                  { _to: signalMarket, _tokenId }
+              SignalToken.approve (txOpts1 # _to ?~ signalToken) { _to: signalMarket
+                                                                 , _tokenId
+                                                                 }
             forSaleAction _tokenId =
-              SignalMarket.forSale (txOpts # _to ?~ signalMarket)
-                                   { _tokenId, _price: mkUIntN s256 200 }
+              SignalMarket.forSale (txOpts1 # _to ?~ signalMarket) { _tokenId
+                                                                   , _price: mkUIntN s256 200
+                                                                   }
 
         -- approve some foam
-        foamApproveHash <- assertWeb3 provider approveAction
-        awaitTxSuccess foamApproveHash provider
-        liftEffect <<< log $ "Approved Foam"
+        Tuple _ approval <- assertWeb3 provider $
+          takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
+        log $ "Approved Foam: " <> show approval
+
         -- then mint a new signal token
-        Tuple _ (SignalToken.TrackedToken token) <- assertWeb3 provider $
+        Tuple _ tt@(SignalToken.TrackedToken token) <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy SignalToken.TrackedToken) signalToken mintAction
-        liftEffect <<< log $ "Signal Minted w/ Token ID: " <> show token.tokenID
+        log $ "Signal Minted: " <> show tt
+
         -- approve minted signal for signal market
-        signalApproveHash <- assertWeb3 provider $ signalApproveAction token.tokenID
-        awaitTxSuccess signalApproveHash provider
-        liftEffect <<< log $ "Signal Token Approved"
+        Tuple _ signalApproval <- assertWeb3 provider $
+          takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction token.tokenID
+        log $ "Signal Token Approved: " <> show signalApproval
+
         -- -- mark signal as for sale
-        -- Tuple _ (SignalMarket.SignalForSale sale) <- assertWeb3 provider $
-        --   takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket (forSaleAction token.tokenID)
-        -- -- check hash
-        -- saleHash <- assertWeb3 provider (forSaleAction token.tokenID)
-        -- awaitTxSuccess saleHash provider
-        -- liftEffect <<< log $ show saleHash
+        Tuple _ sale <- assertWeb3 provider $
+           takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket (forSaleAction token.tokenID)
+        -- check hash
+        log $ "Signal for Sale: " <> show sale
         pure unit
 
       pending' "can buy signal tokens" do

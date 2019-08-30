@@ -3,9 +3,10 @@
     "version": "0.0.1",
     "source-dir": "contracts",
     "modules": [ "SimpleStorage"
-	             , "SignalMarket"
+	       , "SignalMarket"
                , "FoamToken"
                , "SignalToken"
+               , "TokenControllerMock"
                ],
     "dependencies": [ "openzeppelin-solidity"
                     , "erc20-tokens"
