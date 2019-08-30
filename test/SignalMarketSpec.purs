@@ -167,6 +167,7 @@ spec { provider
             radius = mkUIntN s256 10
             stake = mkUIntN s256 1
             owner = account1
+            _price = mkUIntN s256 200
             mintAction =
               SignalToken.mintSignal (txOpts1 # _to ?~ signalToken) { owner
                                                                     , stake
@@ -179,29 +180,31 @@ spec { provider
                                                                  }
             forSaleAction _tokenId =
               SignalMarket.forSale (txOpts1 # _to ?~ signalMarket) { _tokenId
-                                                                   , _price: mkUIntN s256 200
+                                                                   , _price
                                                                    }
 
         -- approve some foam
         Tuple _ approval <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
-        log $ "Approved Foam: " <> show approval
+        -- log $ "Approved Foam: " <> show approval
 
         -- then mint a new signal token
         Tuple _ tt@(SignalToken.TrackedToken token) <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy SignalToken.TrackedToken) signalToken mintAction
-        log $ "Signal Minted: " <> show tt
+        -- log $ "Signal Minted: " <> show tt
 
         -- approve minted signal for signal market
         Tuple _ signalApproval <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction token.tokenID
-        log $ "Signal Token Approved: " <> show signalApproval
+        -- log $ "Signal Token Approved: " <> show signalApproval
 
         -- mark signal as for sale
-        Tuple _ sale <- assertWeb3 provider $
+        Tuple _ sale@(SignalMarket.SignalForSale s) <- assertWeb3 provider $
            takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket (forSaleAction token.tokenID)
-        log $ "Signal for Sale: " <> show sale
-        pure unit
+        -- log $ "Signal for Sale: " <> show sale
+        -- check price and Id value
+        s.price `shouldEqual` _price
+        s.signalId `shouldEqual` token.tokenID
 
       pending' "can buy signal tokens" do
         pure unit
