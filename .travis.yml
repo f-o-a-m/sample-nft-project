@@ -10,6 +10,7 @@ install:
   - npm install
 script:
   - bower install
+  - pulp build --src-path contracts
   - npm run compile-contracts
   - npm run build
   - docker run -d -p 8545:8545 foamspace/cliquebait:latest
