@@ -17,11 +17,10 @@ import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
 import Main (SignalMarket, SignalToken)
 import Network.Ethereum.Core.HexString (mkHexString)
-import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _from, _gas, _to, defaultTransactionOptions, embed, fromByteString, mkAddress, uIntNFromBigNumber, unUIntN)
+import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, UIntN, Web3, _from, _gas, _to, defaultTransactionOptions, embed, fromByteString, mkAddress, uIntNFromBigNumber, unUIntN)
 import Network.Ethereum.Web3.Solidity.Sizes (s256, s32)
 import Partial.Unsafe (unsafeCrashWith, unsafePartial, unsafePartialBecause)
 import Test.Spec (SpecT, beforeAll_, describe, it, pending')
@@ -158,14 +157,6 @@ spec { provider
       --   signalTokenAddr `shouldEqual` signalTokenAddr
 
       it "can list signal tokens for sale" do
-        -- @NOTE: approve a signal token for transfer to SignalMarket contract
-        -- SignalToken.approve :: TransactionOptions NoPay -> { _to :: Address, _tokenId :: (UIntN (D2 :& D5 :& DOne D6)) } -> Web3 HexString
-
-        -- SignalMarket.forSale :: TransactionOptions NoPay -> { _tokenId :: (UIntN (D2 :& D5 :& DOne D6)), _price :: (UIntN (D2 :& D5 :& DOne D6)) } -> Web3 HexString
-        -- newtype SignalForSale = SignalForSale {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6)),saleId :: (UIntN (D2 :& D5 :& DOne D6))}
-
-        -- signalToSale :: TransactionOptions NoPay -> ChainCursor -> (UIntN (D2 :& D5 :& DOne D6)) -> Web3 (Either CallError (UIntN (D2 :& D5 :& DOne D6)))
-
         let approvalAmount = mkUIntN s256 100
             approveAction =
               FoamToken.approve (txOpts1 # _to ?~ foamToken)
@@ -206,10 +197,9 @@ spec { provider
           takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction token.tokenID
         log $ "Signal Token Approved: " <> show signalApproval
 
-        -- -- mark signal as for sale
+        -- mark signal as for sale
         Tuple _ sale <- assertWeb3 provider $
            takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket (forSaleAction token.tokenID)
-        -- check hash
         log $ "Signal for Sale: " <> show sale
         pure unit
 
