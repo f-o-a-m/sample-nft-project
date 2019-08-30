@@ -6,7 +6,7 @@ services:
   - docker
 install:
   - npm install -g bower
-  - npm install f-o-a-m/chanterelle
+  - npm install -g f-o-a-m/chanterelle
   - npm install
 script:
   - bower install
