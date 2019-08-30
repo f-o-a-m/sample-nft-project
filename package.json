@@ -10,9 +10,10 @@
     },
     "main": "index.js",
     "scripts": {
+        "compile-contracts": "chanterelle compile; chanterelle codegen",
+        "deploy": "npm run compile-contracts; chanterelle deploy ./output/Main/index.js",
         "test": "pulp test",
-        "deploy": "npm run build; chanterelle deploy ./output/Main/index.js",
-        "build": "chanterelle compile; chanterelle codegen; pulp build"
+        "build": "pulp build"
     },
     "author": "",
     "license": "ISC",
