@@ -4,16 +4,20 @@ import Prelude
 
 import Chanterelle.Deploy (deployContract)
 import Chanterelle.Internal.Deploy (DeployReceipt)
-import Chanterelle.Internal.Types (DeployM, DeployConfig(..), ContractConfig, NoArgs, noArgs, constructorNoArgs)
+import Chanterelle.Internal.Types (DeployM, DeployConfig(..), ContractConfig, NoArgs, noArgs, constructorNoArgs, throwDeploy)
 import Control.Monad.Reader.Class (ask)
-import Data.Lens ((?~))
+import Data.Either (Either(..))
+import Data.Lens ((?~), (^?))
 import Data.Maybe (fromJust)
+import Effect.Aff.Class (liftAff)
+import Effect.Exception (error)
 import Network.Ethereum.Core.BigNumber (decimal, parseBigNumber)
-import Network.Ethereum.Web3 (Address, _from, _gas, defaultTransactionOptions)
+import Network.Ethereum.Web3 (Address, _from, _gas, _to, defaultTransactionOptions, runWeb3)
 import Contracts.SignalMarket as SignalMarket
-import Contracts.SignalToken as SignalToken
-
+import Utils (awaitTxSuccess)
 import Partial.Unsafe (unsafePartial)
+import Contracts.FoamToken as FoamToken
+import Contracts.SignalToken as SignalToken
 
 deploy :: DeployM Unit
 deploy = void deployScript
@@ -36,6 +40,15 @@ foamTokenConfig =
   , name: "FoamToken"
   , constructor : constructorNoArgs
   , unvalidatedArgs : noArgs
+  }
+
+tokenControllerMockConfig :: ContractConfig NoArgs
+tokenControllerMockConfig = 
+  { filepath: "./build/TokenControllerMock.json"
+  , name: "TokenControllerMock"
+  , constructor : constructorNoArgs
+  , unvalidatedArgs : noArgs
+
   }
 
 -- when constructor has arguments
@@ -80,12 +93,34 @@ deployScript = do
   let bigGasLimit = unsafePartial fromJust $ parseBigNumber decimal "4712388"
       txOpts = defaultTransactionOptions # _from ?~ primaryAccount
                                          # _gas ?~ bigGasLimit
+  -- deploy simple storage
   simpleStorage <- deployContract txOpts simpleStorageConfig
+  -- deploy the mock token controller
+  controller <- deployContract txOpts tokenControllerMockConfig
+  -- deploy the FoamToken contract and set the controller
   foamToken <- deployContract txOpts foamTokenConfig
-  signalToken <- deployContract txOpts $
-                 makeSignalTokenConfig { _token: foamToken.deployAddress }
+  let setControllerFTOpts = txOpts # _to ?~ foamToken.deployAddress
+  setControllerFT provider setControllerFTOpts controller.deployAddress
+  -- deploy the SignalToken contract and set the controller
+  let signalTokenCfg = makeSignalTokenConfig { _token: foamToken.deployAddress }
+  signalToken <- deployContract txOpts signalTokenCfg
+  let setControllerSignalOpts = txOpts # _to ?~ signalToken.deployAddress
+  setControllerSignal provider setControllerSignalOpts controller.deployAddress
+  -- deploy the SignalMarket contract
   signalMarket <- deployContract txOpts $
                   makeSignalMarketConfig { _signalToken: signalToken.deployAddress
                                          , _foamToken: foamToken.deployAddress
                                          }
   pure { simpleStorage, foamToken, signalToken, signalMarket, tokenFaucet: primaryAccount }
+    where
+      assertControllerSet provider addr action = do
+        eRes <- liftAff $ runWeb3 provider action
+        case eRes of
+          Left _ -> throwDeploy $ error $ "Unable to set token controller for contract " <> show addr
+          Right _ -> pure unit
+      setControllerFT provider opts _controller = assertControllerSet provider (opts ^? _to) do
+        txHash <- FoamToken.setController opts {_controller}
+        liftAff $ awaitTxSuccess txHash provider
+      setControllerSignal provider opts _controller = assertControllerSet provider (opts ^? _to) do
+        txHash <- SignalToken.setController opts {_controller}
+        liftAff $ awaitTxSuccess txHash provider

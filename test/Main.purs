@@ -9,6 +9,7 @@ import Data.Maybe (Maybe(..))
 import Main (deployScript)
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (runSpecT, defaultConfig)
+import Debug.Trace (traceM)
 
 import SignalMarketSpec as SignalMarketSpec
 
@@ -16,6 +17,7 @@ import SignalMarketSpec as SignalMarketSpec
 main :: Effect Unit
 main = void <<< launchAff $ do
   testConfig <- buildTestConfig "http://localhost:8545" 60 deployScript
-  let specConfig = defaultConfig {timeout = Just (Milliseconds $ 60.0 * 1000.0)}
+  traceM testConfig
+  let specConfig = defaultConfig {timeout = Just (Milliseconds $ 120.0 * 1000.0)}
   join $ runSpecT specConfig [consoleReporter] do
     SignalMarketSpec.spec testConfig
