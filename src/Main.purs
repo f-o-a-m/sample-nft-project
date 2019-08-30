@@ -100,12 +100,12 @@ deployScript = do
   -- deploy the FoamToken contract and set the controller
   foamToken <- deployContract txOpts foamTokenConfig
   let setControllerFTOpts = txOpts # _to ?~ foamToken.deployAddress
-  setControllerFT provider setControllerFTOpts controller.deployAddress
+  setControllerFn FoamToken.setController provider setControllerFTOpts controller.deployAddress
   -- deploy the SignalToken contract and set the controller
   let signalTokenCfg = makeSignalTokenConfig { _token: foamToken.deployAddress }
   signalToken <- deployContract txOpts signalTokenCfg
   let setControllerSignalOpts = txOpts # _to ?~ signalToken.deployAddress
-  setControllerSignal provider setControllerSignalOpts controller.deployAddress
+  setControllerFn SignalToken.setController provider setControllerSignalOpts controller.deployAddress
   -- deploy the SignalMarket contract
   signalMarket <- deployContract txOpts $
                   makeSignalMarketConfig { _signalToken: signalToken.deployAddress
@@ -118,9 +118,6 @@ deployScript = do
         case eRes of
           Left _ -> throwDeploy $ error $ "Unable to set token controller for contract " <> show addr
           Right _ -> pure unit
-      setControllerFT provider opts _controller = assertControllerSet provider (opts ^? _to) do
-        txHash <- FoamToken.setController opts {_controller}
-        liftAff $ awaitTxSuccess txHash provider
-      setControllerSignal provider opts _controller = assertControllerSet provider (opts ^? _to) do
-        txHash <- SignalToken.setController opts {_controller}
+      setControllerFn setTokenFn provider opts _controller = assertControllerSet provider (opts ^? _to) do
+        txHash <- setTokenFn opts {_controller}
         liftAff $ awaitTxSuccess txHash provider
