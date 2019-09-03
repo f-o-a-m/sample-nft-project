@@ -17,17 +17,18 @@ import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect.Class.Console (log)
 import Main (SignalMarket, SignalToken)
-import Network.Ethereum.Core.HexString (HexString, mkHexString)
-import Network.Ethereum.Web3 (class KnownSize, Address, BigNumber, BytesN, CallError, ChainCursor(..), DLProxy, Ether, HexString, Provider, UIntN, Value, Web3, _from, _gas, _to, _value, convert, defaultTransactionOptions, embed, fromByteString, mkAddress, mkValue, uIntNFromBigNumber, unUIntN)
+import Network.Ethereum.Core.HexString (mkHexString)
+import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, Ether, HexString, Provider, UIntN, Value, Web3, _from, _gas, _to, _value, convert, defaultTransactionOptions, embed, fromByteString, mkAddress, mkValue, uIntNFromBigNumber, unUIntN)
 import Network.Ethereum.Web3.Api (eth_sendTransaction)
 import Network.Ethereum.Web3.Solidity.Sizes (s256, s32)
 import Partial.Unsafe (unsafeCrashWith, unsafePartial, unsafePartialBecause)
-import Test.Spec (SpecT, beforeAll_, describe, it, pending')
+import Test.Spec (SpecT, beforeAll_, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
 import Type.Proxy (Proxy(..))
 import Utils (awaitTxSuccess)
+
+-- import Effect.Class.Console (log)
 
 unsafeFromJust :: forall a. String -> Maybe a -> a
 unsafeFromJust msg = case _ of
@@ -111,6 +112,7 @@ spec { provider
         txOpts1 = defaultTransactionOptions # _from ?~ account1
                                             # _gas ?~ embed 8000000
         txOpts2 = defaultTransactionOptions # _from ?~ account2
+                                            # _value ?~ convert (mkValue one :: Value Ether)
                                             # _gas ?~ embed 8000000
 
     beforeAll_ (do
@@ -120,7 +122,8 @@ spec { provider
           awaitTxSuccess txHash provider
         -- give one ETH to account2
         txHash <- assertWeb3 provider $ ethFaucetOne { recipient: account2
-                                                     , tokenFaucet }
+                                                     , tokenFaucet
+                                                     }
         awaitTxSuccess txHash provider
       ) $ do
       it "can run the faucet" do
@@ -131,6 +134,7 @@ spec { provider
                      FoamToken.balanceOf txOpts Latest { _owner: account2 }
         unUIntN a1balance `shouldSatisfy` (_ > zero)
         unUIntN a2balance `shouldSatisfy` (_ > zero)
+        -- @TODO: check acc2 ETH balance
       -- -- you need to approve some tokens before this
       -- -- then use mint
       -- it "can make a signal token (ERC-721)" do
@@ -203,8 +207,8 @@ spec { provider
                                                                    }
 
             -- @NOTE: this doesn't work
-            -- acc2BuyAction _tokenId =
-            --   SignalMarket.buy (txOpts2 # _to ?~ signalMarket) { _tokenId }
+            acc2BuyAction _tokenId =
+              SignalMarket.buy (txOpts2 # _to ?~ signalMarket) { _tokenId }
 
         -- approve some foam for account1
         Tuple _ approval1 <- assertWeb3 provider $
@@ -229,11 +233,12 @@ spec { provider
         s.price `shouldEqual` _price
         s.signalId `shouldEqual` token.tokenID
 
-        -- @NOTE: this needs to approve ETH?
-        -- Tuple _ approval2 <- assertWeb3 provider $
-        --   takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken $ approveAction txOpts2
-
         -- make account2 buy the signal from account1
-        -- Tuple _ sold <- assertWeb3 provider $
-        --   takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction token.tokenID
-        pure unit
+        Tuple _ sold@(SignalMarket.SignalSold purchase) <- assertWeb3 provider $
+          takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction token.tokenID
+        -- log $ "Signal sold: " <> show sold
+        -- check sale details and transfer of ownership
+        purchase.signalId `shouldEqual` token.tokenID
+        purchase.price `shouldEqual` mkUIntN s256 1
+        purchase.owner `shouldEqual` account1
+        purchase.newOwner `shouldEqual` account2
