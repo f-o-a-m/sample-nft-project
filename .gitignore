@@ -3,3 +3,4 @@ bower_components
 output
 build
 src/Contracts
+package-lock.json
