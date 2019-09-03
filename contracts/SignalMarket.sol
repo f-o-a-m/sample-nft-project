@@ -18,6 +18,7 @@ contract SignalMarket is ERC721Holder {
   mapping(uint256 => Sale) public signalToSale;
 
   event SignalForSale(uint256 signalId, uint256 price);
+  event SignalSold(uint256 signalId, uint256 price, address owner, address newOwner);
 
   constructor(address _signalToken, address _foamToken) public {
     // these are basically type conversions; they are _not_ constructors
@@ -48,10 +49,29 @@ contract SignalMarket is ERC721Holder {
     emit SignalForSale(_tokenId, _price);
   }
 
-  /* function buy(uint256 tokenID, uint256 payment) public { */
-  /*   // some sort of owner transfer via the SignalToken.transfer? */
-  /*   // if token is for sale, the token should already be approved */
-  /*   // for working in this contract */
-  /* } */
+  function buy(uint256 _tokenId) public payable {
+    // some sort of owner transfer via the SignalToken.transfer?
+    // if token is for sale, the token should already be approved
+    // for working in this contract
+    Sale storage s = signalToSale[_tokenId];
 
+    // check payment
+    require(msg.value >= s.price);
+
+    uint256 refund = msg.value - s.price;
+    if(refund > 0)
+      msg.sender.transfer(refund);
+
+    // get money
+    s.owner.transfer(s.price);
+
+    emit SignalSold(s.tokenId, s.price, s.owner, msg.sender);
+
+    // transfer signal token
+    signalToken.approve(msg.sender, s.tokenId);
+    signalToken.safeTransferFrom(address(this), msg.sender, s.tokenId);
+
+    // unmark sale
+    delete signalToSale[s.tokenId];
+  }
 }
