@@ -19,8 +19,9 @@ import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class.Console (log)
 import Main (SignalMarket, SignalToken)
-import Network.Ethereum.Core.HexString (mkHexString)
-import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, HexString, Provider, UIntN, Web3, _from, _gas, _to, defaultTransactionOptions, embed, fromByteString, mkAddress, uIntNFromBigNumber, unUIntN)
+import Network.Ethereum.Core.HexString (HexString, mkHexString)
+import Network.Ethereum.Web3 (class KnownSize, Address, BigNumber, BytesN, CallError, ChainCursor(..), DLProxy, Ether, HexString, Provider, UIntN, Value, Web3, _from, _gas, _to, _value, convert, defaultTransactionOptions, embed, fromByteString, mkAddress, mkValue, uIntNFromBigNumber, unUIntN)
+import Network.Ethereum.Web3.Api (eth_sendTransaction)
 import Network.Ethereum.Web3.Solidity.Sizes (s256, s32)
 import Partial.Unsafe (unsafeCrashWith, unsafePartial, unsafePartialBecause)
 import Test.Spec (SpecT, beforeAll_, describe, it, pending')
@@ -77,6 +78,16 @@ faucet { recipient, foamToken, tokenFaucet } =
                                , _value: mkUIntN s256 1000000
                                }
 
+ethFaucetOne
+  :: { recipient :: Address
+     , tokenFaucet :: Address
+     }
+  -> Web3 HexString
+ethFaucetOne { recipient, tokenFaucet } =
+  eth_sendTransaction $ defaultTransactionOptions # _to ?~ recipient
+                                                  # _value ?~ convert (mkValue one :: Value Ether)
+                                                  # _from ?~ tokenFaucet
+
 spec
   :: forall r .
      TestConfig ( foamToken :: DeployReceipt NoArgs
@@ -93,17 +104,24 @@ spec { provider
      } = do
   describe "interact with signal market" do
     -- set up 2 accounts
-    -- give tokens to each of them (via faucet)
     let zeroAddr = unsafeFromJust "Must be valid Address 000..." $
                    mkAddress =<< mkHexString "0x0000000000000000000000000000000000000000"
         account1 = unsafePartial $ fromJust $ accounts !! 1
         account2 = unsafePartial $ fromJust $ accounts !! 2
         txOpts1 = defaultTransactionOptions # _from ?~ account1
                                             # _gas ?~ embed 8000000
+        txOpts2 = defaultTransactionOptions # _from ?~ account2
+                                            # _gas ?~ embed 8000000
+
     beforeAll_ (do
+        -- give FOAM tokens to each of them (via faucet)
         flip parTraverse_ [account1, account2] \recipient -> do
           txHash <- assertWeb3 provider $ faucet { recipient, foamToken, tokenFaucet }
           awaitTxSuccess txHash provider
+        -- give one ETH to account2
+        txHash <- assertWeb3 provider $ ethFaucetOne { recipient: account2
+                                                     , tokenFaucet }
+        awaitTxSuccess txHash provider
       ) $ do
       it "can run the faucet" do
         let txOpts = defaultTransactionOptions # _to ?~ foamToken
@@ -156,10 +174,10 @@ spec { provider
       --   foamTokenAddr `shouldEqual` foamToken
       --   signalTokenAddr `shouldEqual` signalTokenAddr
 
-      it "can list signal tokens for sale" do
-        let approvalAmount = mkUIntN s256 100
-            approveAction =
-              FoamToken.approve (txOpts1 # _to ?~ foamToken)
+      it "can buy/sell signal tokens" do
+        let approvalAmount = mkUIntN s256 200
+            approveAction txOpts =
+              FoamToken.approve (txOpts # _to ?~ foamToken)
                                 { _spender: signalToken
                                 , _value: approvalAmount
                                 }
@@ -167,7 +185,8 @@ spec { provider
             radius = mkUIntN s256 10
             stake = mkUIntN s256 1
             owner = account1
-            _price = mkUIntN s256 200
+            -- this is ETH price
+            _price = mkUIntN s256 1
             mintAction =
               SignalToken.mintSignal (txOpts1 # _to ?~ signalToken) { owner
                                                                     , stake
@@ -183,10 +202,14 @@ spec { provider
                                                                    , _price
                                                                    }
 
-        -- approve some foam
-        Tuple _ approval <- assertWeb3 provider $
-          takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
-        -- log $ "Approved Foam: " <> show approval
+            -- @NOTE: this doesn't work
+            -- acc2BuyAction _tokenId =
+            --   SignalMarket.buy (txOpts2 # _to ?~ signalMarket) { _tokenId }
+
+        -- approve some foam for account1
+        Tuple _ approval1 <- assertWeb3 provider $
+          takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken $ approveAction txOpts1
+        -- log $ "Account1 Approved Foam to make signal: " <> show approval1
 
         -- then mint a new signal token
         Tuple _ tt@(SignalToken.TrackedToken token) <- assertWeb3 provider $
@@ -200,11 +223,17 @@ spec { provider
 
         -- mark signal as for sale
         Tuple _ sale@(SignalMarket.SignalForSale s) <- assertWeb3 provider $
-           takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket (forSaleAction token.tokenID)
+           takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction token.tokenID
         -- log $ "Signal for Sale: " <> show sale
         -- check price and Id value
         s.price `shouldEqual` _price
         s.signalId `shouldEqual` token.tokenID
 
-      pending' "can buy signal tokens" do
+        -- @NOTE: this needs to approve ETH?
+        -- Tuple _ approval2 <- assertWeb3 provider $
+        --   takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken $ approveAction txOpts2
+
+        -- make account2 buy the signal from account1
+        -- Tuple _ sold <- assertWeb3 provider $
+        --   takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction token.tokenID
         pure unit
