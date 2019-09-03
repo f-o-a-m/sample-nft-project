@@ -10,61 +10,22 @@ import Contracts.SignalMarket as SignalMarket
 import Contracts.SignalToken as SignalToken
 import Control.Parallel (parTraverse_)
 import Data.Array ((!!))
-import Data.ByteString as BS
-import Data.Either (Either(..))
 import Data.Lens ((?~))
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (fromJust)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
-import Effect.Aff.Class (class MonadAff, liftAff)
 import Main (SignalMarket, SignalToken)
 import Network.Ethereum.Core.HexString (mkHexString)
-import Network.Ethereum.Web3 (class KnownSize, Address, BytesN, CallError, ChainCursor(..), DLProxy, Ether, HexString, Provider, UIntN, Value, Web3, _from, _gas, _to, _value, convert, defaultTransactionOptions, embed, fromByteString, mkAddress, mkValue, uIntNFromBigNumber, unUIntN)
+import Network.Ethereum.Web3 (Address, ChainCursor(..), Ether, HexString, Provider, Value, Web3, _from, _gas, _to, _value, convert, defaultTransactionOptions, embed, mkAddress, mkValue, unUIntN)
 import Network.Ethereum.Web3.Api (eth_sendTransaction)
 import Network.Ethereum.Web3.Solidity.Sizes (s256, s32)
-import Partial.Unsafe (unsafeCrashWith, unsafePartial, unsafePartialBecause)
+import Partial.Unsafe (unsafePartial)
 import Test.Spec (SpecT, beforeAll_, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
 import Type.Proxy (Proxy(..))
-import Utils (awaitTxSuccess)
+import Utils (assertStorageCall, awaitTxSuccess, mkBytesN, mkUIntN, unsafeFromJust)
 
 -- import Effect.Class.Console (log)
-
-unsafeFromJust :: forall a. String -> Maybe a -> a
-unsafeFromJust msg = case _ of
-  Nothing -> unsafeCrashWith $ "unsafeFromJust: " <> msg
-  Just a -> a
-
-assertStorageCall
-  :: forall m a.
-     MonadAff m
-  => Provider
-  -> Web3 (Either CallError a)
-  -> m a
-assertStorageCall p f = liftAff do
-  eRes <- assertWeb3 p f
-  case eRes of
-    Right x -> pure x
-    Left err -> unsafeCrashWith $
-                "expected Right in `assertStorageCall`, got error" <> show err
-
-mkUIntN
-  :: forall n.
-     KnownSize n
-  => DLProxy n
-  -> Int
-  -> UIntN n
-mkUIntN p n = unsafePartialBecause "I know how to make a UInt" $
-              fromJust $ uIntNFromBigNumber p $ embed n
-
-mkBytesN
-  :: forall n.
-     KnownSize n
-     => DLProxy n
-  -> String
-  -> BytesN n
-mkBytesN p s = unsafePartialBecause "I know how to make Bytes" $
-               fromJust $ fromByteString p =<< flip BS.fromString BS.Hex s
 
 faucet
   :: { recipient :: Address
@@ -89,6 +50,26 @@ ethFaucetOne { recipient, tokenFaucet } =
                                                   # _value ?~ convert (mkValue one :: Value Ether)
                                                   # _from ?~ tokenFaucet
 
+-- faucet action
+faucetTokens
+  :: { account1 :: Address
+     , account2 :: Address
+     , foamToken :: Address
+     , provider :: Provider
+     , tokenFaucet :: Address
+     }
+  -> Aff Unit
+faucetTokens { foamToken, tokenFaucet, provider, account1, account2 } = do
+  -- give FOAM tokens to each of them (via faucet)
+  flip parTraverse_ [account1, account2] \recipient -> do
+    txHash <- assertWeb3 provider $ faucet { recipient, foamToken, tokenFaucet }
+    awaitTxSuccess txHash provider
+  -- give one ETH to account2
+  txHash <- assertWeb3 provider $ ethFaucetOne { recipient: account2
+                                               , tokenFaucet
+                                               }
+  awaitTxSuccess txHash provider
+
 spec
   :: forall r .
      TestConfig ( foamToken :: DeployReceipt NoArgs
@@ -96,7 +77,7 @@ spec
                 , tokenFaucet :: Address
                 , signalMarket :: DeployReceipt SignalMarket | r)
   -> SpecT Aff Unit Aff Unit
-spec { provider
+spec specConfig@{ provider
      , accounts
      , foamToken: {deployAddress: foamToken}
      , signalToken: {deployAddress: signalToken}
@@ -114,17 +95,7 @@ spec { provider
         txOpts2 = defaultTransactionOptions # _from ?~ account2
                                             # _gas ?~ embed 8000000
 
-    beforeAll_ (do
-        -- give FOAM tokens to each of them (via faucet)
-        flip parTraverse_ [account1, account2] \recipient -> do
-          txHash <- assertWeb3 provider $ faucet { recipient, foamToken, tokenFaucet }
-          awaitTxSuccess txHash provider
-        -- give one ETH to account2
-        txHash <- assertWeb3 provider $ ethFaucetOne { recipient: account2
-                                                     , tokenFaucet
-                                                     }
-        awaitTxSuccess txHash provider
-      ) $ do
+    beforeAll_ (faucetTokens { foamToken, tokenFaucet, provider, account1, account2 }) $ do
       it "can run the faucet" do
         let txOpts = defaultTransactionOptions # _to ?~ foamToken
         a1balance <- assertStorageCall provider $
