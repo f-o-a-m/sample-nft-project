@@ -112,7 +112,6 @@ spec { provider
         txOpts1 = defaultTransactionOptions # _from ?~ account1
                                             # _gas ?~ embed 8000000
         txOpts2 = defaultTransactionOptions # _from ?~ account2
-                                            # _value ?~ convert (mkValue one :: Value Ether)
                                             # _gas ?~ embed 8000000
 
     beforeAll_ (do
@@ -206,29 +205,26 @@ spec { provider
                                                                    , _price
                                                                    }
 
-            -- @NOTE: this doesn't work
             acc2BuyAction _tokenId =
-              SignalMarket.buy (txOpts2 # _to ?~ signalMarket) { _tokenId }
+              SignalMarket.buy (txOpts2 # _to ?~ signalMarket
+                                        # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
 
         -- approve some foam for account1
         Tuple _ approval1 <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken $ approveAction txOpts1
-        -- log $ "Account1 Approved Foam to make signal: " <> show approval1
 
         -- then mint a new signal token
         Tuple _ tt@(SignalToken.TrackedToken token) <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy SignalToken.TrackedToken) signalToken mintAction
-        -- log $ "Signal Minted: " <> show tt
 
         -- approve minted signal for signal market
         Tuple _ signalApproval <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction token.tokenID
-        -- log $ "Signal Token Approved: " <> show signalApproval
 
         -- mark signal as for sale
         Tuple _ sale@(SignalMarket.SignalForSale s) <- assertWeb3 provider $
            takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction token.tokenID
-        -- log $ "Signal for Sale: " <> show sale
+
         -- check price and Id value
         s.price `shouldEqual` _price
         s.signalId `shouldEqual` token.tokenID
@@ -236,7 +232,7 @@ spec { provider
         -- make account2 buy the signal from account1
         Tuple _ sold@(SignalMarket.SignalSold purchase) <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction token.tokenID
-        -- log $ "Signal sold: " <> show sold
+
         -- check sale details and transfer of ownership
         purchase.signalId `shouldEqual` token.tokenID
         purchase.price `shouldEqual` mkUIntN s256 1
