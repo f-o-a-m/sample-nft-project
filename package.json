@@ -11,7 +11,7 @@
     "main": "index.js",
     "scripts": {
         "compile-contracts": "chanterelle compile; chanterelle codegen",
-        "deploy": "npm run compile-contracts; chanterelle deploy ./output/Main/index.js",
+        "deploy": "npm run compile-contracts; chanterelle deploy ./output/Deploy.Main/index.js",
         "test": "pulp test",
         "build": "pulp build"
     },

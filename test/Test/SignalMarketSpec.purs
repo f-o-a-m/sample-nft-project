@@ -1,4 +1,4 @@
-module SignalMarketSpec (spec) where
+module Test.SignalMarketSpec (spec) where
 
 import Prelude
 
@@ -15,7 +15,7 @@ import Data.Maybe (fromJust)
 import Data.Newtype (unwrap)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
-import Main (SignalMarket, SignalToken)
+import Deploy.Main (SignalMarket, SignalToken)
 import Network.Ethereum.Core.HexString (mkHexString)
 import Network.Ethereum.Web3 (Address, ChainCursor(..), Ether, HexString, Provider, Value, Web3, _from, _gas, _to, _value, convert, defaultTransactionOptions, embed, mkAddress, mkValue, unUIntN)
 import Network.Ethereum.Web3.Api (eth_sendTransaction)
@@ -24,7 +24,8 @@ import Partial.Unsafe (unsafePartial)
 import Test.Spec (SpecT, before, beforeAll_, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
 import Type.Proxy (Proxy(..))
-import Utils (assertStorageCall, awaitTxSuccess, mkBytesN, mkUIntN, unsafeFromJust)
+import Deploy.Utils (awaitTxSuccess)
+import Test.Utils (assertStorageCall, mkBytesN, mkUIntN, unsafeFromJust)
 
 -- import Effect.Class.Console (log)
 

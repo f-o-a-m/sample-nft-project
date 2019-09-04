@@ -6,12 +6,12 @@ import Chanterelle.Test (buildTestConfig)
 import Effect.Aff (launchAff, Milliseconds(..))
 import Effect (Effect)
 import Data.Maybe (Maybe(..))
-import Main (deployScript)
+import Deploy.Main (deployScript)
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (runSpecT, defaultConfig)
 import Debug.Trace (traceM)
 
-import SignalMarketSpec as SignalMarketSpec
+import Test.SignalMarketSpec as SignalMarketSpec
 
 -- | TODO: make the options for deploy config env vars
 main :: Effect Unit
