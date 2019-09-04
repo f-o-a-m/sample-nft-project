@@ -25,13 +25,13 @@ go = hoistSpec identity \cType m ->
       TestWithName n -> intercalate " > " $ NAE.toArray n
   in runReaderT m \logMsg -> C.log $ prefix  <> "| " <> logMsg
 
-assertWeb3Test
+assertWeb3
   :: forall m a.
      MonadAff m
   => Provider
   -> Web3 a
   -> m a
-assertWeb3Test provider a = liftAff $ runWeb3 provider a <#> case _ of
+assertWeb3 provider a = liftAff $ runWeb3 provider a <#> case _ of
   Right x -> x
   Left err -> unsafeCrashWith $ "expected Right in `assertWeb3`, got error" <> show err
 
@@ -42,7 +42,7 @@ assertStorageCall
   -> Web3 (Either CallError a)
   -> m a
 assertStorageCall p f = liftAff do
-  eRes <- assertWeb3Test p f
+  eRes <- assertWeb3 p f
   case eRes of
     Right x -> pure x
     Left err -> unsafeCrashWith $

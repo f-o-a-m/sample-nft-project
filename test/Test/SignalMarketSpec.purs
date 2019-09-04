@@ -4,7 +4,7 @@ import Prelude
 
 import Chanterelle.Internal.Deploy (DeployReceipt)
 import Chanterelle.Internal.Types (NoArgs)
-import Chanterelle.Test (TestConfig, assertWeb3, takeEvent)
+import Chanterelle.Test (TestConfig, takeEvent)
 import Contracts.FoamToken as FoamToken
 import Contracts.SignalMarket as SignalMarket
 import Contracts.SignalToken as SignalToken
@@ -26,7 +26,7 @@ import Network.Ethereum.Web3.Solidity.Sizes (s256, s32)
 import Partial.Unsafe (unsafePartial)
 import Test.Spec (SpecT, before, beforeAll_, describe, it, parallel)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
-import Test.Utils (assertStorageCall, assertWeb3Test, go, mkBytesN, mkUIntN, unsafeFromJust)
+import Test.Utils (assertStorageCall, assertWeb3, go, mkBytesN, mkUIntN, unsafeFromJust)
 import Type.Proxy (Proxy(..))
 
 type FilterEnv m =
@@ -69,15 +69,15 @@ spec' testCfg _ = do
         -- set up 2 accounts
         account1 = unsafePartial $ fromJust $ accounts !! 1
         account2 = unsafePartial $ fromJust $ accounts !! 2
-    beforeAll_ (faucetTokens { foamToken, tokenFaucet, provider, account1, account2 }) $ do
-      it "can run the faucet" do
+    before (faucetTokens { foamToken, tokenFaucet, provider, account1, account2 }) $ do
+      it "can run the faucet" \_ -> do
         let txOpts = defaultTransactionOptions # _to ?~ foamToken
         a1balance <- assertStorageCall provider $
                      FoamToken.balanceOf txOpts Latest { _owner: account1 }
         a2balance <- assertStorageCall provider $
                      FoamToken.balanceOf txOpts Latest { _owner: account2 }
-        unUIntN a1balance `shouldSatisfy` (_ > zero)
-        unUIntN a2balance `shouldSatisfy` (_ > zero)
+        liftAff $ unUIntN a1balance `shouldSatisfy` (_ > zero)
+        liftAff $ unUIntN a2balance `shouldSatisfy` (_ > zero)
         -- @TODO (maybe): check acc2 ETH balance
 
       -- @NOTE: at this point all contracts are already deployed
@@ -90,17 +90,17 @@ spec' testCfg _ = do
                          SignalMarket.foamToken txOpts Latest
         signalTokenAddr <- assertStorageCall provider $
                            SignalMarket.signalToken txOpts Latest
-        foamTokenAddr `shouldEqual` foamToken
-        signalTokenAddr `shouldEqual` signalTokenAddr
+        liftAff $ foamTokenAddr `shouldEqual` foamToken
+        liftAff $ signalTokenAddr `shouldEqual` signalTokenAddr
 
       let approveAndMintArgs = { foamToken, signalToken, provider, account1 }
       before (approveAndMintSignal approveAndMintArgs) $ do
         it "can mint a signal token (ERC-721)" \{ mintTransfer } -> do
           let minted = unwrap mintTransfer
           -- verify ownership/transfer
-          minted._to `shouldEqual` account1
+          liftAff $ minted._to `shouldEqual` account1
           -- a newly minted signal is always from the `zeroAddr`
-          minted._from `shouldEqual` zeroAddr
+          liftAff $ minted._from `shouldEqual` zeroAddr
 
       before (do
           { mintTransfer } <- approveAndMintSignal approveAndMintArgs
@@ -111,8 +111,8 @@ spec' testCfg _ = do
           -- check price and Id value
           let s = unwrap signalForSale
               m = unwrap mintTransfer
-          s.price `shouldEqual` originalPrice
-          s.signalId `shouldEqual` m._tokenId
+          liftAff $ s.price `shouldEqual` originalPrice
+          liftAff $ s.signalId `shouldEqual` m._tokenId
 
         it "can buy signal tokens" \{ signalForSale } -> do
           let txOpts = defaultTransactionOptions # _from ?~ account2
@@ -122,13 +122,13 @@ spec' testCfg _ = do
                 SignalMarket.buy (txOpts # _to ?~ signalMarket
                                          # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
           -- make account2 buy the signal from account1
-          Tuple _ (SignalMarket.SignalSold purchase) <- assertWeb3 provider $
+          Tuple _ (SignalMarket.SignalSold purchase) <- liftAff $ assertWeb3 provider $
             takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction signal.signalId
           -- check sale details and transfer of ownership
-          purchase.signalId `shouldEqual` signal.signalId
-          purchase.price `shouldEqual` originalPrice
-          purchase.owner `shouldEqual` account1
-          purchase.newOwner `shouldEqual` account2
+          liftAff $ purchase.signalId `shouldEqual` signal.signalId
+          liftAff $ purchase.price `shouldEqual` originalPrice
+          liftAff $ purchase.owner `shouldEqual` account1
+          liftAff $ purchase.newOwner `shouldEqual` account2
 
 faucet
   :: { recipient :: Address
@@ -156,32 +156,44 @@ ethFaucetOne { recipient, tokenFaucet } =
 -- faucet action
 -- * faucets tokens to 2 accounts
 -- * faucets a single ETH to the second account
+-- faucetTokens
+--   :: { account1 :: Address
+--      , account2 :: Address
+--      , foamToken :: Address
+--      , provider :: Provider
+--      , tokenFaucet :: Address
+--      }
+--   -> Aff Unit
 faucetTokens
-  :: { account1 :: Address
+  :: forall m.
+     MonadAff m
+  => { account1 :: Address
      , account2 :: Address
      , foamToken :: Address
      , provider :: Provider
      , tokenFaucet :: Address
      }
-  -> Aff Unit
+  -> m Unit
 faucetTokens { foamToken, tokenFaucet, provider, account1, account2 } = do
   -- give FOAM tokens to each of them (via faucet)
-  flip parTraverse_ [account1, account2] \recipient -> do
-    txHash <- assertWeb3Test provider $ faucet { recipient, foamToken, tokenFaucet }
+  liftAff $ flip parTraverse_ [account1, account2] \recipient -> do
+    txHash <- assertWeb3 provider $ faucet { recipient, foamToken, tokenFaucet }
     awaitTxSuccess txHash provider
   -- give one ETH to account2
-  txHash <- assertWeb3Test provider $ ethFaucetOne { recipient: account2
-                                               , tokenFaucet
-                                               }
+  txHash <- assertWeb3 provider $ ethFaucetOne { recipient: account2
+                                                   , tokenFaucet
+                                                   }
   awaitTxSuccess txHash provider
 
 approveAndMintSignal
-  :: { account1 :: Address
+  :: forall m.
+     MonadAff m
+  => { account1 :: Address
      , provider :: Provider
      , foamToken :: Address
      , signalToken :: Address
      }
-  -> Aff { mintTransfer :: SignalToken.Transfer }
+  -> m { mintTransfer :: SignalToken.Transfer }
 approveAndMintSignal { foamToken, signalToken, provider, account1 } = do
   -- approval process
   -- @NOTE: `_gas` sets the max amount the user is willing to pay
@@ -209,16 +221,18 @@ approveAndMintSignal { foamToken, signalToken, provider, account1 } = do
 
   pure { mintTransfer }
 
-markSignalForSale ::
-  { account1 :: Address
-  , provider :: Provider
-  , mintTransfer :: SignalToken.Transfer
-  , signalMarket :: Address
-  , signalToken :: Address
-  }
-  -> Aff { mintTransfer :: SignalToken.Transfer
-         , signalForSale :: SignalMarket.SignalForSale
-         }
+markSignalForSale
+  :: forall m.
+     MonadAff m
+  => { account1 :: Address
+     , provider :: Provider
+     , mintTransfer :: SignalToken.Transfer
+     , signalMarket :: Address
+     , signalToken :: Address
+     }
+  -> m { mintTransfer :: SignalToken.Transfer
+       , signalForSale :: SignalMarket.SignalForSale
+       }
 markSignalForSale { signalToken, signalMarket, mintTransfer, provider, account1 } = do
   -- marking for sale
   let txOpts = defaultTransactionOptions # _from ?~ account1
