@@ -1,4 +1,4 @@
-module Main where
+module Deploy.Main where
 
 import Prelude
 
@@ -14,7 +14,7 @@ import Effect.Exception (error)
 import Network.Ethereum.Core.BigNumber (decimal, parseBigNumber)
 import Network.Ethereum.Web3 (Address, _from, _gas, _to, defaultTransactionOptions, runWeb3)
 import Contracts.SignalMarket as SignalMarket
-import Utils (awaitTxSuccess)
+import Deploy.Utils (awaitTxSuccess)
 import Partial.Unsafe (unsafePartial)
 import Contracts.FoamToken as FoamToken
 import Contracts.SignalToken as SignalToken
@@ -43,7 +43,7 @@ foamTokenConfig =
   }
 
 tokenControllerMockConfig :: ContractConfig NoArgs
-tokenControllerMockConfig = 
+tokenControllerMockConfig =
   { filepath: "./build/TokenControllerMock.json"
   , name: "TokenControllerMock"
   , constructor : constructorNoArgs

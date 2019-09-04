@@ -1,9 +1,10 @@
-module Utils where
+module Deploy.Utils where
 
 import Prelude
-import Network.Ethereum.Web3 (HexString, Provider, TransactionReceipt(..), TransactionStatus(..))
-import Effect.Aff (Aff)
+
 import Chanterelle.Internal.Utils.Web3 (pollTransactionReceipt)
+import Effect.Aff (Aff)
+import Network.Ethereum.Web3 (HexString, Provider, TransactionReceipt(..), TransactionStatus(..))
 import Partial.Unsafe (unsafeCrashWith)
 
 -- @TODO: make an issue to add this to chanterelle (Chanterelle.Test module)
