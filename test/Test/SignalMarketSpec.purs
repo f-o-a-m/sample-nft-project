@@ -8,6 +8,7 @@ import Chanterelle.Test (TestConfig, takeEvent)
 import Contracts.FoamToken as FoamToken
 import Contracts.SignalMarket as SignalMarket
 import Contracts.SignalToken as SignalToken
+import Control.Monad.Error.Class (class MonadError)
 import Control.Monad.Reader (ask)
 import Control.Parallel (parTraverse_)
 import Data.Array ((!!))
@@ -19,6 +20,7 @@ import Deploy.Main (SignalMarket, SignalToken)
 import Deploy.Utils (awaitTxSuccess)
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Exception (Error)
 import Network.Ethereum.Core.HexString (mkHexString)
 import Network.Ethereum.Web3 (Address, ChainCursor(..), Ether, HexString, Provider, Value, Web3, _from, _gas, _to, _value, convert, defaultTransactionOptions, embed, mkAddress, mkValue, unUIntN)
 import Network.Ethereum.Web3.Api (eth_sendTransaction)
@@ -52,6 +54,7 @@ spec cfg =
 spec'
   :: forall r m.
      MonadAff m
+  => MonadError Error m
   => TestConfig (SignalMarketTestCfg r)
   -> FilterEnv m
   -> SpecT m Unit Aff Unit
@@ -69,7 +72,7 @@ spec' testCfg _ = do
         -- set up 2 accounts
         account1 = unsafePartial $ fromJust $ accounts !! 1
         account2 = unsafePartial $ fromJust $ accounts !! 2
-    before (faucetTokens { foamToken, tokenFaucet, provider, account1, account2 }) $ do
+    beforeAll_ (faucetTokens { foamToken, tokenFaucet, provider, account1, account2 }) $ do
       it "can run the faucet" \_ -> do
         let txOpts = defaultTransactionOptions # _to ?~ foamToken
         a1balance <- assertStorageCall provider $
