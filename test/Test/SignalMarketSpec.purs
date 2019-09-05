@@ -96,27 +96,66 @@ spec' testCfg _ = do
         liftAff $ foamTokenAddr `shouldEqual` foamToken
         liftAff $ signalTokenAddr `shouldEqual` signalTokenAddr
 
+      it "can mint a signal token (ERC-721)" do
+        -- approval process
+        -- @NOTE: `gas` is set to max
+        let txOpts = defaultTransactionOptions # _to ?~ foamToken
+                                               # _from ?~ account1
+                                               # _gas ?~ embed 8000000
+            approvalAmount = mkUIntN s256 100
+            approveAction = FoamToken.approve txOpts { _spender: signalToken
+                                                     , _value: approvalAmount
+                                                     }
+        Tuple _ (FoamToken.Approval approval) <- assertWeb3 provider $
+          takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
+        liftAff $ approval.value `shouldEqual` approvalAmount
+        -- minting process
+        let geohash = mkBytesN s32 "420"
+            radius = mkUIntN s256 10
+            stake = mkUIntN s256 1
+            owner = account1
+            mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
+                                                { owner, stake, geohash, radius }
+        -- SignalToken.Transfer
+        -- @TODO: figure out how to get both the transfer and `TrackedToken` event
+        Tuple _ (SignalToken.Transfer minted) <- assertWeb3 provider $
+          takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
+          -- verify ownership/transfer
+        liftAff $ minted._to `shouldEqual` account1
+        -- a newly minted signal is always from the `zeroAddr`
+        liftAff $ minted._from `shouldEqual` zeroAddr
+
       let approveAndMintArgs = { foamToken, signalToken, provider, account1 }
       before (approveAndMintSignal approveAndMintArgs) $ do
-        it "can mint a signal token (ERC-721)" \{ mintTransfer } -> do
-          let minted = unwrap mintTransfer
-          -- verify ownership/transfer
-          liftAff $ minted._to `shouldEqual` account1
-          -- a newly minted signal is always from the `zeroAddr`
-          liftAff $ minted._from `shouldEqual` zeroAddr
+        it "can mark signal tokens for sale" \{ mintTransfer } -> do
+          -- check price and Id value
+          let s = unwrap mintTransfer
+              txOpts = defaultTransactionOptions # _from ?~ account1
+                                                 # _gas ?~ embed 8000000
+              _tokenId = s._tokenId
+              _price = mkUIntN s256 1 -- this is ETH price
+              signalApproveAction =
+                SignalToken.approve (txOpts # _to ?~ signalToken) { _to: signalMarket
+                                                                , _tokenId
+                                                                }
+              forSaleAction =
+                SignalMarket.forSale (txOpts # _to ?~ signalMarket) { _tokenId
+                                                                    , _price
+                                                                    }
+          -- approve minted signal
+          Tuple _ signalApproval <- assertWeb3 provider $
+            takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction
+          -- mark signal as for sale
+          Tuple _ (SignalMarket.SignalForSale sale) <- assertWeb3 provider $
+            takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction
+          liftAff $ sale.price `shouldEqual` _price
+          liftAff $ sale.signalId `shouldEqual` _tokenId
 
+      let originalPrice = mkUIntN s256 1
       before (do
           { mintTransfer } <- approveAndMintSignal approveAndMintArgs
           markSignalForSale { mintTransfer, signalToken, signalMarket, provider, account1 }
         ) $ do
-        let originalPrice = mkUIntN s256 1
-        it "can mark signal tokens for sale" \{ mintTransfer, signalForSale } -> do
-          -- check price and Id value
-          let s = unwrap signalForSale
-              m = unwrap mintTransfer
-          liftAff $ s.price `shouldEqual` originalPrice
-          liftAff $ s.signalId `shouldEqual` m._tokenId
-
         it "can buy signal tokens" \{ signalForSale } -> do
           let txOpts = defaultTransactionOptions # _from ?~ account2
                                                  # _gas ?~ embed 8000000
@@ -125,7 +164,7 @@ spec' testCfg _ = do
                 SignalMarket.buy (txOpts # _to ?~ signalMarket
                                          # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
           -- make account2 buy the signal from account1
-          Tuple _ (SignalMarket.SignalSold purchase) <- liftAff $ assertWeb3 provider $
+          Tuple _ (SignalMarket.SignalSold purchase) <- assertWeb3 provider $
             takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction signal.signalId
           -- check sale details and transfer of ownership
           liftAff $ purchase.signalId `shouldEqual` signal.signalId
@@ -192,8 +231,6 @@ approveAndMintSignal
      }
   -> m { mintTransfer :: SignalToken.Transfer }
 approveAndMintSignal { foamToken, signalToken, provider, account1 } = do
-  -- approval process
-  -- @NOTE: `_gas` sets the max amount the user is willing to pay
   let txOpts = defaultTransactionOptions # _to ?~ foamToken
                                          # _from ?~ account1
                                          # _gas ?~ embed 8000000
@@ -203,16 +240,12 @@ approveAndMintSignal { foamToken, signalToken, provider, account1 } = do
                                                }
   Tuple _ approval <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
-
-  -- minting process
   let geohash = mkBytesN s32 "420"
       radius = mkUIntN s256 10
       stake = mkUIntN s256 1
       owner = account1
       mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
                                           { owner, stake, geohash, radius }
-  -- SignalToken.Transfer
-  -- @TODO: figure out how to get both the transfer and `TrackedToken` event
   Tuple _ mintTransfer@(SignalToken.Transfer s) <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
   pure { mintTransfer }
