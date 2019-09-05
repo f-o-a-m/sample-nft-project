@@ -2,18 +2,43 @@ module Test.Utils where
 
 import Prelude
 
-import Chanterelle.Test (assertWeb3)
+import Control.Monad.Reader (ReaderT, runReaderT)
+import Data.Array (intercalate)
+import Data.Array.NonEmpty as NAE
 import Data.ByteString as BS
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), fromJust)
+import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Network.Ethereum.Web3 (class KnownSize, BytesN, CallError, DLProxy, Provider, UIntN, Web3, embed, fromByteString, uIntNFromBigNumber)
+import Effect.Class.Console as C
+import Network.Ethereum.Web3 (class KnownSize, BytesN, CallError, DLProxy, Provider, UIntN, Web3, embed, fromByteString, runWeb3, uIntNFromBigNumber)
 import Partial.Unsafe (unsafeCrashWith, unsafePartialBecause)
+import Test.Spec (ComputationType(..), SpecT, hoistSpec)
+
+type Logger m = String -> m Unit
+
+go :: SpecT (ReaderT (Logger Aff) Aff) Unit Aff ~> SpecT Aff Unit Aff
+go = hoistSpec identity \cType m ->
+  let
+    prefix = case cType of
+      CleanUpWithContext n -> intercalate " > " n <> " (afterAll) "
+      TestWithName n -> intercalate " > " $ NAE.toArray n
+  in runReaderT m \logMsg -> C.log $ prefix  <> "| " <> logMsg
+
+assertWeb3
+  :: forall m a.
+     MonadAff m
+  => Provider
+  -> Web3 a
+  -> m a
+assertWeb3 provider a = liftAff $ runWeb3 provider a <#> case _ of
+  Right x -> x
+  Left err -> unsafeCrashWith $ "expected Right in `assertWeb3`, got error" <> show err
 
 assertStorageCall
   :: forall m a.
      MonadAff m
-     => Provider
+  => Provider
   -> Web3 (Either CallError a)
   -> m a
 assertStorageCall p f = liftAff do
