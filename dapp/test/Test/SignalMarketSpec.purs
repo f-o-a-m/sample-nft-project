@@ -58,7 +58,7 @@ spec'
   => TestConfig (SignalMarketTestCfg r)
   -> FilterEnv m
   -> SpecT m Unit Aff Unit
-spec' testCfg _ = do
+spec' testCfg env@{ logger } = do
   let zeroAddr = unsafeFromJust "Must be valid Address 000..." $
                  mkAddress =<< mkHexString "0x0000000000000000000000000000000000000000"
       { provider
@@ -71,7 +71,7 @@ spec' testCfg _ = do
       -- set up 2 accounts
       account1 = unsafePartial $ fromJust $ accounts !! 1
       account2 = unsafePartial $ fromJust $ accounts !! 2
-  beforeAll_ (faucetTokens { foamToken, tokenFaucet, provider, account1, account2 }) $ do
+  beforeAll_ (faucetTokens env { foamToken, tokenFaucet, provider, account1, account2 }) $ do
     describe "preliminary set up" $ parallel do
       it "can run the faucet" \_ -> do
         let txOpts = defaultTransactionOptions # _to ?~ foamToken
@@ -96,6 +96,7 @@ spec' testCfg _ = do
         liftAff do
           foamTokenAddr `shouldEqual` foamToken
           signalTokenAddr `shouldEqual` signalTokenAddr
+        logger $ "Signal Market is deployed."
     describe "interact with signal market" $ parallel do
       it "can mint a signal token (ERC-721)" do
         -- approval process
@@ -107,9 +108,10 @@ spec' testCfg _ = do
             approveAction = FoamToken.approve txOpts { _spender: signalToken
                                                      , _value: approvalAmount
                                                      }
-        Tuple _ (FoamToken.Approval approval) <- assertWeb3 provider $
+        Tuple _ approval@(FoamToken.Approval a) <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
-        liftAff $ approval.value `shouldEqual` approvalAmount
+        logger $ "Approved FOAM tokens " <> show approval
+        liftAff $ a.value `shouldEqual` approvalAmount
         -- minting process
         let geohash = mkBytesN s32 "420"
             radius = mkUIntN s256 10
@@ -119,16 +121,17 @@ spec' testCfg _ = do
                                                 { owner, stake, geohash, radius }
         -- SignalToken.Transfer
         -- @TODO: figure out how to get both the transfer and `TrackedToken` event
-        Tuple _ (SignalToken.Transfer minted) <- assertWeb3 provider $
+        Tuple _ minted@(SignalToken.Transfer m) <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
+        logger $ "Signal token minted " <> show minted
         liftAff do
           -- verify ownership/transfer
-          minted._to `shouldEqual` account1
+          m._to `shouldEqual` account1
           -- a newly minted signal is always from the `zeroAddr`
-          minted._from `shouldEqual` zeroAddr
+          m._from `shouldEqual` zeroAddr
 
       let approveAndMintArgs = { foamToken, signalToken, provider, account1 }
-      before (approveAndMintSignal approveAndMintArgs) $ do
+      before (approveAndMintSignal env approveAndMintArgs) $ do
         it "can mark signal tokens for sale" \{ mintTransfer } -> do
           -- check price and Id value
           let s = unwrap mintTransfer
@@ -147,17 +150,19 @@ spec' testCfg _ = do
           -- approve minted signal
           Tuple _ signalApproval <- assertWeb3 provider $
             takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction
+          logger $ "Signal approved for SignalMarket " <> show signalApproval
           -- mark signal as for sale
-          Tuple _ (SignalMarket.SignalForSale sale) <- assertWeb3 provider $
+          Tuple _ sale@(SignalMarket.SignalForSale sfs) <- assertWeb3 provider $
             takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction
+          logger $ "Signal for sale " <> show sale
           liftAff do
-            sale.price `shouldEqual` _price
-            sale.signalId `shouldEqual` _tokenId
+            sfs.price `shouldEqual` _price
+            sfs.signalId `shouldEqual` _tokenId
 
       let originalPrice = mkUIntN s256 1
       before (do
-          { mintTransfer } <- approveAndMintSignal approveAndMintArgs
-          markSignalForSale { mintTransfer, signalToken, signalMarket, provider, account1 }
+          { mintTransfer } <- approveAndMintSignal env approveAndMintArgs
+          markSignalForSale env { mintTransfer, signalToken, signalMarket, provider, account1 }
         ) $ do
         it "can buy signal tokens" \{ signalForSale } -> do
           let txOpts = defaultTransactionOptions # _from ?~ account2
@@ -166,9 +171,11 @@ spec' testCfg _ = do
               acc2BuyAction _tokenId =
                 SignalMarket.buy (txOpts # _to ?~ signalMarket
                                          # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
+          -- @NOTE: this is failing
           -- make account2 buy the signal from account1
-          Tuple _ (SignalMarket.SignalSold purchase) <- assertWeb3 provider $
+          Tuple _ sold@(SignalMarket.SignalSold purchase) <- assertWeb3 provider $
             takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction signal.signalId
+          logger $ "Signal purchased " <> show sold
           -- check sale details and transfer of ownership
           liftAff do
             purchase.signalId `shouldEqual` signal.signalId
@@ -177,8 +184,8 @@ spec' testCfg _ = do
             purchase.newOwner `shouldEqual` account2
 
       before (do
-          { mintTransfer } <- approveAndMintSignal approveAndMintArgs
-          markSignalForSale { mintTransfer, signalToken, signalMarket, provider, account1 }
+          { mintTransfer } <- approveAndMintSignal env approveAndMintArgs
+          markSignalForSale env { mintTransfer, signalToken, signalMarket, provider, account1 }
         ) $ do
         it "can unlist signal tokens" \{ signalForSale } -> do
           let txOpts = defaultTransactionOptions # _gas ?~ embed 8000000
@@ -192,9 +199,10 @@ spec' testCfg _ = do
                 SignalMarket.buy (txOpts # _to ?~ signalMarket
                                          # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
           -- unlist the signal with account1
-          Tuple _ (SignalMarket.SignalUnlisted unlisted) <- assertWeb3 provider $
+          Tuple _ unlisted@(SignalMarket.SignalUnlisted nfs) <- assertWeb3 provider $
             takeEvent (Proxy :: Proxy SignalMarket.SignalUnlisted) signalMarket $ unlistAction signalId
-          liftAff $ unlisted.signalId `shouldEqual` signalId
+          logger $ "Signal unlisted " <> show unlisted
+          liftAff $ nfs.signalId `shouldEqual` signalId
           -- trying to buy an unlisted signal should result in failure
           -- Tuple e _ <- assertWeb3 provider $
           --   takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction signalId
@@ -231,34 +239,38 @@ ethFaucetOne { recipient, tokenFaucet } =
 faucetTokens
   :: forall m.
      MonadAff m
-  => { account1 :: Address
+  => FilterEnv m
+  -> { account1 :: Address
      , account2 :: Address
      , foamToken :: Address
      , provider :: Provider
      , tokenFaucet :: Address
      }
   -> m Unit
-faucetTokens { foamToken, tokenFaucet, provider, account1, account2 } = do
+faucetTokens { logger } { foamToken, tokenFaucet, provider, account1, account2 } = do
   -- give FOAM tokens to each of them (via faucet)
   liftAff $ flip parTraverse_ [account1, account2] \recipient -> do
     txHash <- assertWeb3 provider $ faucet { recipient, foamToken, tokenFaucet }
     awaitTxSuccess txHash provider
+  logger $ "Faucetted FOAM tokens."
   -- give one ETH to account2
   txHash <- assertWeb3 provider $ ethFaucetOne { recipient: account2
-                                                   , tokenFaucet
-                                                   }
+                                               , tokenFaucet
+                                               }
+  logger $ "Faucetted ETH to account2 " <> show txHash
   awaitTxSuccess txHash provider
 
 approveAndMintSignal
   :: forall m.
      MonadAff m
-  => { account1 :: Address
+  => FilterEnv m
+  -> { account1 :: Address
      , provider :: Provider
      , foamToken :: Address
      , signalToken :: Address
      }
   -> m { mintTransfer :: SignalToken.Transfer }
-approveAndMintSignal { foamToken, signalToken, provider, account1 } = do
+approveAndMintSignal { logger } { foamToken, signalToken, provider, account1 } = do
   let txOpts = defaultTransactionOptions # _to ?~ foamToken
                                          # _from ?~ account1
                                          # _gas ?~ embed 8000000
@@ -268,6 +280,7 @@ approveAndMintSignal { foamToken, signalToken, provider, account1 } = do
                                                }
   Tuple _ approval <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
+  logger $ "Approved FOAM tokens " <> show approval
   let geohash = mkBytesN s32 "420"
       radius = mkUIntN s256 10
       stake = mkUIntN s256 1
@@ -276,12 +289,14 @@ approveAndMintSignal { foamToken, signalToken, provider, account1 } = do
                                           { owner, stake, geohash, radius }
   Tuple _ mintTransfer@(SignalToken.Transfer s) <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
+  logger $ "Signal token minted " <> show mintTransfer
   pure { mintTransfer }
 
 markSignalForSale
   :: forall m.
      MonadAff m
-  => { account1 :: Address
+  => FilterEnv m
+  -> { account1 :: Address
      , provider :: Provider
      , mintTransfer :: SignalToken.Transfer
      , signalMarket :: Address
@@ -290,7 +305,7 @@ markSignalForSale
   -> m { mintTransfer :: SignalToken.Transfer
        , signalForSale :: SignalMarket.SignalForSale
        }
-markSignalForSale { signalToken, signalMarket, mintTransfer, provider, account1 } = do
+markSignalForSale { logger } { signalToken, signalMarket, mintTransfer, provider, account1 } = do
   -- marking for sale
   let txOpts = defaultTransactionOptions # _from ?~ account1
                                          # _gas ?~ embed 8000000
@@ -308,7 +323,9 @@ markSignalForSale { signalToken, signalMarket, mintTransfer, provider, account1 
   -- approve minted signal
   Tuple _ signalApproval <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction
+  logger $ "Signal approved for SignalMarket " <> show signalApproval
   -- mark signal as for sale
   Tuple _ signalForSale <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction
+  logger $ "Signal for sale " <> show signalForSale
   pure { mintTransfer, signalForSale }
