@@ -59,20 +59,20 @@ spec'
   -> FilterEnv m
   -> SpecT m Unit Aff Unit
 spec' testCfg _ = do
-  describe "interact with signal market" $ parallel do
-    let zeroAddr = unsafeFromJust "Must be valid Address 000..." $
-                   mkAddress =<< mkHexString "0x0000000000000000000000000000000000000000"
-        { provider
-        , accounts
-        , foamToken: { deployAddress: foamToken }
-        , signalToken: { deployAddress: signalToken }
-        , signalMarket: { deployAddress: signalMarket }
-        , tokenFaucet
-        } = testCfg
-        -- set up 2 accounts
-        account1 = unsafePartial $ fromJust $ accounts !! 1
-        account2 = unsafePartial $ fromJust $ accounts !! 2
-    beforeAll_ (faucetTokens { foamToken, tokenFaucet, provider, account1, account2 }) $ do
+  let zeroAddr = unsafeFromJust "Must be valid Address 000..." $
+                 mkAddress =<< mkHexString "0x0000000000000000000000000000000000000000"
+      { provider
+      , accounts
+      , foamToken: { deployAddress: foamToken }
+      , signalToken: { deployAddress: signalToken }
+      , signalMarket: { deployAddress: signalMarket }
+      , tokenFaucet
+      } = testCfg
+      -- set up 2 accounts
+      account1 = unsafePartial $ fromJust $ accounts !! 1
+      account2 = unsafePartial $ fromJust $ accounts !! 2
+  describe "preliminary set up" $ parallel do
+   beforeAll_ (faucetTokens { foamToken, tokenFaucet, provider, account1, account2 }) $ do
       it "can run the faucet" \_ -> do
         let txOpts = defaultTransactionOptions # _to ?~ foamToken
         a1balance <- assertStorageCall provider $
@@ -95,82 +95,82 @@ spec' testCfg _ = do
                            SignalMarket.signalToken txOpts Latest
         liftAff $ foamTokenAddr `shouldEqual` foamToken
         liftAff $ signalTokenAddr `shouldEqual` signalTokenAddr
+  describe "interact with signal market" $ parallel do
+    it "can mint a signal token (ERC-721)" do
+      -- approval process
+      -- @NOTE: `gas` is set to max
+      let txOpts = defaultTransactionOptions # _to ?~ foamToken
+                                             # _from ?~ account1
+                                             # _gas ?~ embed 8000000
+          approvalAmount = mkUIntN s256 100
+          approveAction = FoamToken.approve txOpts { _spender: signalToken
+                                                   , _value: approvalAmount
+                                                   }
+      Tuple _ (FoamToken.Approval approval) <- assertWeb3 provider $
+        takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
+      liftAff $ approval.value `shouldEqual` approvalAmount
+      -- minting process
+      let geohash = mkBytesN s32 "420"
+          radius = mkUIntN s256 10
+          stake = mkUIntN s256 1
+          owner = account1
+          mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
+                                              { owner, stake, geohash, radius }
+      -- SignalToken.Transfer
+      -- @TODO: figure out how to get both the transfer and `TrackedToken` event
+      Tuple _ (SignalToken.Transfer minted) <- assertWeb3 provider $
+        takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
+        -- verify ownership/transfer
+      liftAff $ minted._to `shouldEqual` account1
+      -- a newly minted signal is always from the `zeroAddr`
+      liftAff $ minted._from `shouldEqual` zeroAddr
 
-      it "can mint a signal token (ERC-721)" do
-        -- approval process
-        -- @NOTE: `gas` is set to max
-        let txOpts = defaultTransactionOptions # _to ?~ foamToken
-                                               # _from ?~ account1
+    let approveAndMintArgs = { foamToken, signalToken, provider, account1 }
+    before (approveAndMintSignal approveAndMintArgs) $ do
+      it "can mark signal tokens for sale" \{ mintTransfer } -> do
+        -- check price and Id value
+        let s = unwrap mintTransfer
+            txOpts = defaultTransactionOptions # _from ?~ account1
                                                # _gas ?~ embed 8000000
-            approvalAmount = mkUIntN s256 100
-            approveAction = FoamToken.approve txOpts { _spender: signalToken
-                                                     , _value: approvalAmount
-                                                     }
-        Tuple _ (FoamToken.Approval approval) <- assertWeb3 provider $
-          takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
-        liftAff $ approval.value `shouldEqual` approvalAmount
-        -- minting process
-        let geohash = mkBytesN s32 "420"
-            radius = mkUIntN s256 10
-            stake = mkUIntN s256 1
-            owner = account1
-            mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
-                                                { owner, stake, geohash, radius }
-        -- SignalToken.Transfer
-        -- @TODO: figure out how to get both the transfer and `TrackedToken` event
-        Tuple _ (SignalToken.Transfer minted) <- assertWeb3 provider $
-          takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
-          -- verify ownership/transfer
-        liftAff $ minted._to `shouldEqual` account1
-        -- a newly minted signal is always from the `zeroAddr`
-        liftAff $ minted._from `shouldEqual` zeroAddr
-
-      let approveAndMintArgs = { foamToken, signalToken, provider, account1 }
-      before (approveAndMintSignal approveAndMintArgs) $ do
-        it "can mark signal tokens for sale" \{ mintTransfer } -> do
-          -- check price and Id value
-          let s = unwrap mintTransfer
-              txOpts = defaultTransactionOptions # _from ?~ account1
-                                                 # _gas ?~ embed 8000000
-              _tokenId = s._tokenId
-              _price = mkUIntN s256 1 -- this is ETH price
-              signalApproveAction =
-                SignalToken.approve (txOpts # _to ?~ signalToken) { _to: signalMarket
+            _tokenId = s._tokenId
+            _price = mkUIntN s256 1 -- this is ETH price
+            signalApproveAction =
+              SignalToken.approve (txOpts # _to ?~ signalToken) { _to: signalMarket
                                                                 , _tokenId
                                                                 }
-              forSaleAction =
-                SignalMarket.forSale (txOpts # _to ?~ signalMarket) { _tokenId
-                                                                    , _price
-                                                                    }
-          -- approve minted signal
-          Tuple _ signalApproval <- assertWeb3 provider $
-            takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction
-          -- mark signal as for sale
-          Tuple _ (SignalMarket.SignalForSale sale) <- assertWeb3 provider $
-            takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction
-          liftAff $ sale.price `shouldEqual` _price
-          liftAff $ sale.signalId `shouldEqual` _tokenId
+            forSaleAction =
+              SignalMarket.forSale (txOpts # _to ?~ signalMarket) { _tokenId
+                                                                  , _price
+                                                                  }
+        -- approve minted signal
+        Tuple _ signalApproval <- assertWeb3 provider $
+          takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction
+        -- mark signal as for sale
+        Tuple _ (SignalMarket.SignalForSale sale) <- assertWeb3 provider $
+          takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction
+        liftAff $ sale.price `shouldEqual` _price
+        liftAff $ sale.signalId `shouldEqual` _tokenId
 
-      let originalPrice = mkUIntN s256 1
-      before (do
-          { mintTransfer } <- approveAndMintSignal approveAndMintArgs
-          markSignalForSale { mintTransfer, signalToken, signalMarket, provider, account1 }
-        ) $ do
-        it "can buy signal tokens" \{ signalForSale } -> do
-          let txOpts = defaultTransactionOptions # _from ?~ account2
-                                                 # _gas ?~ embed 8000000
-              signal = unwrap signalForSale
-              acc2BuyAction _tokenId =
-                SignalMarket.buy (txOpts # _to ?~ signalMarket
-                                         # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
-          -- make account2 buy the signal from account1
-          Tuple _ (SignalMarket.SignalSold purchase) <- assertWeb3 provider $
-            takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction signal.signalId
-          -- check sale details and transfer of ownership
-          liftAff $ purchase.signalId `shouldEqual` signal.signalId
-          liftAff $ purchase.price `shouldEqual` originalPrice
-          liftAff $ purchase.owner `shouldEqual` account1
-          liftAff $ purchase.newOwner `shouldEqual` account2
+    let originalPrice = mkUIntN s256 1
+    before (do
+        { mintTransfer } <- approveAndMintSignal approveAndMintArgs
+        markSignalForSale { mintTransfer, signalToken, signalMarket, provider, account1 }
+      ) $ do
+      it "can buy signal tokens" \{ signalForSale } -> do
+        let txOpts = defaultTransactionOptions # _from ?~ account2
+                                               # _gas ?~ embed 8000000
+            signal = unwrap signalForSale
+            acc2BuyAction _tokenId =
+              SignalMarket.buy (txOpts # _to ?~ signalMarket
+                                       # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
+        -- make account2 buy the signal from account1
+        Tuple _ (SignalMarket.SignalSold purchase) <- assertWeb3 provider $
+          takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction signal.signalId
+        -- check sale details and transfer of ownership
+        liftAff $ purchase.signalId `shouldEqual` signal.signalId
+        liftAff $ purchase.price `shouldEqual` originalPrice
+        liftAff $ purchase.owner `shouldEqual` account1
+        liftAff $ purchase.newOwner `shouldEqual` account2
 
 faucet
   :: { recipient :: Address
