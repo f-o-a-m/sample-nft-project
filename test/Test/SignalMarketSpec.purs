@@ -79,8 +79,9 @@ spec' testCfg _ = do
                      FoamToken.balanceOf txOpts Latest { _owner: account1 }
         a2balance <- assertStorageCall provider $
                      FoamToken.balanceOf txOpts Latest { _owner: account2 }
-        liftAff $ unUIntN a1balance `shouldSatisfy` (_ > zero)
-        liftAff $ unUIntN a2balance `shouldSatisfy` (_ > zero)
+        liftAff do
+          unUIntN a1balance `shouldSatisfy` (_ > zero)
+          unUIntN a2balance `shouldSatisfy` (_ > zero)
         -- @TODO (maybe): check acc2 ETH balance
       -- @NOTE: at this point all contracts are already deployed
       -- to test for a successfully deployed contract, verify that
@@ -92,8 +93,9 @@ spec' testCfg _ = do
                          SignalMarket.foamToken txOpts Latest
         signalTokenAddr <- assertStorageCall provider $
                            SignalMarket.signalToken txOpts Latest
-        liftAff $ foamTokenAddr `shouldEqual` foamToken
-        liftAff $ signalTokenAddr `shouldEqual` signalTokenAddr
+        liftAff do
+          foamTokenAddr `shouldEqual` foamToken
+          signalTokenAddr `shouldEqual` signalTokenAddr
     describe "interact with signal market" $ parallel do
       it "can mint a signal token (ERC-721)" do
         -- approval process
@@ -119,10 +121,11 @@ spec' testCfg _ = do
         -- @TODO: figure out how to get both the transfer and `TrackedToken` event
         Tuple _ (SignalToken.Transfer minted) <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
-        -- verify ownership/transfer
-        liftAff $ minted._to `shouldEqual` account1
-        -- a newly minted signal is always from the `zeroAddr`
-        liftAff $ minted._from `shouldEqual` zeroAddr
+        liftAff do
+          -- verify ownership/transfer
+          minted._to `shouldEqual` account1
+          -- a newly minted signal is always from the `zeroAddr`
+          minted._from `shouldEqual` zeroAddr
 
       let approveAndMintArgs = { foamToken, signalToken, provider, account1 }
       before (approveAndMintSignal approveAndMintArgs) $ do
@@ -147,8 +150,9 @@ spec' testCfg _ = do
           -- mark signal as for sale
           Tuple _ (SignalMarket.SignalForSale sale) <- assertWeb3 provider $
             takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction
-          liftAff $ sale.price `shouldEqual` _price
-          liftAff $ sale.signalId `shouldEqual` _tokenId
+          liftAff do
+            sale.price `shouldEqual` _price
+            sale.signalId `shouldEqual` _tokenId
 
       let originalPrice = mkUIntN s256 1
       before (do
@@ -166,10 +170,11 @@ spec' testCfg _ = do
           Tuple _ (SignalMarket.SignalSold purchase) <- assertWeb3 provider $
             takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction signal.signalId
           -- check sale details and transfer of ownership
-          liftAff $ purchase.signalId `shouldEqual` signal.signalId
-          liftAff $ purchase.price `shouldEqual` originalPrice
-          liftAff $ purchase.owner `shouldEqual` account1
-          liftAff $ purchase.newOwner `shouldEqual` account2
+          liftAff do
+            purchase.signalId `shouldEqual` signal.signalId
+            purchase.price `shouldEqual` originalPrice
+            purchase.owner `shouldEqual` account1
+            purchase.newOwner `shouldEqual` account2
 
 faucet
   :: { recipient :: Address
