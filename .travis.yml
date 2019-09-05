@@ -6,13 +6,10 @@ services:
   - docker
 install:
   - npm install -g bower
-  - npm install -g f-o-a-m/chanterelle
-  - npm install
+  - make install
 script:
-  - bower install
-  - pulp build --src-path contracts
-  - npm run compile-contracts
-  - npm run build
+  - make compile-contracts
+  - make build-dapp
   - docker run -d -p 8545:8545 foamspace/cliquebait:latest
   - sleep 10
-  - npm run test
+  - make test-dapp
