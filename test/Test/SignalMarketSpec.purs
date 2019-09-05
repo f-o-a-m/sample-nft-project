@@ -32,7 +32,7 @@ import Test.Utils (assertStorageCall, assertWeb3, go, mkBytesN, mkUIntN, unsafeF
 import Type.Proxy (Proxy(..))
 
 type FilterEnv m =
-  { logger :: String -> m Unit
+  { logger :: String -> m Unit -- @NOTE: use this for proper parallel logging
   }
 
 type SignalMarketTestCfg r =
@@ -152,21 +152,15 @@ ethFaucetOne
      }
   -> Web3 HexString
 ethFaucetOne { recipient, tokenFaucet } =
-  eth_sendTransaction $ defaultTransactionOptions # _to ?~ recipient
-                                                  # _value ?~ convert (mkValue one :: Value Ether)
-                                                  # _from ?~ tokenFaucet
+  let txOpts =
+        defaultTransactionOptions # _to ?~ recipient
+                                  # _value ?~ convert (mkValue one :: Value Ether)
+                                  # _from ?~ tokenFaucet
+  in eth_sendTransaction txOpts
 
 -- faucet action
 -- * faucets tokens to 2 accounts
 -- * faucets a single ETH to the second account
--- faucetTokens
---   :: { account1 :: Address
---      , account2 :: Address
---      , foamToken :: Address
---      , provider :: Provider
---      , tokenFaucet :: Address
---      }
---   -> Aff Unit
 faucetTokens
   :: forall m.
      MonadAff m
@@ -221,7 +215,6 @@ approveAndMintSignal { foamToken, signalToken, provider, account1 } = do
   -- @TODO: figure out how to get both the transfer and `TrackedToken` event
   Tuple _ mintTransfer@(SignalToken.Transfer s) <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
-
   pure { mintTransfer }
 
 markSignalForSale
@@ -254,9 +247,7 @@ markSignalForSale { signalToken, signalMarket, mintTransfer, provider, account1 
   -- approve minted signal
   Tuple _ signalApproval <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction
-
   -- mark signal as for sale
   Tuple _ signalForSale <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction
-
   pure { mintTransfer, signalForSale }
