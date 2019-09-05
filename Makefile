@@ -10,6 +10,10 @@ SHELL := /bin/bash
 NODE_URL ?= http://localhost:8545
 ABIS_DIR ?= build
 
+# default is cliquebait
+NODE_URL = http://localhost:8545
+SERVER_PORT = 9000
+
 # end export
 # please keep that, it helps with autogenerating env wrappers
 

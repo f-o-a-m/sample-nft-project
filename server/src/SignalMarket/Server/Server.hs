@@ -1,12 +1,12 @@
-module SignalMarket.Server.Server where
+module SignalMarket.Server.Server (server, mkApplication) where
 
-import Data.Proxy
-import Servant.Server
-import SignalMarket.Server.Config.Types (Contracts)
-import SignalMarket.Server.Config (AppConfig(..), mkAppConfig)
-import SignalMarket.Server.Application (AppHandler, runAppHandler)
-import SignalMarket.Server.API
-import Control.Monad.Reader (asks)
+import           Control.Monad.Reader             (asks)
+import           Data.Proxy
+import           Servant.Server
+import           SignalMarket.Server.API
+import           SignalMarket.Server.Application  (AppHandler, runAppHandler)
+import           SignalMarket.Server.Config       (AppConfig (..), mkAppConfig)
+import           SignalMarket.Server.Config.Types (Contracts)
 
 --------------------------------------------------------------------------------
 

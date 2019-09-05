@@ -1,7 +1,7 @@
 module Main where
 
-import           SignalMarket.Server.Config
+import           SignalMarket.Server (runServer)
 
 main :: IO ()
-main = mkContracts >>= print
+main = runServer
 

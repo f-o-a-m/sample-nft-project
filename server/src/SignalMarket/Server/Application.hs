@@ -1,15 +1,15 @@
 module SignalMarket.Server.Application
-  ( AppHandler 
+  ( AppHandler
   , runAppHandler
   ) where
 
-import Control.Monad.Except (ExceptT, MonadError)
-import Control.Monad.Reader (ReaderT, MonadReader, runReaderT)
-import Control.Monad.IO.Class (MonadIO)
-import SignalMarket.Server.Config (AppConfig)
-import Servant.Server (Handler(..), ServerError)
+import           Control.Monad.Except       (ExceptT, MonadError)
+import           Control.Monad.IO.Class     (MonadIO)
+import           Control.Monad.Reader       (MonadReader, ReaderT, runReaderT)
+import           Servant.Server             (Handler (..), ServerError)
+import           SignalMarket.Server.Config (AppConfig)
 
-newtype AppHandler a = AppHandler 
+newtype AppHandler a = AppHandler
   { unAppHandler :: ReaderT AppConfig (ExceptT ServerError IO) a }
   deriving (Functor, Applicative, Monad, MonadIO, MonadReader AppConfig, MonadError ServerError)
 

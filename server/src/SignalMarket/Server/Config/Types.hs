@@ -4,17 +4,17 @@ module SignalMarket.Server.Config.Types
     , mkContracts
     ) where
 
-import Control.Monad.IO.Class
-import           Data.String.Conversions    (cs)
 import           Control.Error
-import GHC.Generics (Generic)
-import qualified Data.Aeson as AE
-import qualified Data.Aeson.Lens            as AEL
-import           Control.Lens               ((^?))
+import           Control.Lens                     ((^?))
+import           Control.Monad.IO.Class
+import qualified Data.Aeson                       as AE
+import           Data.Aeson.Casing                (aesonDrop, camelCase)
+import qualified Data.Aeson.Lens                  as AEL
+import           Data.ByteArray.HexString         (HexString)
 import           Data.Solidity.Prim.Address       (Address)
+import           Data.String.Conversions          (cs)
+import           GHC.Generics                     (Generic)
 import           SignalMarket.Server.Config.Utils
-import Data.ByteArray.HexString (HexString)
-import           Data.Aeson.Casing          (aesonDrop, camelCase)
 
 data Contracts = Contracts
   { contractsFoamToken    :: DeployReceipt
@@ -44,9 +44,9 @@ mkContracts = do
     }
 
 data DeployReceipt = DeployReceipt
-  { deployReceiptAddress :: Address 
-  , deployReceiptBlockHash :: HexString
-  , deployReceiptBlockNumber :: HexString
+  { deployReceiptAddress         :: Address
+  , deployReceiptBlockHash       :: HexString
+  , deployReceiptBlockNumber     :: HexString
   , deployReceiptTransactionHash :: HexString
   } deriving (Eq, Show, Generic)
 
