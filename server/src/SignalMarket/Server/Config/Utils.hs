@@ -3,15 +3,11 @@ module SignalMarket.Server.Config.Utils
   , getEnvVarWithDefault
   , readEnvVar
   , readEnvVarWithDefault
-  , getContractAddress
   , makeConfig
   ) where
 
 import           Control.Error
-import           Control.Lens               ((^?))
 import           Control.Monad.IO.Class
-import qualified Data.Aeson.Lens            as AL
-import           Data.Solidity.Prim.Address (Address)
 import           Data.String.Conversions    (cs)
 import           Data.Text                  (Text)
 import           System.Environment
@@ -44,22 +40,6 @@ getEnvVarWithDefault var def = liftIO (lookupEnv var) >>= \case
     liftIO $ print $ "Defaulting " <> show var <> " to " <> show def <> " as it was not set in the environment"
     return def
   Just x -> return x
-
-parseAddressFromABI :: String -> String -> Maybe Address
-parseAddressFromABI abi networkID =
-  abi ^? AL.key "networks"
-       . AL.key (cs networkID)
-       . AL.key "address"
-       . AL._JSON
-
-getContractAddress :: MonadIO m => String -> String -> ExceptT String m Address
-getContractAddress contractName networkID = do
-    abisDir <- getEnvVarWithDefault "ABIS_DIR" "./build"
-    let abiPath = abisDir <> "/" <> contractName <> ".json"
-    abi <- liftIO $ readFile abiPath
-    parseAddressFromABI abi networkID ??
-      ("Couldn't parse address from ABI at " <> abiPath <> " with networkID " <> cs networkID)
-
 
 makeConfig :: MonadIO m => ExceptT String m a -> m a
 makeConfig a = do

@@ -1,25 +1,23 @@
-module SignalMarket.Server.Config
-    ( Contracts(..)
-    , mkContracts
-    ) where
+module SignalMarket.Server.Config where
 
-import           Data.Solidity.Prim.Address       (Address)
-import           SignalMarket.Server.Config.Utils
+import SignalMarket.Server.Config.Types (Contracts, mkContracts)
+import SignalMarket.Server.Config.Utils (getEnvVarWithDefault, makeConfig)
+import Network.Ethereum.Api.Provider (Provider(..))
+import           Network.HTTP.Client        (Manager)
+import Network.HTTP.Client.TLS (newTlsManager)
 
-mkContracts :: IO Contracts
-mkContracts = makeConfig $ do
-  networkID <- getEnvVar "NETWORK_ID"
-  foamTokenAddress <- getContractAddress "FoamToken" networkID
-  signalTokenAddress <- getContractAddress "SignalToken" networkID
-  signalMarketAddress <- getContractAddress "SignalMarket" networkID
-  return $ Contracts
-    { contractsFoamToken = foamTokenAddress
-    , contractsSignalToken = signalTokenAddress
-    , contractsSignalMarket = signalMarketAddress
+data AppConfig = AppConfig 
+  { appCfgContracts :: Contracts
+  , appCfgWeb3Manager :: (Provider, Manager)
+  }
+
+mkAppConfig :: IO AppConfig
+mkAppConfig = do
+  contracts <- makeConfig $ mkContracts
+  provider <- makeConfig $ 
+    HttpProvider <$> getEnvVarWithDefault "NODE_URL" "http://localhost:8545"
+  web3Mgr <- newTlsManager
+  return $ AppConfig
+    { appCfgContracts = contracts
+    , appCfgWeb3Manager = (provider, web3Mgr)
     }
-
-data Contracts = Contracts
-  { contractsFoamToken    :: Address
-  , contractsSignalToken  :: Address
-  , contractsSignalMarket :: Address
-  } deriving (Eq, Show)

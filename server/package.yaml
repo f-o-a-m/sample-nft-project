@@ -16,14 +16,20 @@ copyright:           "2019 Author name here"
 description:         Please see the README on GitHub at <https://github.com/githubuser/server#readme>
 
 dependencies:
+- aeson
+- aeson-casing
 - base >= 4.7 && < 5
 - errors
+- http-client
+- http-client-tls
 - lens
 - lens-aeson
+- mtl
 - servant
 - servant-server
 - string-conversions
 - text
+- wai
 - web3
 
 library:
@@ -32,6 +38,12 @@ library:
 default-extensions:
   - LambdaCase
   - OverloadedStrings
+  - GeneralizedNewtypeDeriving
+  - RankNTypes
+  - DeriveGeneric
+  - TypeOperators
+  - PolyKinds
+  - DataKinds
 
 executables:
   server-exe:
