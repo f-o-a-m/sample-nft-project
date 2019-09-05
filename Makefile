@@ -42,8 +42,24 @@ test-dapp: ## Run the dapp test suite
 	pulp test --src-path dapp/src --test-path dapp/test -m Test.Main
 
 ####################
+# Haskell      #
+####################
+
+haskell-deps: ## install supporting haskell-deps
+	stack install hlint stylish-haskell
+
+hlint: ## Run hlint on all haskell projects
+	stack exec hlint -- -h .hlint.yaml server
+
+stylish: ## Run stylish-haskell over all haskell projects
+	find ./server -name "*.hs" | xargs stack exec stylish-haskell -- -c ./.stylish_haskell.yaml -i
+
+####################
 # SERVER       #
 ####################
 
 build-server: ## build server and install binaries
 	stack install server
+
+run-server: ## run the server
+	stack exec -- server-exe

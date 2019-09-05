@@ -17,10 +17,21 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- errors
+- lens
+- lens-aeson
+- servant
+- servant-server
+- string-conversions
+- text
 - web3
 
 library:
   source-dirs: src
+
+default-extensions:
+  - LambdaCase
+  - OverloadedStrings
 
 executables:
   server-exe:
@@ -30,11 +41,10 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Werror
+    - -Wall
     dependencies:
     - server
-    - servant
-    - servant-server
-    - string-conversions
 
 tests:
   server-test:
