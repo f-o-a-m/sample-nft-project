@@ -176,6 +176,30 @@ spec' testCfg _ = do
             purchase.owner `shouldEqual` account1
             purchase.newOwner `shouldEqual` account2
 
+      before (do
+          { mintTransfer } <- approveAndMintSignal approveAndMintArgs
+          markSignalForSale { mintTransfer, signalToken, signalMarket, provider, account1 }
+        ) $ do
+        it "can unlist signal tokens" \{ signalForSale } -> do
+          let txOpts = defaultTransactionOptions # _gas ?~ embed 8000000
+              txOpts1 = txOpts # _from ?~ account1
+              txOpts2 = txOpts # _from ?~ account2
+              signalId = (unwrap signalForSale).signalId
+              -- only account1 can unlist the token
+              unlistAction _tokenId =
+                SignalMarket.unlist (txOpts1 # _to ?~ signalMarket) { _tokenId }
+              acc2BuyAction _tokenId =
+                SignalMarket.buy (txOpts # _to ?~ signalMarket
+                                         # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
+          -- unlist the signal with account1
+          Tuple _ (SignalMarket.SignalUnlisted unlisted) <- assertWeb3 provider $
+            takeEvent (Proxy :: Proxy SignalMarket.SignalUnlisted) signalMarket $ unlistAction signalId
+          liftAff $ unlisted.signalId `shouldEqual` signalId
+          -- trying to buy an unlisted signal should result in failure
+          -- Tuple e _ <- assertWeb3 provider $
+          --   takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction signalId
+          -- pure unit
+
 faucet
   :: { recipient :: Address
      , foamToken :: Address
