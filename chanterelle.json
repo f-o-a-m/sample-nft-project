@@ -1,9 +1,9 @@
 {
     "name": "sample-nft-project",
     "version": "0.0.1",
-    "source-dir": "contracts",
+    "source-dir": "dapp/contracts",
     "modules": [ "SimpleStorage"
-	             , "SignalMarket"
+	       , "SignalMarket"
                , "FoamToken"
                , "SignalToken"
                , "TokenControllerMock"
@@ -13,7 +13,7 @@
                     ],
     "solc-output-selection": [],
     "purescript-generator": {
-        "output-path": "src",
+        "output-path": "dapp/src",
         "module-prefix": "Contracts"
     }
 }
