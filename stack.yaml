@@ -1,0 +1,6 @@
+resolver: lts-14.4
+
+packages:
+- "server"
+# extra-deps: []
+# flags: {}

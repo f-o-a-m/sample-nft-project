@@ -2,5 +2,7 @@ node_modules
 bower_components
 output
 build
-src/Contracts
+dapp/src/Contracts
 package-lock.json
+stack.yaml.lock
+.stack-work
