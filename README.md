@@ -6,10 +6,6 @@ A sample NFT marketplace for buying and selling FOAM Signals.
 ## Install
 Requires `npm` and `bower`. This project also requires [`chanterelle`](https://github.com/f-o-a-m/chanterelle) for deploying contracts and generating Purescript FFI bindings. 
 
-```
-npm install -g f-o-a-m/chanterelle
-```
-
 Install dependencies via `npm` and `bower`.
 
 ```
@@ -22,6 +18,8 @@ Compile solidity contracts via `chanterelle`, then build the project.
 npm run compile-contracts && npm run build
 ```
 
+## Testing 
+
 To run tests, run a docker image for [`Cliquebait`](https://github.com/f-o-a-m/cliquebait).
 
 ```
@@ -33,3 +31,7 @@ Then run the tests.
 ```
 npm run test
 ```
+
+## Deploy
+
+`chanterelle deploy ./output/Deploy.Main/index.js`
