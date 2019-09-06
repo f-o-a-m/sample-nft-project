@@ -1,19 +1,23 @@
-{-# LANGUAGE  TemplateHaskell #-}
-{-# LANGUAGE  UndecidableInstances #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-module SignalMarket.Common.Config.Logging where
+module SignalMarket.Common.Config.Logging
+  ( LogConfig(..)
+  , HasLogConfig(..)
+  , mkLogConfig
+  ) where
 
-import Control.Monad.Reader
-import Control.Lens (Lens', over, view)
-import Control.Lens.TH (makeLenses)
-import Data.Text (Text)
-import qualified Katip as K
-import Control.Monad.IO.Class
+import           Control.Lens           (Lens', over, view)
+import           Control.Lens.TH        (makeLenses)
+import           Control.Monad.IO.Class
+import           Control.Monad.Reader
+import           Data.Text              (Text)
+import qualified Katip                  as K
 
 data LogConfig = LogConfig
-  { _logNamespace :: K.Namespace 
-  , _logContext :: K.LogContexts
-  , _logEnv :: K.LogEnv
+  { _logNamespace :: K.Namespace
+  , _logContext   :: K.LogContexts
+  , _logEnv       :: K.LogEnv
   }
 makeLenses ''LogConfig
 
@@ -33,8 +37,8 @@ instance (MonadIO m, MonadReader config m, HasLogConfig config) => K.KatipContex
 mkLogConfig :: Text -> IO LogConfig
 mkLogConfig processName = do
     le <- logEnv
-    return $ LogConfig 
-      { _logNamespace = mempty 
+    return $ LogConfig
+      { _logNamespace = mempty
       , _logContext = mempty
       , _logEnv = le
       }

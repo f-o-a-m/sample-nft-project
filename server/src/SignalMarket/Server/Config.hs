@@ -7,24 +7,28 @@ module SignalMarket.Server.Config
 
   ) where
 
-import           Data.String.Conversions          (cs)
-import           Network.Ethereum.Api.Provider    (Provider (..))
-import           Network.HTTP.Client              (Manager)
-import           Network.HTTP.Client.TLS          (newTlsManager)
-import           SignalMarket.Common.Config.Node  (getNetworkID)
-import           SignalMarket.Common.Config.Types (Contracts (..),
-                                                   DeployReceipt (..),
-                                                   mkContracts)
-import           SignalMarket.Common.Config.Utils (getEnvVarWithDefault,
-                                                   makeConfig)
+import           Control.Lens                       (lens)
+import           Data.String.Conversions            (cs)
+import           Network.Ethereum.Api.Provider      (Provider (..))
+import           Network.HTTP.Client                (Manager)
+import           Network.HTTP.Client.TLS            (newTlsManager)
+import           SignalMarket.Common.Config.Logging (HasLogConfig (..),
+                                                     LogConfig)
+import           SignalMarket.Common.Config.Node    (getNetworkID)
+import           SignalMarket.Common.Config.Types   (Contracts (..),
+                                                     DeployReceipt (..),
+                                                     mkContracts)
+import           SignalMarket.Common.Config.Utils   (getEnvVarWithDefault,
+                                                     makeConfig)
 
 data AppConfig = AppConfig
   { appCfgContracts   :: Contracts
   , appCfgWeb3Manager :: (Provider, Manager)
+  , appLogConfig      :: LogConfig
   }
 
-mkAppConfig :: IO AppConfig
-mkAppConfig = do
+mkAppConfig :: LogConfig -> IO AppConfig
+mkAppConfig lc = do
   provider <- makeConfig $
     HttpProvider <$> getEnvVarWithDefault "NODE_URL" "http://localhost:8545"
   web3Mgr <- newTlsManager
@@ -33,4 +37,11 @@ mkAppConfig = do
   return $ AppConfig
     { appCfgContracts = contracts
     , appCfgWeb3Manager = (provider, web3Mgr)
+    , appLogConfig = lc
     }
+
+instance HasLogConfig AppConfig where
+  logConfig = lens g s
+    where
+      g = appLogConfig
+      s cfg lc = cfg {appLogConfig = lc}

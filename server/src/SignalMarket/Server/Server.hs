@@ -15,10 +15,8 @@ server :: AppConfig -> Server API
 server cfg = hoistServerWithContext api (Proxy :: Proxy '[]) (runAppHandler cfg) $
     getContracts
 
-mkApplication :: IO Application
-mkApplication = do
-  cfg <- mkAppConfig
-  pure $ serveWithContext api EmptyContext $ server cfg
+mkApplication :: AppConfig -> Application
+mkApplication cfg = serveWithContext api EmptyContext $ server cfg
 
 --------------------------------------------------------------------------------
 

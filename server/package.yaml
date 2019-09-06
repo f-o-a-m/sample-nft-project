@@ -23,8 +23,8 @@ dependencies:
 - errors
 - http-client
 - http-client-tls
+- katip
 - lens
-- lens-aeson
 - mtl
 - servant
 - servant-server
