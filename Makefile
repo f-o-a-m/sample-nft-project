@@ -10,6 +10,10 @@ SHELL := /bin/bash
 NODE_URL ?= http://localhost:8545
 ABIS_DIR ?= build
 
+# default is cliquebait
+NODE_URL = http://localhost:8545
+SERVER_PORT = 9000
+
 # end export
 # please keep that, it helps with autogenerating env wrappers
 
@@ -42,8 +46,24 @@ test-dapp: ## Run the dapp test suite
 	pulp test --src-path dapp/src --test-path dapp/test -m Test.Main
 
 ####################
+# Haskell      #
+####################
+
+haskell-deps: ## install supporting haskell-deps
+	stack install hlint stylish-haskell
+
+hlint: ## Run hlint on all haskell projects
+	stack exec hlint -- -h .hlint.yaml server
+
+stylish: ## Run stylish-haskell over all haskell projects
+	find ./server -name "*.hs" | xargs stack exec stylish-haskell -- -c ./.stylish_haskell.yaml -i
+
+####################
 # SERVER       #
 ####################
 
 build-server: ## build server and install binaries
 	stack install server
+
+run-server: build-server ## run the server
+	stack exec -- server-exe
