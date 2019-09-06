@@ -18,12 +18,20 @@ extra-source-files:
 # common to point users to the README.md file.
 description:         Please see the README on GitHub at <https://github.com/githubuser/indexer#readme>
 
+default-extensions:
+  - GeneralizedNewtypeDeriving
+  - RankNTypes
+  - OverloadedStrings
+
 dependencies:
 - base >= 4.7 && < 5
 - common
+- exceptions
 - http-client
 - http-client-tls
+- katip
 - lens
+- mtl
 - string-conversions
 - web3
 
