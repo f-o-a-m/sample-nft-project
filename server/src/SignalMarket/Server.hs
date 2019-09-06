@@ -20,7 +20,7 @@ runServer :: IO ()
 runServer = do
   port <- makeConfig $ readEnvVarWithDefault "SERVER_PORT" 9000
   logCfg <- mkLogConfig "server"
-  handleScribe <- K.mkHandleScribe K.ColorIfTerminal stdout (K.permitItem K.InfoS) K.V2
+  handleScribe <- K.mkHandleScribe K.ColorIfTerminal stdout (K.permitItem K.DebugS) K.V2
   let mkLogEnv = K.registerScribe "stdout" handleScribe K.defaultScribeSettings (_logEnv logCfg)
   bracket mkLogEnv K.closeScribes $ \le -> do
     cfg <- mkAppConfig logCfg {_logEnv = le}
