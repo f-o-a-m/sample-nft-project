@@ -1,4 +1,4 @@
-module SignalMarket.Server.Config.Node where
+module SignalMarket.Common.Config.Node where
 
 import           Control.Error
 import           Control.Monad.Error.Class     (throwError)

@@ -2,7 +2,6 @@ module SignalMarket.Server.Config
   ( AppConfig(..)
   , mkAppConfig
     -- * ReExports
-  , module SignalMarket.Server.Config.Utils
   , Contracts(..)
   , DeployReceipt(..)
 
@@ -12,11 +11,11 @@ import           Data.String.Conversions          (cs)
 import           Network.Ethereum.Api.Provider    (Provider (..))
 import           Network.HTTP.Client              (Manager)
 import           Network.HTTP.Client.TLS          (newTlsManager)
-import           SignalMarket.Server.Config.Node  (getNetworkID)
-import           SignalMarket.Server.Config.Types (Contracts (..),
+import           SignalMarket.Common.Config.Node  (getNetworkID)
+import           SignalMarket.Common.Config.Types (Contracts (..),
                                                    DeployReceipt (..),
                                                    mkContracts)
-import           SignalMarket.Server.Config.Utils (getEnvVarWithDefault,
+import           SignalMarket.Common.Config.Utils (getEnvVarWithDefault,
                                                    makeConfig)
 
 data AppConfig = AppConfig
