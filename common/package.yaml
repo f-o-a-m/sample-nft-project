@@ -25,6 +25,7 @@ default-extensions:
   - DataKinds
   - MultiParamTypeClasses
   - FlexibleInstances
+  - RankNTypes
 
 dependencies:
 - aeson
@@ -32,6 +33,7 @@ dependencies:
 - base >= 4.7 && < 5
 - errors
 - http-client
+- katip
 - lens
 - lens-aeson
 - mtl

@@ -1,0 +1,42 @@
+{-# LANGUAGE  TemplateHaskell #-}
+{-# LANGUAGE  UndecidableInstances #-}
+
+module SignalMarket.Common.Config.Logging where
+
+import Control.Monad.Reader
+import Control.Lens (Lens', over, view)
+import Control.Lens.TH (makeLenses)
+import Data.Text (Text)
+import qualified Katip as K
+import Control.Monad.IO.Class
+
+data LogConfig = LogConfig
+  { _logNamespace :: K.Namespace 
+  , _logContext :: K.LogContexts
+  , _logEnv :: K.LogEnv
+  }
+makeLenses ''LogConfig
+
+class HasLogConfig config where
+  logConfig :: Lens' config LogConfig
+
+instance (MonadIO m, MonadReader config m, HasLogConfig config) => K.Katip m where
+  getLogEnv = view (logConfig . logEnv)
+  localLogEnv f m = local (over (logConfig . logEnv) f) m
+
+instance (MonadIO m, MonadReader config m, HasLogConfig config) => K.KatipContext m where
+  getKatipContext = view (logConfig . logContext)
+  localKatipContext f m = local (over (logConfig . logContext) f) m
+  getKatipNamespace = view (logConfig . logNamespace)
+  localKatipNamespace f m = local (over (logConfig . logNamespace) f) m
+
+mkLogConfig :: Text -> IO LogConfig
+mkLogConfig processName = do
+    le <- logEnv
+    return $ LogConfig 
+      { _logNamespace = mempty 
+      , _logContext = mempty
+      , _logEnv = le
+      }
+  where
+  logEnv = K.initLogEnv (K.Namespace [processName]) (K.Environment "workshop")
