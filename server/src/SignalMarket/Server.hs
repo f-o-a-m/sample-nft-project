@@ -4,7 +4,7 @@ import           Data.Monoid                          (Endo (..))
 import           Network.Wai.Handler.Warp             (run)
 import           Network.Wai.Middleware.Gzip          (def, gzip)
 import           Network.Wai.Middleware.RequestLogger (logStdoutDev)
-import           SignalMarket.Server.Config.Utils     (makeConfig,
+import           SignalMarket.Common.Config.Utils     (makeConfig,
                                                        readEnvVarWithDefault)
 import           SignalMarket.Server.Server           (mkApplication)
 

@@ -5,7 +5,7 @@ module SignalMarket.Server.API
 
 import           Data.Proxy
 import           Servant
-import           SignalMarket.Server.Config.Types (Contracts)
+import           SignalMarket.Server.Config (Contracts)
 
 
 type API =

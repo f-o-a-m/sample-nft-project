@@ -1,4 +1,4 @@
-module SignalMarket.Server.Config.Types
+module SignalMarket.Common.Config.Types
     ( Contracts(..)
     , DeployReceipt(..)
     , mkContracts
@@ -14,7 +14,7 @@ import           Data.ByteArray.HexString         (HexString)
 import           Data.Solidity.Prim.Address       (Address)
 import           Data.String.Conversions          (cs)
 import           GHC.Generics                     (Generic)
-import           SignalMarket.Server.Config.Utils
+import           SignalMarket.Common.Config.Utils
 
 data Contracts = Contracts
   { contractsFoamToken    :: DeployReceipt

@@ -5,8 +5,8 @@ import           Data.Proxy
 import           Servant.Server
 import           SignalMarket.Server.API
 import           SignalMarket.Server.Application (AppHandler, runAppHandler)
-import           SignalMarket.Server.Config      (AppConfig (..), Contracts,
-                                                  mkAppConfig)
+import           SignalMarket.Server.Config      (AppConfig (..), Contracts, mkAppConfig)
+import           SignalMarket.Common.Config.Utils (makeConfig)
 
 --------------------------------------------------------------------------------
 

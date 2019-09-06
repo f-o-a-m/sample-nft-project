@@ -2,5 +2,6 @@ resolver: lts-14.4
 
 packages:
 - "server"
+- "common"
 # extra-deps: []
 # flags: {}

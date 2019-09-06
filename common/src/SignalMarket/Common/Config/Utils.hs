@@ -1,4 +1,4 @@
-module SignalMarket.Server.Config.Utils
+module SignalMarket.Common.Config.Utils
   ( getEnvVar
   , getEnvVarWithDefault
   , readEnvVar
