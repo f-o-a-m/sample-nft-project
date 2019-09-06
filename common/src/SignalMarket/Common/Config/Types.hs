@@ -13,8 +13,8 @@ import           Data.ByteArray.HexString         (HexString)
 import           Data.Solidity.Prim.Address       (Address)
 import           Data.String.Conversions          (cs)
 import           GHC.Generics                     (Generic)
+import           SignalMarket.Common.Aeson
 import           SignalMarket.Common.Config.Utils
-import SignalMarket.Common.Aeson
 
 data Contracts = Contracts
   { contractsFoamToken    :: DeployReceipt

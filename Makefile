@@ -53,10 +53,10 @@ haskell-deps: ## install supporting haskell-deps
 	stack install hlint stylish-haskell
 
 hlint: ## Run hlint on all haskell projects
-	stack exec hlint -- -h .hlint.yaml server
+	stack exec hlint -- -h .hlint.yaml server common indexer
 
 stylish: ## Run stylish-haskell over all haskell projects
-	find ./server -name "*.hs" | xargs stack exec stylish-haskell -- -c ./.stylish_haskell.yaml -i
+	find ./server ./common ./indexer -name "*.hs" | xargs stack exec stylish-haskell -- -c ./.stylish_haskell.yaml -i
 
 ####################
 # SERVER       #
