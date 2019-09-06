@@ -1,6 +1,6 @@
 module Main where
 
-import           Lib
+import SignalMarket.Indexer (runIndexer)
 
 main :: IO ()
-main = someFunc
+main = runIndexer
