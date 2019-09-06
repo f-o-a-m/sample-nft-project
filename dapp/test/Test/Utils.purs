@@ -121,11 +121,10 @@ mkUIntsGen
   :: forall m.
      MonadAff m
   => AVar.AVar Int
-  -> Int
   -> m (UIntN S256)
-mkUIntsGen uintV n = liftAff do
+mkUIntsGen uintV = liftAff do
   firstAvailable <- AVar.take uintV
-  let nextVal = firstAvailable + n
+  let nextVal = firstAvailable + 1
   AVar.put nextVal uintV
   pure $ mkUIntN s256 firstAvailable
 
@@ -133,10 +132,9 @@ mkBytesGen
   :: forall m.
      MonadAff m
   => AVar.AVar Int
-  -> Int
   -> m (BytesN S32)
-mkBytesGen byteV n = liftAff do
+mkBytesGen byteV = liftAff do
   firstAvailable <- AVar.take byteV
-  let nextVal = firstAvailable + n
+  let nextVal = firstAvailable + 1
   AVar.put nextVal byteV
   pure $ mkBytesN s32 $ show firstAvailable

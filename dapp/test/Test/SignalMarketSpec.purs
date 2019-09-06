@@ -36,8 +36,8 @@ import Type.Proxy (Proxy(..))
 
 type FilterEnv m =
   { logger :: String -> m Unit -- @NOTE: use this for proper parallel logging
-  , uIntGen :: Int -> m (UIntN S256)
-  , byteGen :: Int -> m (BytesN S32)
+  , uIntGen :: m (UIntN S256)
+  , byteGen :: m (BytesN S32)
   }
 
 type SignalMarketTestCfg r =
@@ -300,8 +300,8 @@ trackMintSignal { logger, uIntGen, byteGen } { foamToken, signalToken, provider,
     takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
   logger $ "AUX: Approved FOAM tokens " <> show approval
   -- generate unique attributes
-  geohash <- byteGen 1
-  radius <- uIntGen 1
+  geohash <- byteGen
+  radius <- uIntGen
   let stake = mkUIntN s256 1
       owner = account1
       mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
