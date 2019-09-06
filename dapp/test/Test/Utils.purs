@@ -10,7 +10,7 @@ import Data.ByteString as BS
 import Data.Either (Either(..))
 import Data.Lens ((^.))
 import Data.Maybe (Maybe(..), fromJust)
-import Effect.Aff (Aff, Fiber)
+import Effect.Aff (Aff, Fiber, joinFiber)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class.Console as C
@@ -81,6 +81,17 @@ monitorUntil provider logger filter pred = do
   liftAff $ forkWeb3 provider $ do
     _ <- event' filter 0 handler
     pure { valueV }
+
+joinWeb3Fork
+  :: forall a m.
+     MonadAff m
+  => Fiber (Either Web3Error a)
+  -> m a
+joinWeb3Fork fiber = liftAff do
+  eRes <- joinFiber fiber
+  case eRes of
+    Left e -> unsafeCrashWith $ "Error in forked web3 process " <> show e
+    Right a -> pure a
 
 unsafeFromJust :: forall a. String -> Maybe a -> a
 unsafeFromJust msg = case _ of
