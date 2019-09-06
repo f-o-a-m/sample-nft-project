@@ -1,6 +1,7 @@
-module SignalMarket.Server.Config
-  ( AppConfig(..)
-  , mkAppConfig
+module SignalMarket.Indexer.Config
+
+  ( IndexerConfig(..)
+  , mkIndexerConfig
     -- * ReExports
   , Contracts(..)
   , DeployReceipt(..)
@@ -21,27 +22,27 @@ import           SignalMarket.Common.Config.Types   (Contracts (..),
 import           SignalMarket.Common.Config.Utils   (getEnvVarWithDefault,
                                                      makeConfig)
 
-data AppConfig = AppConfig
-  { appCfgContracts   :: Contracts
-  , appCfgWeb3Manager :: (Provider, Manager)
-  , appLogConfig      :: LogConfig
+data IndexerConfig = IndexerConfig
+  { indexerCfgContracts   :: Contracts
+  , indexerCfgWeb3Manager :: (Provider, Manager)
+  , indexerLogConfig      :: LogConfig
   }
 
-mkAppConfig :: LogConfig -> IO AppConfig
-mkAppConfig lc = do
+mkIndexerConfig :: LogConfig -> IO IndexerConfig
+mkIndexerConfig lc = do
   provider <- makeConfig $
     HttpProvider <$> getEnvVarWithDefault "NODE_URL" "http://localhost:8545"
   web3Mgr <- newTlsManager
   networkID <- makeConfig $ cs <$> getNetworkID web3Mgr provider
   contracts <- makeConfig $ mkContracts networkID
-  return $ AppConfig
-    { appCfgContracts = contracts
-    , appCfgWeb3Manager = (provider, web3Mgr)
-    , appLogConfig = lc
+  return $ IndexerConfig
+    { indexerCfgContracts = contracts
+    , indexerCfgWeb3Manager = (provider, web3Mgr)
+    , indexerLogConfig = lc
     }
 
-instance HasLogConfig AppConfig where
+instance HasLogConfig IndexerConfig where
   logConfig = lens g s
     where
-      g = appLogConfig
-      s cfg lc = cfg {appLogConfig = lc}
+      g = indexerLogConfig
+      s cfg lc = cfg {indexerLogConfig = lc}

@@ -8,12 +8,12 @@ import           Control.Error
 import           Control.Lens                     ((^?))
 import           Control.Monad.IO.Class
 import qualified Data.Aeson                       as AE
-import           Data.Aeson.Casing                (aesonDrop, camelCase)
 import qualified Data.Aeson.Lens                  as AEL
 import           Data.ByteArray.HexString         (HexString)
 import           Data.Solidity.Prim.Address       (Address)
 import           Data.String.Conversions          (cs)
 import           GHC.Generics                     (Generic)
+import           SignalMarket.Common.Aeson
 import           SignalMarket.Common.Config.Utils
 
 data Contracts = Contracts
@@ -71,6 +71,3 @@ getDeployReceipt contractName networkID = do
     abi <- liftIO $ readFile abiPath
     parseDeployReceiptFromABI abi networkID ??
       ("Couldn't parse address from ABI at " <> abiPath <> " with networkID " <> cs networkID)
-
-defaultAesonOptions :: String -> AE.Options
-defaultAesonOptions prefix = aesonDrop (length prefix) camelCase

@@ -1,6 +1,6 @@
-name:                common
+name:                indexer
 version:             0.1.0.0
-github:              "githubuser/common"
+github:              "githubuser/indexer"
 license:             BSD3
 author:              "Author name here"
 maintainer:          "example@example.com"
@@ -16,30 +16,46 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/common#readme>
+description:         Please see the README on GitHub at <https://github.com/githubuser/indexer#readme>
 
 default-extensions:
-  - LambdaCase
-  - DeriveGeneric
-  - OverloadedStrings
-  - DataKinds
-  - MultiParamTypeClasses
-  - FlexibleInstances
+  - GeneralizedNewtypeDeriving
   - RankNTypes
+  - OverloadedStrings
 
 dependencies:
-- aeson
-- aeson-casing
 - base >= 4.7 && < 5
-- errors
+- common
+- exceptions
 - http-client
+- http-client-tls
 - katip
 - lens
-- lens-aeson
 - mtl
 - string-conversions
-- text
 - web3
 
 library:
   source-dirs: src
+
+executables:
+  indexer-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - indexer
+
+tests:
+  indexer-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - indexer
