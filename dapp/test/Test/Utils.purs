@@ -4,7 +4,7 @@ import Prelude
 
 import Contracts.SignalToken as SignalToken
 import Control.Monad.Reader (ReaderT, runReaderT)
-import Data.Array ((..), intercalate)
+import Data.Array (intercalate)
 import Data.Array.NonEmpty as NAE
 import Data.ByteString as BS
 import Data.Either (Either(..))
@@ -122,23 +122,21 @@ mkUIntsGen
      MonadAff m
   => AVar.AVar Int
   -> Int
-  -> m (Array (UIntN S256))
+  -> m (UIntN S256)
 mkUIntsGen uintV n = liftAff do
   firstAvailable <- AVar.take uintV
   let nextVal = firstAvailable + n
-      res = firstAvailable .. (nextVal - 1)
   AVar.put nextVal uintV
-  pure $ map (mkUIntN s256) res
+  pure $ mkUIntN s256 firstAvailable
 
 mkBytesGen
   :: forall m.
      MonadAff m
   => AVar.AVar Int
   -> Int
-  -> m (Array (BytesN S32))
+  -> m (BytesN S32)
 mkBytesGen byteV n = liftAff do
   firstAvailable <- AVar.take byteV
   let nextVal = firstAvailable + n
-      res = firstAvailable .. (nextVal - 1)
   AVar.put nextVal byteV
-  pure $ map (mkBytesN s32 <<< show) res
+  pure $ mkBytesN s32 $ show firstAvailable

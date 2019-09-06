@@ -36,8 +36,8 @@ import Type.Proxy (Proxy(..))
 
 type FilterEnv m =
   { logger :: String -> m Unit -- @NOTE: use this for proper parallel logging
-  , uIntGen :: Int -> m (Array (UIntN S256))
-  , byteGen :: Int -> m (Array (BytesN S32))
+  , uIntGen :: Int -> m (UIntN S256)
+  , byteGen :: Int -> m (BytesN S32)
   }
 
 type SignalMarketTestCfg r =
@@ -122,7 +122,7 @@ spec' testCfg env@{ logger, uIntGen, byteGen } = do
                                                      }
         Tuple _ approval@(FoamToken.Approval a) <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
-        logger $ "Approved FOAM tokens " <> show approval
+        logger $ "MINT: Approved FOAM tokens " <> show approval
         liftAff $ a.value `shouldEqual` approvalAmount
         -- minting process
         let geohash = mkBytesN s32 "420"
@@ -137,7 +137,7 @@ spec' testCfg env@{ logger, uIntGen, byteGen } = do
         -- @TODO: figure out how to get both the `Transfer` and `TrackedToken` event
         Tuple _ minted@(SignalToken.Transfer m) <- assertWeb3 provider $
           takeEvent (Proxy :: Proxy SignalToken.Transfer) signalToken mintAction
-        logger $ "Signal token minted " <> show minted
+        logger $ "MINT: Signal token minted " <> show minted
         liftAff do
           -- verify ownership/transfer
           m._to `shouldEqual` account1
@@ -164,11 +164,11 @@ spec' testCfg env@{ logger, uIntGen, byteGen } = do
           -- approve minted signal
           Tuple _ signalApproval <- assertWeb3 provider $
             takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction
-          logger $ "Signal approved for SignalMarket " <> show signalApproval
+          logger $ "MARK: Signal approved for SignalMarket " <> show signalApproval
           -- mark signal as for sale
           Tuple _ sale@(SignalMarket.SignalForSale sfs) <- assertWeb3 provider $
             takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction
-          logger $ "Signal for sale " <> show sale
+          logger $ "MARK: Signal for sale " <> show sale
           liftAff do
             sfs.price `shouldEqual` _price
             sfs.signalId `shouldEqual` _tokenId
@@ -187,11 +187,11 @@ spec' testCfg env@{ logger, uIntGen, byteGen } = do
                 SignalMarket.buy (txOpts # _to ?~ signalMarket
                                          # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
           -- @NOTE: this is failing
-          logger $ "Attempting to buy Signal with Id " <> show _tokenId
+          logger $ "BUY: Attempting to buy Signal with Id " <> show _tokenId
           -- make account2 buy the signal from account1
           Tuple _ sold@(SignalMarket.SignalSold purchase) <- assertWeb3 provider $
             takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction
-          logger $ "Signal purchased " <> show sold
+          logger $ "BUY: Signal purchased " <> show sold
           -- check sale details and transfer of ownership
           liftAff do
             purchase.signalId `shouldEqual` signal.signalId
@@ -215,9 +215,10 @@ spec' testCfg env@{ logger, uIntGen, byteGen } = do
                 SignalMarket.buy (txOpts # _to ?~ signalMarket
                                          # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
           -- unlist the signal with account1
+          logger $ "UNLIST: Attempting to unlist signal with Id " <> show signalId
           Tuple _ unlisted@(SignalMarket.SignalUnlisted nfs) <- assertWeb3 provider $
             takeEvent (Proxy :: Proxy SignalMarket.SignalUnlisted) signalMarket $ unlistAction signalId
-          logger $ "Signal unlisted " <> show unlisted
+          logger $ "UNLIST: Signal unlisted " <> show unlisted
           liftAff $ nfs.signalId `shouldEqual` signalId
           -- trying to buy an unlisted signal should result in failure
           -- Tuple e _ <- assertWeb3 provider $
@@ -268,12 +269,12 @@ faucetTokens { logger } { foamToken, tokenFaucet, provider, account1, account2 }
   liftAff $ flip parTraverse_ [account1, account2] \recipient -> do
     txHash <- assertWeb3 provider $ faucet { recipient, foamToken, tokenFaucet }
     awaitTxSuccess txHash provider
-  logger $ "Faucetted FOAM tokens."
+  logger $ "FAUCET: FOAM tokens"
   -- give one ETH to account2
   txHash <- assertWeb3 provider $ ethFaucetOne { recipient: account2
                                                , tokenFaucet
                                                }
-  logger $ "Faucetted ETH to account2 " <> show txHash
+  logger $ "FAUCET: ETH to account2 " <> show txHash
   awaitTxSuccess txHash provider
 
 -- @NOTE: `TrackedToken` is used here for making a filter on specific signal attributes
@@ -297,14 +298,11 @@ trackMintSignal { logger, uIntGen, byteGen } { foamToken, signalToken, provider,
                                                }
   Tuple _ approval <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy FoamToken.Approval) foamToken approveAction
-  logger $ "Approved FOAM tokens " <> show approval
-  uIntVals <- uIntGen 1
-  logger $ "Made uInts values " <> show uIntVals
-  byteVals <- byteGen 1
-  logger $ "Made bytes values " <> show byteVals
-  let geohash = unsafePartial $ fromJust $ byteVals !! 0
-      radius = unsafePartial $ fromJust $ uIntVals !! 0
-      stake = mkUIntN s256 1
+  logger $ "AUX: Approved FOAM tokens " <> show approval
+  -- generate unique attributes
+  geohash <- byteGen 1
+  radius <- uIntGen 1
+  let stake = mkUIntN s256 1
       owner = account1
       mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
                                           { owner, stake, geohash, radius }
@@ -315,8 +313,12 @@ trackMintSignal { logger, uIntGen, byteGen } { foamToken, signalToken, provider,
   txHash <- assertWeb3 provider mintAction
   awaitTxSuccess txHash provider
   {valueV} <- joinWeb3Fork fiber
-  trackMint <- liftAff $ AVar.take valueV
-  logger $ "Signal token minted " <> show trackMint
+  trackMint@(SignalToken.TrackedToken tm) <- liftAff $ AVar.take valueV
+  if (tm.radius == radius)
+    then
+      logger $ "AUX: Signal token minted " <> show trackMint
+    else
+      logger $ "AUX: INCORRECT SIGNAL TRACKING! Found " <> show trackMint
   pure { trackMint }
 
 markSignalForSale
@@ -350,9 +352,9 @@ markSignalForSale { logger } { signalToken, signalMarket, trackMint, provider, a
   -- approve minted signal
   Tuple _ signalApproval <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction
-  logger $ "Signal approved for SignalMarket " <> show signalApproval
+  logger $ "AUX: Signal approved for SignalMarket " <> show signalApproval
   -- mark signal as for sale
   Tuple _ signalForSale <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction
-  logger $ "Signal for sale " <> show signalForSale
+  logger $ "AUX: Signal for sale " <> show signalForSale
   pure { trackMint, signalForSale }
