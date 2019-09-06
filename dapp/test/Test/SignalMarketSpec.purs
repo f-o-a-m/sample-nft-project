@@ -143,62 +143,62 @@ spec' testCfg env@{ logger, uIntGen, byteGen } = do
           -- a newly minted signal is always from the `zeroAddr`
           m._from `shouldEqual` zeroAddr
 
-      -- let approveAndMintArgs = { foamToken, signalToken, provider, account1 }
-      -- before (approveAndMintSignal env approveAndMintArgs) $ do
-      --   it "can mark signal tokens for sale" \{ mintTransfer } -> do
-      --     -- check price and Id value
-      --     let s = unwrap mintTransfer
-      --         txOpts = defaultTransactionOptions # _from ?~ account1
-      --                                            # _gas ?~ embed 8000000
-      --         _tokenId = s._tokenId
-      --         _price = mkUIntN s256 1 -- this is ETH price
-      --         signalApproveAction =
-      --           SignalToken.approve (txOpts # _to ?~ signalToken) { _to: signalMarket
-      --                                                             , _tokenId
-      --                                                             }
-      --         forSaleAction =
-      --           SignalMarket.forSale (txOpts # _to ?~ signalMarket) { _tokenId
-      --                                                               , _price
-      --                                                               }
-      --     -- approve minted signal
-      --     Tuple _ signalApproval <- assertWeb3 provider $
-      --       takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction
-      --     logger $ "Signal approved for SignalMarket " <> show signalApproval
-      --     -- mark signal as for sale
-      --     Tuple _ sale@(SignalMarket.SignalForSale sfs) <- assertWeb3 provider $
-      --       takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction
-      --     logger $ "Signal for sale " <> show sale
-      --     liftAff do
-      --       sfs.price `shouldEqual` _price
-      --       sfs.signalId `shouldEqual` _tokenId
+      let trackMintArgs = { foamToken, signalToken, provider, account1 }
+      before (trackMintSignal env trackMintArgs) $ do
+        it "can mark signal tokens for sale" \{ trackMint } -> do
+          -- check price and Id value
+          let s = unwrap trackMint
+              txOpts = defaultTransactionOptions # _from ?~ account1
+                                                 # _gas ?~ embed 8000000
+              _tokenId = s.tokenID
+              _price = mkUIntN s256 1 -- this is ETH price
+              signalApproveAction =
+                SignalToken.approve (txOpts # _to ?~ signalToken) { _to: signalMarket
+                                                                  , _tokenId
+                                                                  }
+              forSaleAction =
+                SignalMarket.forSale (txOpts # _to ?~ signalMarket) { _tokenId
+                                                                    , _price
+                                                                    }
+          -- approve minted signal
+          Tuple _ signalApproval <- assertWeb3 provider $
+            takeEvent (Proxy :: Proxy SignalToken.Approval) signalToken $ signalApproveAction
+          logger $ "Signal approved for SignalMarket " <> show signalApproval
+          -- mark signal as for sale
+          Tuple _ sale@(SignalMarket.SignalForSale sfs) <- assertWeb3 provider $
+            takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction
+          logger $ "Signal for sale " <> show sale
+          liftAff do
+            sfs.price `shouldEqual` _price
+            sfs.signalId `shouldEqual` _tokenId
 
-      -- let originalPrice = mkUIntN s256 1
-      -- before (do
-      --     { mintTransfer } <- approveAndMintSignal env approveAndMintArgs
-      --     markSignalForSale env { mintTransfer, signalToken, signalMarket, provider, account1 }
-      --   ) $ do
-      --   it "can buy signal tokens" \{ signalForSale } -> do
-      --     let txOpts = defaultTransactionOptions # _from ?~ account2
-      --                                            # _gas ?~ embed 8000000
-      --         signal = unwrap signalForSale
-      --         acc2BuyAction _tokenId =
-      --           SignalMarket.buy (txOpts # _to ?~ signalMarket
-      --                                    # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
-      --     -- @NOTE: this is failing
-      --     -- make account2 buy the signal from account1
-      --     Tuple _ sold@(SignalMarket.SignalSold purchase) <- assertWeb3 provider $
-      --       takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction signal.signalId
-      --     logger $ "Signal purchased " <> show sold
-      --     -- check sale details and transfer of ownership
-      --     liftAff do
-      --       purchase.signalId `shouldEqual` signal.signalId
-      --       purchase.price `shouldEqual` originalPrice
-      --       purchase.owner `shouldEqual` account1
-      --       purchase.newOwner `shouldEqual` account2
+      let originalPrice = mkUIntN s256 1
+      before (do
+          { trackMint } <- trackMintSignal env trackMintArgs
+          markSignalForSale env { trackMint, signalToken, signalMarket, provider, account1 }
+        ) $ do
+        it "can buy signal tokens" \{ signalForSale } -> do
+          let txOpts = defaultTransactionOptions # _from ?~ account2
+                                                 # _gas ?~ embed 8000000
+              signal = unwrap signalForSale
+              acc2BuyAction _tokenId =
+                SignalMarket.buy (txOpts # _to ?~ signalMarket
+                                         # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
+          -- @NOTE: this is failing
+          -- make account2 buy the signal from account1
+          Tuple _ sold@(SignalMarket.SignalSold purchase) <- assertWeb3 provider $
+            takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction signal.signalId
+          logger $ "Signal purchased " <> show sold
+          -- check sale details and transfer of ownership
+          liftAff do
+            purchase.signalId `shouldEqual` signal.signalId
+            purchase.price `shouldEqual` originalPrice
+            purchase.owner `shouldEqual` account1
+            purchase.newOwner `shouldEqual` account2
 
       -- before (do
-      --     { mintTransfer } <- approveAndMintSignal env approveAndMintArgs
-      --     markSignalForSale env { mintTransfer, signalToken, signalMarket, provider, account1 }
+      --     { trackMint } <- trackMintSignal env trackMintArgs
+      --     markSignalForSale env { trackMint, signalToken, signalMarket, provider, account1 }
       --   ) $ do
       --   it "can unlist signal tokens" \{ signalForSale } -> do
       --     let txOpts = defaultTransactionOptions # _gas ?~ embed 8000000
@@ -274,7 +274,7 @@ faucetTokens { logger } { foamToken, tokenFaucet, provider, account1, account2 }
   awaitTxSuccess txHash provider
 
 -- @NOTE: `TrackedToken` is used here for making a filter on specific signal attributes
-approveAndMintSignal
+trackMintSignal
   :: forall m.
      MonadAff m
   => FilterEnv m
@@ -283,8 +283,8 @@ approveAndMintSignal
      , foamToken :: Address
      , signalToken :: Address
      }
-  -> m { mintTransfer :: SignalToken.TrackedToken }
-approveAndMintSignal { logger } { foamToken, signalToken, provider, account1 } = do
+  -> m { trackMint :: SignalToken.TrackedToken }
+trackMintSignal { logger, uIntGen, byteGen } { foamToken, signalToken, provider, account1 } = do
   let txOpts = defaultTransactionOptions # _to ?~ foamToken
                                          # _from ?~ account1
                                          # _gas ?~ embed 8000000
@@ -301,10 +301,10 @@ approveAndMintSignal { logger } { foamToken, signalToken, provider, account1 } =
       owner = account1
       mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
                                           { owner, stake, geohash, radius }
-  Tuple _ mintTransfer@(SignalToken.TrackedToken s) <- assertWeb3 provider $
+  Tuple _ trackMint@(SignalToken.TrackedToken s) <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy SignalToken.TrackedToken) signalToken mintAction
-  logger $ "Signal token minted " <> show mintTransfer
-  pure { mintTransfer }
+  logger $ "Signal token minted " <> show trackMint
+  pure { trackMint }
 
 markSignalForSale
   :: forall m.
@@ -312,19 +312,19 @@ markSignalForSale
   => FilterEnv m
   -> { account1 :: Address
      , provider :: Provider
-     , mintTransfer :: SignalToken.Transfer
+     , trackMint :: SignalToken.TrackedToken
      , signalMarket :: Address
      , signalToken :: Address
      }
-  -> m { mintTransfer :: SignalToken.Transfer
+  -> m { trackMint :: SignalToken.TrackedToken
        , signalForSale :: SignalMarket.SignalForSale
        }
-markSignalForSale { logger } { signalToken, signalMarket, mintTransfer, provider, account1 } = do
+markSignalForSale { logger } { signalToken, signalMarket, trackMint, provider, account1 } = do
   -- marking for sale
   let txOpts = defaultTransactionOptions # _from ?~ account1
                                          # _gas ?~ embed 8000000
-      s = unwrap mintTransfer
-      _tokenId = s._tokenId
+      s = unwrap trackMint
+      _tokenId = s.tokenID
       _price = mkUIntN s256 1 -- this is ETH price
       signalApproveAction =
         SignalToken.approve (txOpts # _to ?~ signalToken) { _to: signalMarket
@@ -342,4 +342,4 @@ markSignalForSale { logger } { signalToken, signalMarket, mintTransfer, provider
   Tuple _ signalForSale <- assertWeb3 provider $
     takeEvent (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket $ forSaleAction
   logger $ "Signal for sale " <> show signalForSale
-  pure { mintTransfer, signalForSale }
+  pure { trackMint, signalForSale }
