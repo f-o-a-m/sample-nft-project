@@ -53,6 +53,7 @@ assertStorageCall p f = liftAff do
                 "expected Right in `assertStorageCall`, got error" <> show err
 
 -- special event listener for unique SignalTokens
+-- @TODO: figure out the types to make this more generic
 monitorUntil
   :: forall m.
      MonadAff m
@@ -60,27 +61,23 @@ monitorUntil
   -> Logger m
   -> Filter SignalToken.TrackedToken
   -> (SignalToken.TrackedToken -> Boolean)
-  -> m
-       ( Fiber
-         ( Either Web3Error
-             { valueV :: AVar.AVar SignalToken.TrackedToken
-             }
-         )
-       )
+  -> m (AVar.AVar SignalToken.TrackedToken)
 monitorUntil provider logger filter pred = do
   valueV <- liftAff $ AVar.empty
   logger $ "Creating filter with fromBlock=" <>
     show (filter ^. _fromBlock) <> " toBlock=" <> show (filter ^. _toBlock)
-  let handler token@(SignalToken.TrackedToken s) = do
-        let shouldTerminate = pred token
+  let handler eventValue = do
+        let shouldTerminate = pred eventValue
         if shouldTerminate
           then do
-            liftAff $ AVar.put token valueV
+            liftAff $ AVar.put eventValue valueV
             pure TerminateEvent
           else pure ContinueEvent
-  liftAff $ forkWeb3 provider $ do
+  fiber <- liftAff $ forkWeb3 provider $ do
     _ <- event' filter 0 handler
-    pure { valueV }
+    pure valueV
+  result <- joinWeb3Fork fiber
+  pure result
 
 joinWeb3Fork
   :: forall a m.

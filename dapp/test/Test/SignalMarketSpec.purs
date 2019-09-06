@@ -26,12 +26,12 @@ import Effect.Class (liftEffect)
 import Effect.Exception (Error)
 import Network.Ethereum.Core.HexString (mkHexString)
 import Network.Ethereum.Web3 (Address, BytesN, ChainCursor(..), Ether, HexString, Provider, UIntN, Value, Web3, _from, _gas, _to, _value, convert, defaultTransactionOptions, embed, eventFilter, mkAddress, mkValue, unUIntN)
-import Network.Ethereum.Web3.Api (eth_blockNumber, eth_sendTransaction)
+import Network.Ethereum.Web3.Api (eth_sendTransaction)
 import Network.Ethereum.Web3.Solidity.Sizes (S256, S32, s256, s32)
 import Partial.Unsafe (unsafePartial)
 import Test.Spec (SpecT, before, beforeAll_, describe, it, parallel)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
-import Test.Utils (assertStorageCall, assertWeb3, go, joinWeb3Fork, mkBytesGen, mkBytesN, mkUIntN, mkUIntsGen, monitorUntil, unsafeFromJust)
+import Test.Utils (assertStorageCall, assertWeb3, go, mkBytesGen, mkBytesN, mkUIntN, mkUIntsGen, monitorUntil, unsafeFromJust)
 import Type.Proxy (Proxy(..))
 
 type FilterEnv m =
@@ -199,31 +199,31 @@ spec' testCfg env@{ logger, uIntGen, byteGen } = do
             purchase.owner `shouldEqual` account1
             purchase.newOwner `shouldEqual` account2
 
-      before (do
-          { trackMint } <- trackMintSignal env trackMintArgs
-          markSignalForSale env { trackMint, signalToken, signalMarket, provider, account1 }
-        ) $ do
-        it "can unlist signal tokens" \{ signalForSale } -> do
-          let txOpts = defaultTransactionOptions # _gas ?~ embed 8000000
-              txOpts1 = txOpts # _from ?~ account1
-              txOpts2 = txOpts # _from ?~ account2
-              signalId = (unwrap signalForSale).signalId
-              -- only account1 can unlist the token
-              unlistAction _tokenId =
-                SignalMarket.unlist (txOpts1 # _to ?~ signalMarket) { _tokenId }
-              acc2BuyAction _tokenId =
-                SignalMarket.buy (txOpts # _to ?~ signalMarket
-                                         # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
-          -- unlist the signal with account1
-          logger $ "UNLIST: Attempting to unlist signal with Id " <> show signalId
-          Tuple _ unlisted@(SignalMarket.SignalUnlisted nfs) <- assertWeb3 provider $
-            takeEvent (Proxy :: Proxy SignalMarket.SignalUnlisted) signalMarket $ unlistAction signalId
-          logger $ "UNLIST: Signal unlisted " <> show unlisted
-          liftAff $ nfs.signalId `shouldEqual` signalId
-          -- trying to buy an unlisted signal should result in failure
-          -- Tuple e _ <- assertWeb3 provider $
-          --   takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction signalId
-          -- pure unit
+      -- before (do
+      --     { trackMint } <- trackMintSignal env trackMintArgs
+      --     markSignalForSale env { trackMint, signalToken, signalMarket, provider, account1 }
+      --   ) $ do
+      --   it "can unlist signal tokens" \{ signalForSale } -> do
+      --     let txOpts = defaultTransactionOptions # _gas ?~ embed 8000000
+      --         txOpts1 = txOpts # _from ?~ account1
+      --         txOpts2 = txOpts # _from ?~ account2
+      --         signalId = (unwrap signalForSale).signalId
+      --         -- only account1 can unlist the token
+      --         unlistAction _tokenId =
+      --           SignalMarket.unlist (txOpts1 # _to ?~ signalMarket) { _tokenId }
+      --         acc2BuyAction _tokenId =
+      --           SignalMarket.buy (txOpts # _to ?~ signalMarket
+      --                                    # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
+      --     -- unlist the signal with account1
+      --     logger $ "UNLIST: Attempting to unlist signal with Id " <> show signalId
+      --     Tuple _ unlisted@(SignalMarket.SignalUnlisted nfs) <- assertWeb3 provider $
+      --       takeEvent (Proxy :: Proxy SignalMarket.SignalUnlisted) signalMarket $ unlistAction signalId
+      --     logger $ "UNLIST: Signal unlisted " <> show unlisted
+      --     liftAff $ nfs.signalId `shouldEqual` signalId
+      --     -- trying to buy an unlisted signal should result in failure
+      --     -- Tuple e _ <- assertWeb3 provider $
+      --     --   takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction signalId
+      --     -- pure unit
 
 faucet
   :: { recipient :: Address
@@ -307,12 +307,8 @@ trackMintSignal { logger, uIntGen, byteGen } { foamToken, signalToken, provider,
       mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
                                           { owner, stake, geohash, radius }
       trackedTokenFilter = eventFilter (Proxy :: Proxy SignalToken.TrackedToken) signalToken
-  fiber <- monitorUntil provider logger trackedTokenFilter (\(SignalToken.TrackedToken s) ->
-                                                             s.radius == radius)
-  start <- assertWeb3 provider eth_blockNumber
-  txHash <- assertWeb3 provider mintAction
-  awaitTxSuccess txHash provider
-  {valueV} <- joinWeb3Fork fiber
+  valueV <- monitorUntil provider logger trackedTokenFilter (\(SignalToken.TrackedToken s) ->
+                                                              s.radius == radius)
   trackMint@(SignalToken.TrackedToken tm) <- liftAff $ AVar.take valueV
   if (tm.radius == radius)
     then
