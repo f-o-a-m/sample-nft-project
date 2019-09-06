@@ -20,6 +20,12 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- common
+- http-client
+- http-client-tls
+- lens
+- string-conversions
+- web3
 
 library:
   source-dirs: src
