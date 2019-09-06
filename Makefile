@@ -65,5 +65,5 @@ stylish: ## Run stylish-haskell over all haskell projects
 build-server: ## build server and install binaries
 	stack install server
 
-run-server: ## run the server
+run-server: build-server ## run the server
 	stack exec -- server-exe

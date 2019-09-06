@@ -31,9 +31,8 @@ instance AE.FromJSON Contracts where
 instance AE.ToJSON Contracts where
     toJSON = AE.genericToJSON contractsAesonOptions
 
-mkContracts :: ExceptT String IO Contracts
-mkContracts = do
-  networkID <- getEnvVar "NETWORK_ID"
+mkContracts :: String -> ExceptT String IO Contracts
+mkContracts networkID = do
   foamToken <- getDeployReceipt "FoamToken" networkID
   signalToken <- getDeployReceipt "SignalToken" networkID
   signalMarket <- getDeployReceipt "SignalMarket" networkID

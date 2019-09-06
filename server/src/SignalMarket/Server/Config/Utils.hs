@@ -8,10 +8,9 @@ module SignalMarket.Server.Config.Utils
 
 import           Control.Error
 import           Control.Monad.IO.Class
-import           Data.String.Conversions (cs)
-import           Data.Text               (Text)
+import           Data.Text              (Text)
 import           System.Environment
-import qualified Text.Read               as T
+import qualified Text.Read              as T
 
 -- | Grab an environment variable and attempt to parse it via its Read instance.
 readEnvVar :: (Read a, MonadIO m) => String -> ExceptT String m a
