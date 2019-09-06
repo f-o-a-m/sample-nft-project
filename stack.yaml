@@ -3,5 +3,6 @@ resolver: lts-14.4
 packages:
 - "server"
 - "common"
+- "indexer"
 # extra-deps: []
 # flags: {}
