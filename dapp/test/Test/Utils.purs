@@ -4,7 +4,7 @@ import Prelude
 
 import Contracts.SignalToken as SignalToken
 import Control.Monad.Reader (ReaderT, runReaderT)
-import Data.Array (intercalate)
+import Data.Array ((..), intercalate)
 import Data.Array.NonEmpty as NAE
 import Data.ByteString as BS
 import Data.Either (Either(..))
@@ -15,6 +15,7 @@ import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class.Console as C
 import Network.Ethereum.Web3 (class KnownSize, BytesN, CallError, DLProxy, EventAction(..), Filter, Provider, UIntN, Web3, Web3Error, _fromBlock, _toBlock, embed, event', forkWeb3, fromByteString, runWeb3, uIntNFromBigNumber)
+import Network.Ethereum.Web3.Solidity.Sizes (S256, S32, s256, s32)
 import Partial.Unsafe (unsafeCrashWith, unsafePartialBecause)
 import Test.Spec (ComputationType(..), SpecT, hoistSpec)
 
@@ -62,24 +63,24 @@ monitorUntil
   -> m
        ( Fiber
          ( Either Web3Error
-             { endingValueV :: AVar.AVar SignalToken.TrackedToken
+             { valueV :: AVar.AVar SignalToken.TrackedToken
              }
          )
        )
 monitorUntil provider logger filter pred = do
-  endingValueV <- liftAff $ AVar.empty
+  valueV <- liftAff $ AVar.empty
   logger $ "Creating filter with fromBlock=" <>
     show (filter ^. _fromBlock) <> " toBlock=" <> show (filter ^. _toBlock)
   let handler token@(SignalToken.TrackedToken s) = do
         let shouldTerminate = pred token
         if shouldTerminate
           then do
-            liftAff $ AVar.put token endingValueV
+            liftAff $ AVar.put token valueV
             pure TerminateEvent
           else pure ContinueEvent
   liftAff $ forkWeb3 provider $ do
     _ <- event' filter 0 handler
-    pure { endingValueV }
+    pure { valueV }
 
 unsafeFromJust :: forall a. String -> Maybe a -> a
 unsafeFromJust msg = case _ of
@@ -98,8 +99,35 @@ mkUIntN p n = unsafePartialBecause "I know how to make a UInt" $
 mkBytesN
   :: forall n.
      KnownSize n
-     => DLProxy n
+  => DLProxy n
   -> String
   -> BytesN n
 mkBytesN p s = unsafePartialBecause "I know how to make Bytes" $
                fromJust $ fromByteString p =<< flip BS.fromString BS.Hex s
+
+
+mkUIntsGen
+  :: forall m.
+     MonadAff m
+  => AVar.AVar Int
+  -> Int
+  -> m (Array (UIntN S256))
+mkUIntsGen uintV n = liftAff do
+  firstAvailable <- AVar.take uintV
+  let nextVal = firstAvailable + n
+      res = firstAvailable .. (nextVal - 1)
+  AVar.put nextVal uintV
+  pure $ map (mkUIntN s256) res
+
+mkBytesGen
+  :: forall m.
+     MonadAff m
+  => AVar.AVar Int
+  -> Int
+  -> m (Array (BytesN S32))
+mkBytesGen byteV n = liftAff do
+  firstAvailable <- AVar.take byteV
+  let nextVal = firstAvailable + n
+      res = firstAvailable .. (nextVal - 1)
+  AVar.put nextVal byteV
+  pure $ map (mkBytesN s32 <<< show) res
