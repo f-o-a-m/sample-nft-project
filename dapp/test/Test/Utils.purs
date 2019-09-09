@@ -2,19 +2,18 @@ module Test.Utils where
 
 import Prelude
 
-import Contracts.SignalToken as SignalToken
-import Control.Monad.Reader (ReaderT, runReaderT)
+import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Data.Array (intercalate)
 import Data.Array.NonEmpty as NAE
 import Data.ByteString as BS
 import Data.Either (Either(..))
-import Data.Lens ((^.))
 import Data.Maybe (Maybe(..), fromJust)
 import Effect.Aff (Aff, Fiber, joinFiber)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class.Console as C
-import Network.Ethereum.Web3 (class KnownSize, BytesN, CallError, DLProxy, EventAction(..), Filter, Provider, UIntN, Web3, Web3Error, _fromBlock, _toBlock, embed, event', forkWeb3, fromByteString, runWeb3, uIntNFromBigNumber)
+import Network.Ethereum.Web3 (class KnownSize, BytesN, CallError, Change(..), DLProxy, EventAction(..), Filter, HexString, Provider, UIntN, Web3, Web3Error, embed, event, forkWeb3, fromByteString, runWeb3, uIntNFromBigNumber)
+import Network.Ethereum.Web3.Solidity (class DecodeEvent)
 import Network.Ethereum.Web3.Solidity.Sizes (S256, S32, s256, s32)
 import Partial.Unsafe (unsafeCrashWith, unsafePartialBecause)
 import Test.Spec (ComputationType(..), SpecT, hoistSpec)
@@ -55,29 +54,30 @@ assertStorageCall p f = liftAff do
 -- special event listener for unique SignalTokens
 -- @TODO: figure out the types to make this more generic
 monitorUntil
-  :: forall m.
+  :: forall m e i ni.
      MonadAff m
+  => DecodeEvent i ni e
   => Provider
   -> Logger m
-  -> Filter SignalToken.TrackedToken
-  -> (SignalToken.TrackedToken -> Boolean)
-  -> m (AVar.AVar SignalToken.TrackedToken)
-monitorUntil provider logger filter pred = do
-  valueV <- liftAff $ AVar.empty
-  logger $ "Creating filter with fromBlock=" <>
-    show (filter ^. _fromBlock) <> " toBlock=" <> show (filter ^. _toBlock)
+  -> Web3 HexString
+  -> Filter e
+  -> m e
+monitorUntil provider logger action filter = liftAff do
+  valueV <- AVar.empty
+  txHashV <- AVar.empty
   let handler eventValue = do
-        let shouldTerminate = pred eventValue
-        if shouldTerminate
+        (Change e) <- ask
+        txHash <- liftAff $ AVar.read txHashV
+        if e.transactionHash == txHash
           then do
             liftAff $ AVar.put eventValue valueV
             pure TerminateEvent
           else pure ContinueEvent
-  fiber <- liftAff $ forkWeb3 provider $ do
-    _ <- event' filter 0 handler
-    pure valueV
-  result <- joinWeb3Fork fiber
-  pure result
+  fiber <- forkWeb3 provider do
+    event filter handler
+  txHash <- assertWeb3 provider action
+  _ <- joinWeb3Fork fiber
+  AVar.take valueV
 
 joinWeb3Fork
   :: forall a m.
