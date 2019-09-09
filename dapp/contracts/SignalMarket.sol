@@ -66,7 +66,7 @@ contract SignalMarket is ERC721Holder {
     // some sort of owner transfer via the SignalToken.transfer?
     // if token is for sale, the token should already be approved
     // for working in this contract
-    Sale storage s = signalToSale[_tokenId];
+    Sale s = signalToSale[_tokenId];
 
     // check payment
     require(msg.value >= s.price);

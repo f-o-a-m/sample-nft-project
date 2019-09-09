@@ -12,11 +12,12 @@ import Control.Monad.Error.Class (class MonadError)
 import Control.Monad.Reader (ask)
 import Control.Parallel (parTraverse_)
 import Data.Array ((!!))
+import Data.Either (isLeft)
 import Data.Lens ((?~))
 import Data.Maybe (fromJust)
 import Data.Newtype (unwrap)
 import Deploy.Main (SignalMarket, SignalToken)
-import Deploy.Utils (awaitTxSuccess)
+import Deploy.Utils (awaitTxSuccess, safeSignalToSale)
 import Effect.AVar as EAVar
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
@@ -190,6 +191,11 @@ spec' testCfg env@{ logger, signalAttrGen } = do
           unlisted@(SignalMarket.SignalUnlisted nfs) <- monitorUntil provider logger unlistAction unlistFilter
           logger $ "UNLIST: Signal unlisted " <> show unlisted
           liftAff $ nfs.signalId `shouldEqual` _tokenId
+          -- attempting to buy an unlist signal, should result in an error
+          -- @NOTE: `safeSignalToSale` is used here in place of the normal FFI to avoid defaulting behavior
+          let signalsForSale = safeSignalToSale (txOpts # _to ?~ signalMarket) Latest _tokenId
+          tx <- assertWeb3 provider signalsForSale
+          tx `shouldSatisfy` isLeft
 
 faucet
   :: { recipient :: Address
