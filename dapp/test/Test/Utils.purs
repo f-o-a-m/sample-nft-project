@@ -64,6 +64,7 @@ monitorUntil
 monitorUntil provider logger action filter = liftAff do
   valueV <- AVar.empty
   txHashV <- AVar.empty
+  -- find the right trx via its hash
   let handler eventValue = do
         (Change e) <- ask
         txHash <- liftAff $ AVar.read txHashV
@@ -72,10 +73,13 @@ monitorUntil provider logger action filter = liftAff do
             liftAff $ AVar.put eventValue valueV
             pure TerminateEvent
           else pure ContinueEvent
+  -- start filter
   fiber <- forkWeb3 provider do
     event filter handler
+  -- launch action and record its txHash
   txHash <- assertWeb3 provider action
   AVar.put txHash txHashV
+  -- join the fiber
   _ <- joinWeb3Fork fiber
   AVar.take valueV
 
@@ -113,25 +117,18 @@ mkBytesN
 mkBytesN p s = unsafePartialBecause "I know how to make Bytes" $
                fromJust $ fromByteString p =<< flip BS.fromString BS.Hex s
 
-
-mkUIntsGen
+mkSignalAttrGen
   :: forall m.
      MonadAff m
   => AVar.AVar Int
-  -> m (UIntN S256)
-mkUIntsGen uintV = liftAff do
-  firstAvailable <- AVar.take uintV
+  -> m { geohash :: BytesN S32
+       , radius :: UIntN S256
+       }
+mkSignalAttrGen uIntV = liftAff do
+  firstAvailable <- AVar.take uIntV
   let nextVal = firstAvailable + 1
-  AVar.put nextVal uintV
-  pure $ mkUIntN s256 firstAvailable
+  AVar.put nextVal uIntV
+  pure $ { geohash: mkBytesN s32 $ show firstAvailable
+         , radius: mkUIntN s256 firstAvailable
+         }
 
-mkBytesGen
-  :: forall m.
-     MonadAff m
-  => AVar.AVar Int
-  -> m (BytesN S32)
-mkBytesGen byteV = liftAff do
-  firstAvailable <- AVar.take byteV
-  let nextVal = firstAvailable + 1
-  AVar.put nextVal byteV
-  pure $ mkBytesN s32 $ show firstAvailable

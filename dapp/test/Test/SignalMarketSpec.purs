@@ -29,13 +29,14 @@ import Network.Ethereum.Web3.Solidity.Sizes (S256, S32, s256)
 import Partial.Unsafe (unsafePartial)
 import Test.Spec (SpecT, before, beforeAll_, describe, it, parallel)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
-import Test.Utils (assertStorageCall, assertWeb3, go, mkBytesGen, mkUIntN, mkUIntsGen, monitorUntil, unsafeFromJust)
+import Test.Utils (assertStorageCall, assertWeb3, go, mkSignalAttrGen, mkUIntN, monitorUntil, unsafeFromJust)
 import Type.Proxy (Proxy(..))
 
 type MarketEnv m =
   { logger :: String -> m Unit -- @NOTE: use this for proper parallel logging
-  , uIntGen :: m (UIntN S256)
-  , byteGen :: m (BytesN S32)
+  , signalAttrGen :: m { geohash :: BytesN S32
+                       , radius :: UIntN S256
+                       }
   }
 
 type SignalMarketTestCfg r =
@@ -50,13 +51,10 @@ spec
      TestConfig (SignalMarketTestCfg r)
   -> SpecT Aff Unit Aff Unit
 spec cfg = do
-  uIntV <- liftEffect $ EAVar.new 1
-  byteV <- liftEffect $ EAVar.new 10
-  let uIntGen = mkUIntsGen uIntV
-      byteGen = mkBytesGen byteV
+  uIntV <- liftEffect $ EAVar.new 10
+  let signalAttrGen = mkSignalAttrGen uIntV
       env = { logger: \s -> ask >>= \logger -> liftAff $ logger s
-            , uIntGen
-            , byteGen
+            , signalAttrGen
             }
   go $ spec' cfg env
 
@@ -67,7 +65,7 @@ spec'
   => TestConfig (SignalMarketTestCfg r)
   -> MarketEnv m
   -> SpecT m Unit Aff Unit
-spec' testCfg env@{ logger, uIntGen, byteGen } = do
+spec' testCfg env@{ logger, signalAttrGen } = do
   -- for generating signal attributes
   let zeroAddr = unsafeFromJust "Must be valid Address 000..." $
                  mkAddress =<< mkHexString "0x0000000000000000000000000000000000000000"
@@ -108,12 +106,18 @@ spec' testCfg env@{ logger, uIntGen, byteGen } = do
           signalTokenAddr `shouldEqual` signalTokenAddr
         logger $ "Signal Market is deployed."
       it "can verify trackMintSignal is working" do
-        { trackMint } <- trackMintSignal env { foamToken, signalToken, provider, account1 }
-        logger $ "Track Mint Signal returns " <> show trackMint
+        attrs@{ geohash, radius } <- signalAttrGen
+        logger $ "INIT: Attempting to make a signal with attrs " <> show attrs
+        { trackMint } <- trackMintSignal env { geohash, radius, foamToken, signalToken, provider, account1 }
+        -- @NOTE: only radius works; geohash is weird
+        let s = unwrap trackMint
+        s.radius `shouldEqual` radius
 
     describe "interact with signal market" $ parallel do
-      let trackMintArgs = { foamToken, signalToken, provider, account1 }
-      before (trackMintSignal env trackMintArgs) $ do
+      before (do
+          { geohash, radius } <- signalAttrGen
+          trackMintSignal env { geohash, radius, foamToken, signalToken, provider, account1 }
+        ) $ do
         it "can mark signal tokens for sale" \{ trackMint } -> do
           -- check price and Id value
           let s = unwrap trackMint
@@ -143,7 +147,8 @@ spec' testCfg env@{ logger, uIntGen, byteGen } = do
 
       let originalPrice = mkUIntN s256 1
       before (do
-          { trackMint } <- trackMintSignal env trackMintArgs
+          { geohash, radius } <- signalAttrGen
+          { trackMint } <- trackMintSignal env { geohash, radius, foamToken, signalToken, provider, account1 }
           markSignalForSale env { trackMint, signalToken, signalMarket, provider, account1 }
         ) $ do
         it "can buy signal tokens" \{ signalForSale } -> do
@@ -168,7 +173,8 @@ spec' testCfg env@{ logger, uIntGen, byteGen } = do
             purchase.newOwner `shouldEqual` account2
 
       before (do
-          { trackMint } <- trackMintSignal env trackMintArgs
+          { geohash, radius } <- signalAttrGen
+          { trackMint } <- trackMintSignal env { geohash, radius, foamToken, signalToken, provider, account1 }
           markSignalForSale env { trackMint, signalToken, signalMarket, provider, account1 }
         ) $ do
         it "can unlist signal tokens" \{ signalForSale } -> do
@@ -179,19 +185,11 @@ spec' testCfg env@{ logger, uIntGen, byteGen } = do
               -- only account1 can unlist the token
               unlistAction = SignalMarket.unlist (txOpts1 # _to ?~ signalMarket) { _tokenId }
               unlistFilter = eventFilter (Proxy :: Proxy SignalMarket.SignalUnlisted) signalMarket
-              acc2BuyAction =
-                SignalMarket.buy (txOpts # _to ?~ signalMarket
-                                         # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
-              acc2BuyFilter = eventFilter (Proxy :: Proxy SignalMarket.SignalSold) signalMarket
           -- unlist the signal with account1
           logger $ "UNLIST: Attempting to unlist signal with Id " <> show _tokenId
           unlisted@(SignalMarket.SignalUnlisted nfs) <- monitorUntil provider logger unlistAction unlistFilter
           logger $ "UNLIST: Signal unlisted " <> show unlisted
           liftAff $ nfs.signalId `shouldEqual` _tokenId
-          -- trying to buy an unlisted signal should result in failure
-          -- Tuple e _ <- assertWeb3 provider $
-          --   takeEvent (Proxy :: Proxy SignalMarket.SignalSold) signalMarket $ acc2BuyAction signalId
-          -- pure unit
 
 faucet
   :: { recipient :: Address
@@ -251,12 +249,14 @@ trackMintSignal
      MonadAff m
   => MarketEnv m
   -> { account1 :: Address
+     , geohash :: BytesN S32
+     , radius :: UIntN S256
      , provider :: Provider
      , foamToken :: Address
      , signalToken :: Address
      }
   -> m { trackMint :: SignalToken.TrackedToken }
-trackMintSignal { logger, uIntGen, byteGen } { foamToken, signalToken, provider, account1 } = do
+trackMintSignal { logger } { geohash, radius, foamToken, signalToken, provider, account1 } = do
   let txOpts = defaultTransactionOptions # _to ?~ foamToken
                                          # _from ?~ account1
                                          # _gas ?~ embed 8000000
@@ -268,14 +268,13 @@ trackMintSignal { logger, uIntGen, byteGen } { foamToken, signalToken, provider,
   approval@(FoamToken.Approval ft) <- monitorUntil provider logger approveAction approvalFilter
   logger $ "AUX: Approved FOAM tokens " <> show approval
   -- generate unique attributes
-  geohash <- byteGen
-  radius <- uIntGen
   let stake = mkUIntN s256 1
       owner = account1
       mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
                                           { owner, stake, geohash, radius }
       trackedTokenFilter = eventFilter (Proxy :: Proxy SignalToken.TrackedToken) signalToken
   trackMint@(SignalToken.TrackedToken tm) <- monitorUntil provider logger mintAction trackedTokenFilter
+  logger $ "AUX: Signal token minted " <> show trackMint
   pure { trackMint }
 
 markSignalForSale
