@@ -51,8 +51,7 @@ assertStorageCall p f = liftAff do
     Left err -> unsafeCrashWith $
                 "expected Right in `assertStorageCall`, got error" <> show err
 
--- special event listener for unique SignalTokens
--- @TODO: figure out the types to make this more generic
+-- special event listener
 monitorUntil
   :: forall m e i ni.
      MonadAff m
@@ -76,6 +75,7 @@ monitorUntil provider logger action filter = liftAff do
   fiber <- forkWeb3 provider do
     event filter handler
   txHash <- assertWeb3 provider action
+  AVar.put txHash txHashV
   _ <- joinWeb3Fork fiber
   AVar.take valueV
 
