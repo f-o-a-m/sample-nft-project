@@ -5,13 +5,13 @@ import Prelude
 import Chanterelle.Internal.Utils.Web3 (pollTransactionReceipt)
 import Contracts.SignalMarket (signalToSale)
 import Data.Either (Either(..))
+import Data.Maybe (Maybe(..), fromJust)
 import Effect.Aff.Class (class MonadAff)
-import Network.Ethereum.Web3 (type (:&), Address, CallError(..), ChainCursor, D2, D5, D6, DOne, HexString, Provider, TransactionOptions, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, mkAddress, mkHexString)
+import Network.Ethereum.Web3 (class KnownSize, type (:&), Address, CallError(..), ChainCursor, D2, D5, D6, DLProxy, DOne, HexString, Provider, TransactionOptions, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, embed, mkAddress, mkHexString, uIntNFromBigNumber)
 import Network.Ethereum.Web3.Solidity (Tuple3(..))
 import Network.Ethereum.Web3.Solidity.Sizes (s256)
 import Network.Ethereum.Web3.Types (NoPay)
-import Partial.Unsafe (unsafeCrashWith)
-import Test.Utils (mkUIntN, unsafeFromJust)
+import Partial.Unsafe (unsafeCrashWith, unsafePartialBecause)
 
 -- @TODO: make an issue to add this to chanterelle (Chanterelle.Test module)
 awaitTxSuccess :: forall m. MonadAff m => HexString -> Provider -> m Unit
@@ -40,3 +40,18 @@ nullSale = Tuple3 nullUIntValue nullUIntValue nullAddress
   where nullUIntValue = mkUIntN s256 0
         nullAddress = unsafeFromJust "Must be valid Address 000..." $
                       mkAddress =<< mkHexString "0x0000000000000000000000000000000000000000"
+
+unsafeFromJust :: forall a. String -> Maybe a -> a
+unsafeFromJust msg = case _ of
+  Nothing -> unsafeCrashWith $ "unsafeFromJust: " <> msg
+  Just a -> a
+
+mkUIntN
+  :: forall n.
+     KnownSize n
+  => DLProxy n
+  -> Int
+  -> UIntN n
+mkUIntN p n = unsafePartialBecause "I know how to make a UInt" $
+              fromJust $ uIntNFromBigNumber p $ embed n
+
