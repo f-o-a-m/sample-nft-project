@@ -26,6 +26,7 @@ default-extensions:
   - MultiParamTypeClasses
   - FlexibleInstances
   - RankNTypes
+  - GeneralizedNewtypeDeriving
 
 dependencies:
 - aeson
@@ -40,6 +41,8 @@ dependencies:
 - mtl
 - opaleye
 - postgresql-simple
+- product-profunctors
+- scientific
 - string-conversions
 - text
 - web3
