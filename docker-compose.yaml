@@ -1,0 +1,15 @@
+version: "3"
+services:
+  postgis:
+    image: mdillon/postgis:10
+    ports:
+    - 5432:5432
+  cliquebait:
+    image: foamspace/cliquebait:latest
+    environment:
+      - "ACCOUNTS_TO_CREATE=18"
+    command: /cliquebait/run.bash --nodiscover --maxpeers=0 --gcmode=archive --targetgaslimit=0x8000000
+    volumes:
+    - ./cliquebait-generated.json:/cliquebait/cliquebait.json
+    ports:
+    - 8545:8545
