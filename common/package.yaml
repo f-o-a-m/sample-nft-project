@@ -31,12 +31,15 @@ dependencies:
 - aeson
 - aeson-casing
 - base >= 4.7 && < 5
+- bytestring
 - errors
 - http-client
 - katip
 - lens
 - lens-aeson
 - mtl
+- opaleye
+- postgresql-simple
 - string-conversions
 - text
 - web3
