@@ -161,7 +161,6 @@ spec' testCfg env@{ logger, signalAttrGen } = do
                 SignalMarket.buy (txOpts # _to ?~ signalMarket
                                          # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
               acc2BuyFilter = eventFilter (Proxy :: Proxy SignalMarket.SignalSold) signalMarket
-          -- @NOTE: this is failing
           logger $ "BUY: Attempting to buy Signal with Id " <> show _tokenId
           -- make account2 buy the signal from account1
           sold@(SignalMarket.SignalSold purchase) <- monitorUntil provider logger acc2BuyAction acc2BuyFilter
@@ -181,7 +180,6 @@ spec' testCfg env@{ logger, signalAttrGen } = do
         it "can unlist signal tokens" \{ signalForSale } -> do
           let txOpts = defaultTransactionOptions # _gas ?~ embed 8000000
               txOpts1 = txOpts # _from ?~ account1
-              txOpts2 = txOpts # _from ?~ account2
               _tokenId = (unwrap signalForSale).signalId
               -- only account1 can unlist the token
               unlistAction = SignalMarket.unlist (txOpts1 # _to ?~ signalMarket) { _tokenId }
@@ -249,7 +247,6 @@ faucetTokens { logger } { foamToken, tokenFaucet, provider, account1, account2 }
   logger $ "FAUCET: ETH to account2 " <> show txHash
   awaitTxSuccess txHash provider
 
--- @NOTE: `TrackedToken` is used here for making a filter on specific signal attributes
 trackMintSignal
   :: forall m.
      MonadAff m
