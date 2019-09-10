@@ -13,7 +13,7 @@ import Debug.Trace (traceM)
 
 import Test.SignalMarketSpec as SignalMarketSpec
 
--- | TODO: make the options for deploy config env vars
+-- @TODO: make the options for deploy config env vars
 main :: Effect Unit
 main = void <<< launchAff $ do
   testConfig <- buildTestConfig "http://localhost:8545" 60 deployScript

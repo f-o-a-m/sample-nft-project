@@ -2,16 +2,19 @@ module Test.Utils where
 
 import Prelude
 
-import Control.Monad.Reader (ReaderT, runReaderT)
+import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Data.Array (intercalate)
 import Data.Array.NonEmpty as NAE
 import Data.ByteString as BS
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), fromJust)
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, Fiber, joinFiber)
+import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class.Console as C
-import Network.Ethereum.Web3 (class KnownSize, BytesN, CallError, DLProxy, Provider, UIntN, Web3, embed, fromByteString, runWeb3, uIntNFromBigNumber)
+import Network.Ethereum.Web3 (class KnownSize, BytesN, CallError, Change(..), DLProxy, EventAction(..), Filter, HexString, Provider, UIntN, Web3, Web3Error, embed, event, forkWeb3, fromByteString, runWeb3, uIntNFromBigNumber)
+import Network.Ethereum.Web3.Solidity (class DecodeEvent)
+import Network.Ethereum.Web3.Solidity.Sizes (S256, S32, s256, s32)
 import Partial.Unsafe (unsafeCrashWith, unsafePartialBecause)
 import Test.Spec (ComputationType(..), SpecT, hoistSpec)
 
@@ -48,6 +51,49 @@ assertStorageCall p f = liftAff do
     Left err -> unsafeCrashWith $
                 "expected Right in `assertStorageCall`, got error" <> show err
 
+-- special event listener
+monitorUntil
+  :: forall m e i ni.
+     MonadAff m
+  => DecodeEvent i ni e
+  => Provider
+  -> Logger m
+  -> Web3 HexString
+  -> Filter e
+  -> m e
+monitorUntil provider logger action filter = liftAff do
+  valueV <- AVar.empty
+  txHashV <- AVar.empty
+  -- find the right trx via its hash
+  let handler eventValue = do
+        (Change e) <- ask
+        txHash <- liftAff $ AVar.read txHashV
+        if e.transactionHash == txHash
+          then do
+            liftAff $ AVar.put eventValue valueV
+            pure TerminateEvent
+          else pure ContinueEvent
+  -- start filter
+  fiber <- forkWeb3 provider do
+    event filter handler
+  -- launch action and record its txHash
+  txHash <- assertWeb3 provider action
+  AVar.put txHash txHashV
+  -- join the fiber
+  _ <- joinWeb3Fork fiber
+  AVar.take valueV
+
+joinWeb3Fork
+  :: forall a m.
+     MonadAff m
+  => Fiber (Either Web3Error a)
+  -> m a
+joinWeb3Fork fiber = liftAff do
+  eRes <- joinFiber fiber
+  case eRes of
+    Left e -> unsafeCrashWith $ "Error in forked web3 process " <> show e
+    Right a -> pure a
+
 unsafeFromJust :: forall a. String -> Maybe a -> a
 unsafeFromJust msg = case _ of
   Nothing -> unsafeCrashWith $ "unsafeFromJust: " <> msg
@@ -65,8 +111,24 @@ mkUIntN p n = unsafePartialBecause "I know how to make a UInt" $
 mkBytesN
   :: forall n.
      KnownSize n
-     => DLProxy n
+  => DLProxy n
   -> String
   -> BytesN n
 mkBytesN p s = unsafePartialBecause "I know how to make Bytes" $
                fromJust $ fromByteString p =<< flip BS.fromString BS.Hex s
+
+mkSignalAttrGen
+  :: forall m.
+     MonadAff m
+  => AVar.AVar Int
+  -> m { geohash :: BytesN S32
+       , radius :: UIntN S256
+       }
+mkSignalAttrGen uIntV = liftAff do
+  firstAvailable <- AVar.take uIntV
+  let nextVal = firstAvailable + 1
+  AVar.put nextVal uIntV
+  pure $ { geohash: mkBytesN s32 $ show firstAvailable
+         , radius: mkUIntN s256 firstAvailable
+         }
+
