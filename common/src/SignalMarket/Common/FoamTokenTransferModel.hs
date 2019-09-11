@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module SignalMarket.Common.FoamTokenModel where
+module SignalMarket.Common.FoamTokenTransferModel where
 
 import           Data.Text (Text)
 import           Database.PostgreSQL.Simple (Connection)
@@ -13,19 +13,9 @@ import           Data.Profunctor.Product.Default
 import           Data.Scientific (Scientific)
 import           Opaleye.RunQuery (QueryRunnerColumnDefault)
 import           Data.Int (Int64)
+import           SignalMarket.Common.EventTypes (EventId, Value, EthAddress)
 
-newtype EventId = EventId Text deriving (Eq, Show, QueryRunnerColumnDefault SqlText)
-
-newtype Value = Value Scientific deriving (Eq, Show, QueryRunnerColumnDefault SqlNumeric)
-
-newtype EthAddress = EthAddress Text deriving (Eq, Show, QueryRunnerColumnDefault SqlText)
-
---------------------------------------------------------------------------------
-{-
-FoamToken Events
-- Transfer
-
--}
+-- FoamToken Transfer
 
 data Transfer' to from value = Transfer
   { to :: to
@@ -45,8 +35,6 @@ transferTable = table "transfer"
                                            , value = tableField "value"
                                            }
                        )
-
---------------------------------------------------------------------------------
 
 transferSelect :: Select TransferPG
 transferSelect = selectTable transferTable
