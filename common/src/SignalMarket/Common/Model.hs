@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module SignalMarket.Common.Model where
 
@@ -6,8 +7,9 @@ import Data.Text (Text)
 import Database.PostgreSQL.Simple (Connection)
 -- import Data.Solidity.Prim.Address (Address)
 import           Opaleye (Field, Select, selectTable, runSelect, runInsertMany, constant,
-                         Table, table, tableField, SqlText, SqlNumeric)
+                         Table, table, tableField, SqlText, SqlNumeric, ToFields)
 import           Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import           Data.Profunctor.Product.Default
 import            Data.Scientific (Scientific)
 import Opaleye.RunQuery (QueryRunnerColumnDefault)
 import Data.Int (Int64)
@@ -64,3 +66,13 @@ runTransferSelect conn = runSelect conn transferSelect
 
 insertTransfer :: Connection -> Transfer -> IO Int64
 insertTransfer conn transfer = runInsertMany conn transferTable [constant transfer]
+
+
+inserter
+  :: Default ToFields haskells fields
+  => Connection
+  -> Table fields fields
+  -> haskells
+  -> IO Int64
+inserter conn table a =
+ runInsertMany conn table [constant a]
