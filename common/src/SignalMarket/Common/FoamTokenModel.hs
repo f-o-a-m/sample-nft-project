@@ -1,18 +1,18 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module SignalMarket.Common.Model where
+module SignalMarket.Common.FoamTokenModel where
 
-import Data.Text (Text)
-import Database.PostgreSQL.Simple (Connection)
+import           Data.Text (Text)
+import           Database.PostgreSQL.Simple (Connection)
 -- import Data.Solidity.Prim.Address (Address)
 import           Opaleye (Field, Select, selectTable, runSelect, runInsertMany, constant,
                          Table, table, tableField, SqlText, SqlNumeric, ToFields)
 import           Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import           Data.Profunctor.Product.Default
-import            Data.Scientific (Scientific)
-import Opaleye.RunQuery (QueryRunnerColumnDefault)
-import Data.Int (Int64)
+import           Data.Scientific (Scientific)
+import           Opaleye.RunQuery (QueryRunnerColumnDefault)
+import           Data.Int (Int64)
 
 newtype EventId = EventId Text deriving (Eq, Show, QueryRunnerColumnDefault SqlText)
 
@@ -20,23 +20,13 @@ newtype Value = Value Scientific deriving (Eq, Show, QueryRunnerColumnDefault Sq
 
 newtype EthAddress = EthAddress Text deriving (Eq, Show, QueryRunnerColumnDefault SqlText)
 
-
 --------------------------------------------------------------------------------
 {-
-FoamToken
+FoamToken Events
 - Transfer
-
-SignalToken
-- Transfer
-- TrackedToken
-
-SignalMarket
-- ForSale
-- Bought
-- Unlisted
-
 
 -}
+
 data Transfer' to from value = Transfer
   { to :: to
   , from :: from
@@ -66,7 +56,6 @@ runTransferSelect conn = runSelect conn transferSelect
 
 insertTransfer :: Connection -> Transfer -> IO Int64
 insertTransfer conn transfer = runInsertMany conn transferTable [constant transfer]
-
 
 inserter
   :: Default ToFields haskells fields

@@ -16,13 +16,13 @@ import           Network.HTTP.Client.TLS            (newTlsManager)
 import           SignalMarket.Common.Config.Logging (HasLogConfig (..),
                                                      LogConfig)
 import           SignalMarket.Common.Config.Node    (getNetworkID)
-import           SignalMarket.Common.Config.PG      (mkConnectInfo)
+import           SignalMarket.Common.Config.PG      (mkPGConnectInfo)
 import           SignalMarket.Common.Config.Types   (Contracts (..),
                                                      DeployReceipt (..),
                                                      mkContracts)
 import           SignalMarket.Common.Config.Utils   (getEnvVarWithDefault,
                                                      makeConfig)
-import Database.PostgreSQL.Simple (Connection, connect)
+import           Database.PostgreSQL.Simple         (Connection, connect)
 
 data IndexerConfig = IndexerConfig
   { indexerCfgContracts   :: Contracts
@@ -38,7 +38,7 @@ mkIndexerConfig lc = do
   web3Mgr <- newTlsManager
   networkID <- makeConfig $ cs <$> getNetworkID web3Mgr provider
   contracts <- makeConfig $ mkContracts networkID
-  pg <- makeConfig mkPGConnection >>= connect
+  pg <- makeConfig mkPGConnectInfo >>= connect
   return $ IndexerConfig
     { indexerCfgContracts = contracts
     , indexerCfgWeb3Manager = (provider, web3Mgr)
