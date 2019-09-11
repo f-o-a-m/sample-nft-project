@@ -5,7 +5,7 @@ module SignalMarket.Common.Model where
 import Data.Text (Text)
 import Database.PostgreSQL.Simple (Connection)
 -- import Data.Solidity.Prim.Address (Address)
-import           Opaleye (Field, Select, selectTable, runSelect, runInsertMany,
+import           Opaleye (Field, Select, selectTable, runSelect, runInsertMany, constant,
                          Table, table, tableField, SqlText, SqlNumeric)
 import           Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import            Data.Scientific (Scientific)
@@ -63,4 +63,4 @@ runTransferSelect :: Connection -> IO [Transfer]
 runTransferSelect conn = runSelect conn transferSelect
 
 insertTransfer :: Connection -> Transfer -> IO Int64
-insertTransfer conn transfer = runInsertMany conn transferTable [transfer]
+insertTransfer conn transfer = runInsertMany conn transferTable [constant transfer]
