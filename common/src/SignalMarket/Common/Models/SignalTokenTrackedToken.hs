@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module SignalMarket.Common.SignalTokenTrackedTokenModel where
+module SignalMarket.Common.Models.SignalTokenTrackedToken where
 
 import           Data.Text (Text)
 import           Opaleye (Field, Table, table, tableField, SqlText, SqlNumeric, SqlBytea)

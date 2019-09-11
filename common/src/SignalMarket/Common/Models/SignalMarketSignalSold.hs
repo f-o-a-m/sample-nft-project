@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module SignalMarket.Common.SignalMarketSignalSoldModel where
+module SignalMarket.Common.Models.SignalMarketSignalSold where
 
 import           Data.Text (Text)
 import           Opaleye (Field, Table, table, tableField, SqlText, SqlNumeric)

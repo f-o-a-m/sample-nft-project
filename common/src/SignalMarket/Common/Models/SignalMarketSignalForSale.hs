@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module SignalMarket.Common.SignalMarketSignalForSaleModel where
+module SignalMarket.Common.Models.SignalMarketSignalForSale where
 
 import           Opaleye (Field, Table, table, tableField, SqlNumeric)
 import           Data.Profunctor.Product.TH (makeAdaptorAndInstance)

@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module SignalMarket.Common.SignalTokenTransferModel where
+module SignalMarket.Common.Models.SignalTokenTransfer where
 
 import           Data.Text (Text)
 import           Database.PostgreSQL.Simple (Connection)

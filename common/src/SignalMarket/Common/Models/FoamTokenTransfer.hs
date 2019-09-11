@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module SignalMarket.Common.FoamTokenTransferModel where
+module SignalMarket.Common.Models.FoamTokenTransfer where
 
 import           Data.Text (Text)
 import           Database.PostgreSQL.Simple (Connection)
