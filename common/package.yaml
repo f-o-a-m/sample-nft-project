@@ -27,6 +27,7 @@ default-extensions:
   - FlexibleInstances
   - RankNTypes
   - GeneralizedNewtypeDeriving
+  - TypeApplications
 
 dependencies:
 - aeson
