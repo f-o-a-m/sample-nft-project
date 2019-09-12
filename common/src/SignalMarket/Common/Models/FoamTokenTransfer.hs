@@ -3,15 +3,11 @@
 
 module SignalMarket.Common.Models.FoamTokenTransfer where
 
-import           Data.Text (Text)
 import           Database.PostgreSQL.Simple (Connection)
--- import Data.Solidity.Prim.Address (Address)
 import           Opaleye (Field, Select, selectTable, runSelect, runInsertMany, constant,
                          Table, table, tableField, SqlText, SqlNumeric, ToFields)
 import           Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import           Data.Profunctor.Product.Default
-import           Data.Scientific (Scientific)
-import           Opaleye.RunQuery (QueryRunnerColumnDefault)
 import           Data.Int (Int64)
 import           SignalMarket.Common.EventTypes (EventId, Value, EthAddress)
 
@@ -51,5 +47,4 @@ inserter
   -> Table fields fields
   -> haskells
   -> IO Int64
-inserter conn table a =
- runInsertMany conn table [constant a]
+inserter conn table a = runInsertMany conn table [constant a]

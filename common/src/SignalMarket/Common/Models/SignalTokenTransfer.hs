@@ -3,16 +3,13 @@
 
 module SignalMarket.Common.Models.SignalTokenTransfer where
 
-import           Data.Text (Text)
 import           Database.PostgreSQL.Simple (Connection)
--- import Data.Solidity.Prim.Address (Address)
 import           Opaleye (Field, Select, selectTable, runSelect, runInsertMany, constant,
-                         Table, table, tableField, SqlText, SqlNumeric, SqlBytea, ToFields)
-import           Data.ByteString (ByteString)
+                         Table, table, tableField, SqlText, SqlNumeric, ToFields)
 import           Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import           Data.Profunctor.Product.Default
-import           Data.Scientific (Scientific)
 import           Data.Int (Int64)
+import           SignalMarket.Common.EventTypes (EthAddress, TokenID)
 
 -- SignalToken
 -- Transfer :: {_from :: Address,_to :: Address,_tokenId :: (UIntN (D2 :& D5 :& DOne D6))}
@@ -26,7 +23,7 @@ data Transfer' to from tokenId = Transfer
 $(makeAdaptorAndInstance "pTransfer" ''Transfer')
 
 type TransferPG = Transfer' (Field SqlText) (Field SqlText) (Field SqlNumeric)
-type Transfer = Transfer' Text Text Scientific
+type Transfer = Transfer' EthAddress EthAddress TokenID
 
 transferTable :: Table TransferPG TransferPG
 transferTable = table "transfer"

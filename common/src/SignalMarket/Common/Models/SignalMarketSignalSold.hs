@@ -7,7 +7,7 @@ import           Data.Text (Text)
 import           Opaleye (Field, Table, table, tableField, SqlText, SqlNumeric)
 import           Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import           Data.Profunctor.Product.Default
-import           Data.Scientific (Scientific)
+import           SignalMarket.Common.EventTypes (SignalID, Price, EthAddress)
 
 -- SignalMarket
 -- SignalSold :: {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6)),owner :: Address,newOwner :: Address}
@@ -22,7 +22,7 @@ data SignalSold' signalId price owner newOwner = SignalSold
 $(makeAdaptorAndInstance "pSignalSold" ''SignalSold')
 
 type SignalSoldPG = SignalSold' (Field SqlNumeric) (Field SqlNumeric) (Field Text) (Field Text)
-type SignalSold = SignalSold' Scientific Scientific Text Text
+type SignalSold = SignalSold' SignalID Price EthAddress EthAddress
 
 signalSoldTable :: Table SignalSoldPG SignalSoldPG
 signalSoldTable = table "signalSold"

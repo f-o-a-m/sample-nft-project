@@ -6,7 +6,7 @@ module SignalMarket.Common.Models.SignalMarketSignalUnlisted where
 import           Opaleye (Field, Table, table, tableField, SqlText, SqlNumeric)
 import           Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import           Data.Profunctor.Product.Default
-import           Data.Scientific (Scientific)
+import           SignalMarket.Common.EventTypes (SignalID)
 
 -- SignalMarket
 -- SignalUnlisted :: {signalId :: (UIntN (D2 :& D5 :& DOne D6))}
@@ -18,7 +18,7 @@ data SignalUnlisted' signalId = SignalUnlisted
 $(makeAdaptorAndInstance "pSignalUnlisted" ''SignalUnlisted')
 
 type SignalUnlistedPG = SignalUnlisted' (Field SqlNumeric)
-type SignalUnlisted = SignalUnlisted' Scientific
+type SignalUnlisted = SignalUnlisted' SignalID
 
 signalUnlistedTable :: Table SignalUnlistedPG SignalUnlistedPG
 signalUnlistedTable = table "signalUnlisted"
