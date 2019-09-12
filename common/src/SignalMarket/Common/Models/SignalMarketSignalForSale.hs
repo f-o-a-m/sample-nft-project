@@ -6,7 +6,7 @@ module SignalMarket.Common.Models.SignalMarketSignalForSale where
 import           Opaleye (Field, Table, table, tableField, SqlNumeric)
 import           Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import           Data.Profunctor.Product.Default
-import           SignalMarket.Common.EventTypes (SignalID, Price)
+import           SignalMarket.Common.EventTypes (TokenID, Value)
 
 -- SignalMarket
 -- SignalForSale :: {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6))}
@@ -19,7 +19,7 @@ data SignalForSale' signalId price = SignalForSale
 $(makeAdaptorAndInstance "pSignalForSale" ''SignalForSale')
 
 type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric)
-type SignalForSale = SignalForSale' SignalID Price
+type SignalForSale = SignalForSale' TokenID Value
 
 signalForSaleTable :: Table SignalForSalePG SignalForSalePG
 signalForSaleTable = table "signalForSale"
