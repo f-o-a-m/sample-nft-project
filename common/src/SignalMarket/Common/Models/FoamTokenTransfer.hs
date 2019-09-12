@@ -26,7 +26,7 @@ data Transfer' to from value = Transfer
 $(makeAdaptorAndInstance "pTransfer" ''Transfer')
 
 type TransferPG = Transfer' (Field SqlText) (Field SqlText) (Field SqlNumeric)
-type Transfer = Transfer' Text Text Scientific
+type Transfer = Transfer' EthAddress EthAddress Value
 
 transferTable :: Table TransferPG TransferPG
 transferTable = table "transfer"
