@@ -11,8 +11,8 @@ import           SignalMarket.Common.EventTypes (TokenID)
 -- SignalMarket
 -- SignalUnlisted :: {signalId :: (UIntN (D2 :& D5 :& DOne D6))}
 
-data SignalUnlisted' signalId = SignalUnlisted
-  { signalId :: signalId
+data SignalUnlisted' tokenID = SignalUnlisted
+  { tokenID :: tokenID
   }
 
 $(makeAdaptorAndInstance "pSignalUnlisted" ''SignalUnlisted')
@@ -22,6 +22,6 @@ type SignalUnlisted = SignalUnlisted' TokenID
 
 signalUnlistedTable :: Table SignalUnlistedPG SignalUnlistedPG
 signalUnlistedTable = table "signalUnlisted"
-                            (pSignalUnlisted SignalUnlisted { signalId = tableField "signalSold"
+                            (pSignalUnlisted SignalUnlisted { tokenID = tableField "tokenID"
                                                             }
                             )
