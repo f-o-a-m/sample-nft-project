@@ -4,5 +4,7 @@ packages:
 - "server"
 - "common"
 - "indexer"
-# extra-deps: []
-# flags: {}
+extra-deps:
+ - opaleye-0.6.7004.1
+ghc-options:
+    "$everything": -ddump-splices -ddump-to-file

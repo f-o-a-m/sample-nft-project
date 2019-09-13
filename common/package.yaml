@@ -26,17 +26,25 @@ default-extensions:
   - MultiParamTypeClasses
   - FlexibleInstances
   - RankNTypes
+  - GeneralizedNewtypeDeriving
+  - TypeApplications
 
 dependencies:
 - aeson
 - aeson-casing
 - base >= 4.7 && < 5
+- bytestring
 - errors
 - http-client
 - katip
 - lens
 - lens-aeson
 - mtl
+- opaleye
+- postgresql-simple
+- product-profunctors
+- profunctors
+- scientific
 - string-conversions
 - text
 - web3

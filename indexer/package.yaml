@@ -32,6 +32,7 @@ dependencies:
 - katip
 - lens
 - mtl
+- postgresql-simple
 - string-conversions
 - web3
 
