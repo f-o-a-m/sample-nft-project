@@ -1,16 +1,16 @@
 module SignalMarket.Common.Config.PG where
 
-import Control.Error
-import SignalMarket.Common.Config.Utils
-import Database.PostgreSQL.Simple (ConnectInfo(..))
+import           Control.Error
+import           Database.PostgreSQL.Simple       (ConnectInfo (..))
+import           SignalMarket.Common.Config.Utils
 
 mkPGConnectInfo :: ExceptT String IO ConnectInfo
 mkPGConnectInfo = do
-    host <- getEnvVarWithDefault "PG_HOST" "localhost"
-    port<- readEnvVarWithDefault "PG_PORT" 5432
-    user <- getEnvVarWithDefault "PG_USER" "postgres"
-    password <- getEnvVarWithDefault "PG_PASSWORD" "password"
-    database <- getEnvVarWithDefault "PG_DB" "signal-market"
+    host <- getEnvVarWithDefault "PGHOST" "localhost"
+    port<- readEnvVarWithDefault "PGPORT" 5432
+    user <- getEnvVarWithDefault "PGUSER" "postgres"
+    password <- getEnvVarWithDefault "PGPASSWORD" "password"
+    database <- getEnvVarWithDefault "PGDATABASE" "signal_market"
     pure $ ConnectInfo
       { connectHost = host
       , connectPort = port

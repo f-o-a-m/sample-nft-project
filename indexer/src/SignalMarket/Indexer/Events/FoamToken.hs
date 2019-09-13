@@ -1,7 +1,7 @@
 module SignalMarket.Indexer.Events.FoamToken where
 
-import SignalMarket.Indexer.IndexerM (IndexerM)
-import SignalMarket.Indexer.Config (IndexerConfig(..))
+import           SignalMarket.Indexer.Config   (IndexerConfig (..))
+import           SignalMarket.Indexer.IndexerM (IndexerM)
 
 {-
 

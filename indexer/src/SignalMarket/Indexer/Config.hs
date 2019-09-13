@@ -10,6 +10,7 @@ module SignalMarket.Indexer.Config
 
 import           Control.Lens                       (lens)
 import           Data.String.Conversions            (cs)
+import           Database.PostgreSQL.Simple         (Connection, connect)
 import           Network.Ethereum.Api.Provider      (Provider (..))
 import           Network.HTTP.Client                (Manager)
 import           Network.HTTP.Client.TLS            (newTlsManager)
@@ -22,7 +23,6 @@ import           SignalMarket.Common.Config.Types   (Contracts (..),
                                                      mkContracts)
 import           SignalMarket.Common.Config.Utils   (getEnvVarWithDefault,
                                                      makeConfig)
-import           Database.PostgreSQL.Simple         (Connection, connect)
 
 data IndexerConfig = IndexerConfig
   { indexerCfgContracts   :: Contracts
