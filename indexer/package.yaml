@@ -22,17 +22,23 @@ default-extensions:
   - GeneralizedNewtypeDeriving
   - RankNTypes
   - OverloadedStrings
+  - TypeApplications
+  - FlexibleContexts
+  - RecordWildCards
 
 dependencies:
 - base >= 4.7 && < 5
 - common
+- data-default 
 - exceptions
 - http-client
 - http-client-tls
 - katip
 - lens
 - mtl
+- opaleye
 - postgresql-simple
+- product-profunctors
 - string-conversions
 - web3
 

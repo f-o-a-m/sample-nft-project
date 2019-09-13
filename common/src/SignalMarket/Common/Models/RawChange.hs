@@ -1,15 +1,16 @@
-{-# LANGUAGE  TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell #-}
 module SignalMarket.Common.Models.RawChange where
 
-import Data.Text (Text)
-import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
-import           Database.PostgreSQL.Simple      (Connection)
-import           Opaleye                         (Field, Select, SqlNumeric,
-                                                  SqlText, Table, ToFields,
-                                                  constant, runInsertMany,
-                                                  runSelect, selectTable, table,
-                                                  tableField)
-import           SignalMarket.Common.EventTypes  (EthAddress, EventID, HexInteger)
+import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
+import           Data.Text                      (Text)
+import           Database.PostgreSQL.Simple     (Connection)
+import           Opaleye                        (Field, Select, SqlNumeric,
+                                                 SqlText, Table, ToFields,
+                                                 constant, runInsertMany,
+                                                 runSelect, selectTable, table,
+                                                 tableField)
+import           SignalMarket.Common.EventTypes (EthAddress, EventID,
+                                                 HexInteger)
 
 {-
 
@@ -22,12 +23,12 @@ data Change = Change
 
 -}
 
-data RawChange' li txh bh addr eid = RawChange 
-  { logIndex      :: li
-  , transactionHash    :: txh
-  , blockHash   :: bh
-  , address :: addr
-  , eventID :: eid
+data RawChange' li txh bh addr eid = RawChange
+  { logIndex        :: li
+  , transactionHash :: txh
+  , blockHash       :: bh
+  , address         :: addr
+  , eventID         :: eid
   }
 
 
@@ -38,7 +39,7 @@ type RawChange = RawChange' HexInteger Text Text EthAddress EventID
 
 {-
 eventID :: RawChange -> EventID
-eventID RawChange{logIndex, blockHash} = 
+eventID RawChange{logIndex, blockHash} =
   EventID . convert $ Data.Cryptonite.sha256 $ blockHash <> logIndex
   where
     convert :: ByteString -> Text

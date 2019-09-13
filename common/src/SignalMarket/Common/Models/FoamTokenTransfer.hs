@@ -45,11 +45,3 @@ runTransferSelect conn = runSelect conn transferSelect
 
 insertTransfer :: Connection -> Transfer -> IO Int64
 insertTransfer conn transfer = runInsertMany conn transferTable [constant transfer]
-
-inserter
-  :: Default ToFields haskells fields
-  => Connection
-  -> Table fields fields
-  -> haskells
-  -> IO Int64
-inserter conn table a = runInsertMany conn table [constant a]
