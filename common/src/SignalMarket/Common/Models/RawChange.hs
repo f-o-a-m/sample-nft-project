@@ -10,7 +10,7 @@ import           Opaleye                        (Field, Select, SqlNumeric,
                                                  runSelect, selectTable, table,
                                                  tableField)
 import           SignalMarket.Common.EventTypes (EthAddress, EventID,
-                                                 HexInteger)
+                                                 HexInteger, HexString)
 
 {-
 
@@ -35,7 +35,7 @@ data RawChange' li txh bh addr eid = RawChange
 $(makeAdaptorAndInstance "pRawChange" ''RawChange')
 
 type RawChangePG = RawChange' (Field SqlNumeric) (Field SqlText) (Field SqlText) (Field SqlText) (Field SqlText)
-type RawChange = RawChange' HexInteger Text Text EthAddress EventID
+type RawChange = RawChange' HexInteger HexString HexString EthAddress EventID
 
 {-
 eventID :: RawChange -> EventID
