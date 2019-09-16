@@ -8,7 +8,8 @@ import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
 import           Data.Text                       (Text)
 import           Opaleye                         (Field, SqlNumeric, SqlText,
                                                   Table, table, tableField)
-import           SignalMarket.Common.EventTypes  (EthAddress, EventID, TokenID, Value)
+import           SignalMarket.Common.EventTypes  (EthAddress, EventID, TokenID,
+                                                  Value)
 
 -- SignalMarket
 -- SignalSold :: {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6)),owner :: Address,newOwner :: Address}
@@ -32,5 +33,6 @@ signalSoldTable = table "signal_sold"
                                                 , price = tableField "price"
                                                 , soldFrom = tableField "sold_from"
                                                 , soldTo = tableField "sold_to"
+                                                , eventID = tableField "event_id"
                                                 }
                         )
