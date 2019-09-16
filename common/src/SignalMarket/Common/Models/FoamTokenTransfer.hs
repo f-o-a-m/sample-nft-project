@@ -3,20 +3,20 @@
 
 module SignalMarket.Common.Models.FoamTokenTransfer where
 
+import qualified Data.Aeson                      as A
 import           Data.Int                        (Int64)
 import           Data.Profunctor.Product.Default
 import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
 import           Database.PostgreSQL.Simple      (Connection)
+import           GHC.Generics                    (Generic)
+import qualified Katip                           as K
 import           Opaleye                         (Field, Select, SqlNumeric,
                                                   SqlText, Table, ToFields,
                                                   constant, runInsertMany,
                                                   runSelect, selectTable, table,
                                                   tableField)
+import           SignalMarket.Common.Aeson       (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes  (EthAddress, EventID, Value)
-import qualified Data.Aeson as A
-import SignalMarket.Common.Aeson (defaultAesonOptions)
-import GHC.Generics (Generic)
-import qualified Katip as K
 
 -- FoamToken Transfer
 

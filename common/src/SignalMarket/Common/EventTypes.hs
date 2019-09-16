@@ -2,11 +2,14 @@ module SignalMarket.Common.EventTypes where
 
 import           Control.Lens                    (Iso', from, iso, to, view)
 import qualified Data.Aeson                      as A
+import qualified Data.ByteArray.HexString        as Hx
 import           Data.ByteString                 (ByteString)
-import qualified Data.ByteArray.HexString as Hx
+import           Data.Char                       (isHexDigit)
 import           Data.Profunctor
 import qualified Data.Profunctor.Product.Default as D
 import           Data.Scientific                 (Scientific)
+import           Data.Solidity.Prim.Address      (Address, fromHexString,
+                                                  toHexString)
 import           Data.Solidity.Prim.Int          (UIntN)
 import           Data.String                     (fromString)
 import           Data.Text                       (Text)
@@ -21,8 +24,6 @@ import           Opaleye                         (Column, SqlBytea, SqlNumeric,
 import           Opaleye.Internal.RunQuery       as IQ
 import           Opaleye.RunQuery                (QueryRunnerColumnDefault,
                                                   fieldQueryRunnerColumn)
-import Data.Solidity.Prim.Address (Address, toHexString, fromHexString)
-import           Data.Char                            (isHexDigit)
 
 --------------------------------------------------------------------------------
 newtype HexInteger = HexInteger Integer deriving (Eq, Show)

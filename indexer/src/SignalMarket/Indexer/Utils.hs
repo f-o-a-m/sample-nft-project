@@ -1,25 +1,28 @@
 module SignalMarket.Indexer.Utils where
 
-import Control.Monad.IO.Class (liftIO)
-import           Data.Int                        (Int64)
-import           Data.Profunctor.Product.Default (Default)
-import           Data.String                     (fromString)
-import           Database.PostgreSQL.Simple      (Connection)
-import           Katip                           as K
-import           Opaleye                         (Table, ToFields, constant,
-                                                  runInsertMany)
+import           Control.Monad.IO.Class                      (liftIO)
+import           Control.Monad.Reader                        (ReaderT, ask)
+import qualified Data.Default                                as D
+import           Data.Int                                    (Int64)
+import           Data.Profunctor.Product.Default             (Default)
+import           Data.Proxy
+import           Data.Solidity.Prim.Address                  (Address)
+import           Data.String                                 (fromString)
+import           Database.PostgreSQL.Simple                  (Connection)
+import           Katip                                       as K
+import           Network.Ethereum.Api.Provider               (Web3)
+import           Network.Ethereum.Api.Types                  (Change,
+                                                              Filter (..))
+import           Network.Ethereum.Contract.Event.MultiFilter (Handler (..))
+import           Network.Ethereum.Web3                       (EventAction (..))
+import           Opaleye                                     (Table, ToFields,
+                                                              constant,
+                                                              runInsertMany)
 import           SignalMarket.Indexer.Class
-import           SignalMarket.Indexer.Types (Event, mkEvent)
-import           SignalMarket.Indexer.IndexerM (IndexerM, runIndexerM)
-import           SignalMarket.Indexer.Config (IndexerConfig)
-import Network.Ethereum.Api.Provider (Web3)
-import Data.Solidity.Prim.Address (Address)
-import Network.Ethereum.Api.Types (Filter(..), Change)
-import qualified Data.Default as D
-import Control.Monad.Reader (ReaderT, ask)
-import Network.Ethereum.Web3 (EventAction(..))
-import Network.Ethereum.Contract.Event.MultiFilter (Handler(..))
-import Data.Proxy
+import           SignalMarket.Indexer.Config                 (IndexerConfig)
+import           SignalMarket.Indexer.IndexerM               (IndexerM,
+                                                              runIndexerM)
+import           SignalMarket.Indexer.Types                  (Event, mkEvent)
 
 insert
   :: Default ToFields haskells fields
@@ -38,7 +41,7 @@ insert table a = do
     else K.logFM K.ErrorS $ fromString ("Inserted " <> show n <> " rows, expected 1.")
 
 makeFilter
-  :: forall e. 
+  :: forall e.
      D.Default (Filter e)
   => Proxy e
   -> Address

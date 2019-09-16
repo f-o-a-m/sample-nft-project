@@ -1,20 +1,24 @@
 module SignalMarket.Indexer (runIndexer) where
 
 import           Control.Exception
-import qualified Katip                              as K
-import           SignalMarket.Common.Config.Logging (LogConfig (..),
-                                                     mkLogConfig)
-import           SignalMarket.Indexer.Config        (IndexerConfig(..), mkIndexerConfig)
-import           SignalMarket.Indexer.IndexerM      (runIndexerM, IndexerM)
-import           System.IO                          (stdout)
-import Control.Monad.Reader (ask)
-import SignalMarket.Common.Config.Types (Contracts(..), DeployReceipt(..))
-import           SignalMarket.Indexer.Class (runWeb3)
-import           SignalMarket.Indexer.Utils (makeFilter, makeHandler)
-import Network.Ethereum.Contract.Event.MultiFilter
-import qualified SignalMarket.Indexer.Events.FoamToken as FoamToken
-import qualified SignalMarket.Common.Contracts.FoamToken as FoamToken
-import Data.Proxy
+import           Control.Monad.Reader                        (ask)
+import           Data.Proxy
+import qualified Katip                                       as K
+import           Network.Ethereum.Contract.Event.MultiFilter
+import           SignalMarket.Common.Config.Logging          (LogConfig (..),
+                                                              mkLogConfig)
+import           SignalMarket.Common.Config.Types            (Contracts (..),
+                                                              DeployReceipt (..))
+import qualified SignalMarket.Common.Contracts.FoamToken     as FoamToken
+import           SignalMarket.Indexer.Class                  (runWeb3)
+import           SignalMarket.Indexer.Config                 (IndexerConfig (..),
+                                                              mkIndexerConfig)
+import qualified SignalMarket.Indexer.Events.FoamToken       as FoamToken
+import           SignalMarket.Indexer.IndexerM               (IndexerM,
+                                                              runIndexerM)
+import           SignalMarket.Indexer.Utils                  (makeFilter,
+                                                              makeHandler)
+import           System.IO                                   (stdout)
 
 -- For logging setup, see
 -- https://github.com/Soostone/katip/blob/master/katip/examples/example_lens.hs
@@ -29,12 +33,12 @@ runIndexer = do
 
 monitor :: IndexerM ()
 monitor = do
-  cfg <- ask 
+  cfg <- ask
   let
     contracts = indexerCfgContracts cfg
     (window, _) = indexerMultiFilterOpts cfg
     foamTokenAddress = deployReceiptAddress . contractsFoamToken $ contracts
-    filters = makeFilter (Proxy :: Proxy FoamToken.Transfer) foamTokenAddress 
+    filters = makeFilter (Proxy :: Proxy FoamToken.Transfer) foamTokenAddress
            :? NilFilters
     handlers = makeHandler cfg FoamToken.foamTokenTransferH
             :& RNil
