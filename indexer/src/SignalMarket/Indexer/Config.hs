@@ -22,6 +22,7 @@ import           SignalMarket.Common.Config.Types   (Contracts (..),
                                                      DeployReceipt (..),
                                                      mkContracts)
 import           SignalMarket.Common.Config.Utils   (getEnvVarWithDefault,
+                                                     readEnvVarWithDefault,
                                                      makeConfig)
 
 data IndexerConfig = IndexerConfig
@@ -29,6 +30,7 @@ data IndexerConfig = IndexerConfig
   , indexerCfgWeb3Manager :: (Provider, Manager)
   , indexerLogConfig      :: LogConfig
   , indexerPGConnection   :: Connection
+  , indexerMultiFilterOpts :: (Integer, Integer) -- (window, lag)
   }
 
 mkIndexerConfig :: LogConfig -> IO IndexerConfig
@@ -38,12 +40,17 @@ mkIndexerConfig lc = do
   web3Mgr <- newTlsManager
   networkID <- makeConfig $ cs <$> getNetworkID web3Mgr provider
   contracts <- makeConfig $ mkContracts networkID
+  mfOpts <- makeConfig $ do 
+    window <- readEnvVarWithDefault "WINDOW_SIZE" 50
+    lag <- readEnvVarWithDefault "LAG" 6
+    pure (window, lag)
   pg <- makeConfig mkPGConnectInfo >>= connect
   return $ IndexerConfig
     { indexerCfgContracts = contracts
     , indexerCfgWeb3Manager = (provider, web3Mgr)
     , indexerLogConfig = lc
     , indexerPGConnection = pg
+    , indexerMultiFilterOpts = mfOpts
     }
 
 instance HasLogConfig IndexerConfig where
