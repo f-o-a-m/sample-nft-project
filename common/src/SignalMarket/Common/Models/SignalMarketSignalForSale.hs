@@ -5,7 +5,7 @@ module SignalMarket.Common.Models.SignalMarketSignalForSale where
 
 import           Data.Profunctor.Product.Default
 import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
-import           Opaleye                         (Field, SqlNumeric, Table,
+import           Opaleye                         (Field, SqlNumeric, Table, SqlText,
                                                   table, tableField)
 import           SignalMarket.Common.EventTypes  (EventID, TokenID, Value)
 

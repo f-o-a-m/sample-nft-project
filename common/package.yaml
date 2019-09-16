@@ -23,11 +23,13 @@ default-extensions:
   - DeriveGeneric
   - OverloadedStrings
   - DataKinds
+  - TypeFamilies
   - MultiParamTypeClasses
   - FlexibleInstances
   - RankNTypes
   - GeneralizedNewtypeDeriving
   - TypeApplications
+  - TypeOperators
 
 dependencies:
 - aeson

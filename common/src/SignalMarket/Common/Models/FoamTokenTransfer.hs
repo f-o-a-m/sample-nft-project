@@ -13,6 +13,10 @@ import           Opaleye                         (Field, Select, SqlNumeric,
                                                   runSelect, selectTable, table,
                                                   tableField)
 import           SignalMarket.Common.EventTypes  (EthAddress, EventID, Value)
+import qualified Data.Aeson as A
+import SignalMarket.Common.Aeson (defaultAesonOptions)
+import GHC.Generics (Generic)
+import qualified Katip as K
 
 -- FoamToken Transfer
 
@@ -21,7 +25,7 @@ data Transfer' to from value eventID = Transfer
   , from    :: from
   , value   :: value
   , eventID :: eventID
-  }
+  } deriving Generic
 
 $(makeAdaptorAndInstance "pTransfer" ''Transfer')
 
@@ -37,11 +41,13 @@ transferTable = table "foam_token_transfer"
                                            }
                        )
 
-transferSelect :: Select TransferPG
-transferSelect = selectTable transferTable
+instance A.ToJSON Transfer where
+  toJSON = A.genericToJSON (defaultAesonOptions "")
 
-runTransferSelect :: Connection -> IO [Transfer]
-runTransferSelect conn = runSelect conn transferSelect
+instance A.FromJSON Transfer where
+  parseJSON = A.genericParseJSON (defaultAesonOptions "")
 
-insertTransfer :: Connection -> Transfer -> IO Int64
-insertTransfer conn transfer = runInsertMany conn transferTable [constant transfer]
+instance K.ToObject Transfer
+
+instance K.LogItem Transfer where
+  payloadKeys _ _ = K.AllKeys

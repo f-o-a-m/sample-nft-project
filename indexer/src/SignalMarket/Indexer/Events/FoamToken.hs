@@ -15,7 +15,7 @@ foamTokenTransferH
   :: MonadPG m
   => Event Contract.Transfer
   -> m ()
-foamTokenTransferH Event{eventEventID, eventData} = do
+foamTokenTransferH Event{eventEventID, eventData} =
   K.katipAddNamespace "FoamToken" $ do
     K.katipAddNamespace "Transfer" $ do
       insert Model.transferTable $ Model.Transfer

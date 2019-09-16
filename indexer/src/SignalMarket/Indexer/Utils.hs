@@ -14,12 +14,13 @@ insert
   => MonadPG m
   => K.Katip m
   => K.KatipContext m
+  => K.LogItem haskells
   => Table fields fields
   -> haskells
   -> m ()
-insert table a = K.katipAddNamespace "insert" $ do
+insert table a = do
   n <- runDB $ \conn ->
     runInsertMany conn table [constant a]
   if n == 1
-    then pure ()
+    then K.katipAddContext a $ logFM DebugS "Inserted"
     else K.logFM K.ErrorS $ fromString ("Inserted " <> show n <> " rows, expected 1.")
