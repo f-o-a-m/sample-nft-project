@@ -4,12 +4,12 @@
 module SignalMarket.Common.Models.SignalTokenTransfer where
 
 import qualified Data.Aeson                      as A
-import qualified Katip                           as K
-import           GHC.Generics                    (Generic)
 import           Data.Int                        (Int64)
 import           Data.Profunctor.Product.Default
 import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
 import           Database.PostgreSQL.Simple      (Connection)
+import           GHC.Generics                    (Generic)
+import qualified Katip                           as K
 import           Opaleye                         (Field, SqlNumeric, SqlText,
                                                   Table, ToFields, table,
                                                   tableField)
