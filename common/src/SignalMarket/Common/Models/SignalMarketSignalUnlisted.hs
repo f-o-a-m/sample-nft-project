@@ -1,12 +1,13 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell  #-}
 
 module SignalMarket.Common.Models.SignalMarketSignalUnlisted where
 
-import           Opaleye (Field, Table, table, tableField, SqlText, SqlNumeric)
-import           Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import           Data.Profunctor.Product.Default
-import           SignalMarket.Common.EventTypes (TokenID)
+import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
+import           Opaleye                         (Field, SqlNumeric, SqlText,
+                                                  Table, table, tableField)
+import           SignalMarket.Common.EventTypes  (TokenID)
 
 -- SignalMarket
 -- SignalUnlisted :: {signalId :: (UIntN (D2 :& D5 :& DOne D6))}
@@ -21,7 +22,7 @@ type SignalUnlistedPG = SignalUnlisted' (Field SqlNumeric)
 type SignalUnlisted = SignalUnlisted' TokenID
 
 signalUnlistedTable :: Table SignalUnlistedPG SignalUnlistedPG
-signalUnlistedTable = table "signalUnlisted"
-                            (pSignalUnlisted SignalUnlisted { tokenID = tableField "tokenID"
+signalUnlistedTable = table "signal_unlisted"
+                            (pSignalUnlisted SignalUnlisted { tokenID = tableField "token_id"
                                                             }
                             )

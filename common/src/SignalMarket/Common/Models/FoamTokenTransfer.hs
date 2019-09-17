@@ -1,34 +1,39 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell  #-}
 
 module SignalMarket.Common.Models.FoamTokenTransfer where
 
-import           Database.PostgreSQL.Simple (Connection)
-import           Opaleye (Field, Select, selectTable, runSelect, runInsertMany, constant,
-                         Table, table, tableField, SqlText, SqlNumeric, ToFields)
-import           Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import           Data.Int                        (Int64)
 import           Data.Profunctor.Product.Default
-import           Data.Int (Int64)
-import           SignalMarket.Common.EventTypes (EventId, Value, EthAddress)
+import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
+import           Database.PostgreSQL.Simple      (Connection)
+import           Opaleye                         (Field, Select, SqlNumeric,
+                                                  SqlText, Table, ToFields,
+                                                  constant, runInsertMany,
+                                                  runSelect, selectTable, table,
+                                                  tableField)
+import           SignalMarket.Common.EventTypes  (EthAddress, EventID, Value)
 
 -- FoamToken Transfer
 
-data Transfer' to from value = Transfer
-  { to :: to
-  , from :: from
-  , value :: value
+data Transfer' to from value eventID = Transfer
+  { to      :: to
+  , from    :: from
+  , value   :: value
+  , eventID :: eventID
   }
 
 $(makeAdaptorAndInstance "pTransfer" ''Transfer')
 
-type TransferPG = Transfer' (Field SqlText) (Field SqlText) (Field SqlNumeric)
-type Transfer = Transfer' EthAddress EthAddress Value
+type TransferPG = Transfer' (Field SqlText) (Field SqlText) (Field SqlNumeric) (Field SqlText)
+type Transfer = Transfer' EthAddress EthAddress Value EventID
 
 transferTable :: Table TransferPG TransferPG
-transferTable = table "transfer"
+transferTable = table "foam_token_transfer"
                        (pTransfer Transfer { to = tableField "to"
-                                           , from  = tableField "from" 
+                                           , from  = tableField "from"
                                            , value = tableField "value"
+                                           , eventID = tableField "event_id"
                                            }
                        )
 
@@ -40,11 +45,3 @@ runTransferSelect conn = runSelect conn transferSelect
 
 insertTransfer :: Connection -> Transfer -> IO Int64
 insertTransfer conn transfer = runInsertMany conn transferTable [constant transfer]
-
-inserter
-  :: Default ToFields haskells fields
-  => Connection
-  -> Table fields fields
-  -> haskells
-  -> IO Int64
-inserter conn table a = runInsertMany conn table [constant a]

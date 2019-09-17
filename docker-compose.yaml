@@ -9,7 +9,5 @@ services:
     environment:
       - "ACCOUNTS_TO_CREATE=18"
     command: /cliquebait/run.bash --nodiscover --maxpeers=0 --gcmode=archive --targetgaslimit=0x8000000
-    volumes:
-    - ./cliquebait-generated.json:/cliquebait/cliquebait.json
     ports:
     - 8545:8545

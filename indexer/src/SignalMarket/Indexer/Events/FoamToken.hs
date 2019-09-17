@@ -1,18 +1,26 @@
 module SignalMarket.Indexer.Events.FoamToken where
 
-import SignalMarket.Indexer.IndexerM (IndexerM)
-import SignalMarket.Indexer.Config (IndexerConfig(..))
+import           Control.Monad.IO.Class                       (liftIO)
+import qualified Katip                                        as K
+import           SignalMarket.Common.Contracts.FoamToken      as Contract
+import           SignalMarket.Common.EventTypes
+import           SignalMarket.Common.Models.FoamTokenTransfer as Model
+import           SignalMarket.Indexer.Class                   (MonadPG (..))
+import           SignalMarket.Indexer.Config
+import           SignalMarket.Indexer.IndexerM                (IndexerM)
+import           SignalMarket.Indexer.Types
+import           SignalMarket.Indexer.Utils                   (insert)
 
-{-
-
-Transfer
-?Approvals
-
-Requirements:
-- insert events into Database
--- connection manager for PG
--- datatype for marshalling/unmarshalling
--- general (HasPG a) => a -> IO (InsertReceipt)
-
--}
-
+foamTokenTransferH
+  :: MonadPG m
+  => Event Contract.Transfer
+  -> m ()
+foamTokenTransferH Event{eventEventID, eventData} = do
+  K.katipAddNamespace "FoamToken" $ do
+    K.katipAddNamespace "Transfer" $ do
+      insert Model.transferTable $ Model.Transfer
+        { Model.to = undefined :: EthAddress
+        , Model.from = undefined :: EthAddress
+        , Model.value = undefined  :: Value
+        , Model.eventID = undefined :: EventID
+        }

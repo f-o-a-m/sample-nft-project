@@ -1,15 +1,43 @@
-language: node_js
-dist: trusty
+language: haskell
+ghc:
+  - "8.6.1"
+cabal: "2.4"
 sudo: required
-node_js: stable
+# Cache .stack for build_times--
+before_cache:
+- rm -fv $HOME/.cabal/packages/hackage.haskell.org/build-reports.log
+- rm -fv $HOME/.cabal/packages/hackage.haskell.org/00-index.tar
+cache:
+  directories:
+  - $HOME/.stack
+  - $HOME/.cabsnap
+  - $HOME/.cabal/packages
 services:
   - docker
+before_install:
+# Download and unpack the stack executable
+- mkdir -p ~/.local/bin
+- export PATH=$HOME/.local/bin:$PATH
+- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+# Set up node env
+- nvm install lts/carbon
+- nvm use lts/carbon
+- nvm alias default lts/carbon
 install:
-  - npm install -g bower
-  - make install
+# DEPLOY
+- npm install -g bower
+- travis_wait make install
+- travis_wait docker run -d -p 8545:8545 -e ACCOUNTS_TO_CREATE=10 foamspace/cliquebait:latest
+- sleep 10
+- make compile-contracts
+- make test-dapp
+- travis_wait make deploy-contracts
+# BUILD
+- travis_wait 30 stack --skip-ghc-check setup
+- travis_wait 30 stack --skip-ghc-check build
+- travis_wait 30 stack --skip-ghc-check install hlint
+- travis_wait 30 stack --skip-ghc-check install stylish-haskell
 script:
-  - make compile-contracts
-  - make build-dapp
-  - docker run -d -p 8545:8545 foamspace/cliquebait:latest
-  - sleep 10
-  - make test-dapp
+- make hlint
+# When branch is `master` we run `haskell-stylish` and fail if git working directory becomes dirty
+- if [ "$TRAVIS_BRANCH" == "master" ]; then make stylish && git diff-index --quiet HEAD; fi

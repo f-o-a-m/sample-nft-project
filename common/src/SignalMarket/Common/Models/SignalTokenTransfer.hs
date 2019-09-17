@@ -1,33 +1,37 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell  #-}
 
 module SignalMarket.Common.Models.SignalTokenTransfer where
 
-import           Database.PostgreSQL.Simple (Connection)
-import           Opaleye (Field, Table, table, tableField, SqlText, SqlNumeric, ToFields)
-import           Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import           Data.Int                        (Int64)
 import           Data.Profunctor.Product.Default
-import           Data.Int (Int64)
-import           SignalMarket.Common.EventTypes (EthAddress, TokenID)
+import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
+import           Database.PostgreSQL.Simple      (Connection)
+import           Opaleye                         (Field, SqlNumeric, SqlText,
+                                                  Table, ToFields, table,
+                                                  tableField)
+import           SignalMarket.Common.EventTypes  (EthAddress, EventID, TokenID)
 
 -- SignalToken
 -- Transfer :: {_from :: Address,_to :: Address,_tokenId :: (UIntN (D2 :& D5 :& DOne D6))}
 
-data Transfer' to from tokenID = Transfer
-  { to :: to
-  , from :: from
+data Transfer' to from tokenID eventID = Transfer
+  { to      :: to
+  , from    :: from
   , tokenID :: tokenID
+  , eventID :: eventID
   }
 
 $(makeAdaptorAndInstance "pTransfer" ''Transfer')
 
-type TransferPG = Transfer' (Field SqlText) (Field SqlText) (Field SqlNumeric)
-type Transfer = Transfer' EthAddress EthAddress TokenID
+type TransferPG = Transfer' (Field SqlText) (Field SqlText) (Field SqlNumeric) (Field SqlText)
+type Transfer = Transfer' EthAddress EthAddress TokenID EventID
 
 transferTable :: Table TransferPG TransferPG
-transferTable = table "transfer"
+transferTable = table "signal_token_transfer"
                        (pTransfer Transfer { to = tableField "to"
                                            , from  = tableField "from"
-                                           , tokenID = tableField "tokenID"
+                                           , tokenID = tableField "token_id"
+                                           , eventID = tableField "event_id"
                                            }
                        )

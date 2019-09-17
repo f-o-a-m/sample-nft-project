@@ -22,18 +22,29 @@ default-extensions:
   - GeneralizedNewtypeDeriving
   - RankNTypes
   - OverloadedStrings
+  - TypeApplications
+  - FlexibleContexts
+  - DefaultSignatures
+  - RecordWildCards
+  - ScopedTypeVariables
+  - NamedFieldPuns
 
 dependencies:
+- aeson
 - base >= 4.7 && < 5
 - common
+- data-default 
 - exceptions
 - http-client
 - http-client-tls
 - katip
 - lens
 - mtl
+- opaleye
 - postgresql-simple
+- product-profunctors
 - string-conversions
+- text
 - web3
 
 library:

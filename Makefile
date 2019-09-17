@@ -14,6 +14,13 @@ ABIS_DIR ?= build
 NODE_URL = http://localhost:8545
 SERVER_PORT = 9000
 
+PG_BASE_DATABASE ?= postgres 
+PGDATABASE ?= signal_market
+PGHOST ?= localhost
+PGPORT ?= 5432
+PGPASSWORD ?= password
+PGUSER ?= postgres
+
 # end export
 # please keep that, it helps with autogenerating env wrappers
 
@@ -28,6 +35,15 @@ install: ## Runs npm and bower install
 	bower install
 	# hack to build purs deps only
 	pulp build --src-path dapp/contracts
+
+############
+# postgres
+############
+migrate: ## Run the flyway migration suite to setup postgis
+	PGDATABASE=$(PG_BASE_DATABASE) psql -tc "SELECT 1 FROM pg_database WHERE datname = '$(PGDATABASE)'" | grep -q 1 || \
+	PGDATABASE=$(PG_BASE_DATABASE) psql -c "CREATE DATABASE $(PGDATABASE);"
+	# the -jarDirs is temporary fix for https://github.com/NixOS/nixpkgs/issues/59687
+	flyway -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE) -locations=filesystem:migrations -baselineOnMigrate=true migrate
 
 ####################
 # DAPP       #
