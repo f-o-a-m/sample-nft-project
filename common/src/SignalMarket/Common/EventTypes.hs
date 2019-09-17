@@ -104,8 +104,8 @@ instance QueryRunnerColumnDefault SqlText HexString where
 instance D.Default ToFields HexString (Column SqlText) where
   def = lmap (\(HexString a) -> a) D.def
 
-_HexStringBytes :: Iso' Hx.HexString HexString
-_HexStringBytes = iso (HexString . Hx.toText) (\(HexString hx) -> fromString $ T.unpack hx)
+_HexString :: Iso' Hx.HexString HexString
+_HexString = iso (HexString . Hx.toText) (\(HexString hx) -> fromString $ T.unpack hx)
 
 --------------------------------------------------------------------------------
 
@@ -129,5 +129,5 @@ instance D.Default ToFields EthAddress (Column SqlText) where
   def = lmap (\(EthAddress a) -> a) D.def
 
 _EthAddress :: Iso' Address EthAddress
-_EthAddress = iso (EthAddress . view _HexStringBytes . toHexString)
-  (\(EthAddress a) -> either error id $ fromHexString $ view (from _HexStringBytes) a)
+_EthAddress = iso (EthAddress . view _HexString . toHexString)
+  (\(EthAddress a) -> either error id $ fromHexString $ view (from _HexString) a)
