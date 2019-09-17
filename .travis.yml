@@ -28,8 +28,12 @@ matrix:
       # Download and unpack the stack executable
       - mkdir -p ~/.local/bin
       - export PATH=$HOME/.local/bin:$PATH
-      - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-      # From https://github.com/google/proto-lens/blob/5ab25dfeb51f700204db4aa8a9e7fbc5a74ed1e9/.travis.yml#L41-L44
+      - travis_retry curl -L https://www.ostackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+      # DEPLOY
+      - docker run -d -p 8545:8545 -e ACCOUNTS_TO_CREATE=10 foamspace/cliquebait:latest
+      - sleep 10
+      - travis_wait make install
+      - travis_wait make deploy-contracts
       install:
       - travis_wait 30 stack --skip-ghc-check setup
       - travis_wait 30 stack --skip-ghc-check build
