@@ -2,9 +2,8 @@
 module SignalMarket.Common.Models.RawChange where
 
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
-import           Opaleye                        (Field, SqlNumeric,
-                                                 SqlText, Table,
-                                                 table, tableField)
+import           Opaleye                        (Field, SqlNumeric, SqlText,
+                                                 Table, table, tableField)
 import           SignalMarket.Common.EventTypes (EthAddress, EventID,
                                                  HexInteger, HexString)
 
