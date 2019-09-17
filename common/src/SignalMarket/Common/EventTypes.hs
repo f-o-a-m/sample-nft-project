@@ -65,7 +65,7 @@ _Value = iso (view $ _HexInteger . to Value) (view $ to (\(Value v) -> v) . from
 
 --------------------------------------------------------------------------------
 
-newtype TokenID = TokenID HexInteger deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlNumeric)
+newtype TokenID = TokenID HexInteger deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
 
 _TokenID :: (KnownNat n, n <= 256) => Iso' (UIntN n) TokenID
 _TokenID = iso (view $ _HexInteger . to TokenID) (view $ to (\(TokenID v) -> v) . from _HexInteger)

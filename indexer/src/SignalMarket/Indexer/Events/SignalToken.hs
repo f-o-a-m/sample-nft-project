@@ -19,8 +19,8 @@ signalTokenTransferH Event{eventEventID, eventData} =
       case eventData of
         Contract.Transfer{..} ->
           insert Model.transferTable $ Model.Transfer
-            { Model.to = transferTo_ ^. _EthAddress
-            , Model.from = transferFrom_ ^. _EthAddress
-            , Model.tokenID = transferValue_ ^. _TokenID
+            { Model.to = transfer_to_ ^. _EthAddress
+            , Model.from = transfer_from_ ^. _EthAddress
+            , Model.tokenID = transfer_tokenId_ ^. _TokenID
             , Model.eventID = eventEventID
             }
