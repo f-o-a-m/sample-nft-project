@@ -4,7 +4,8 @@ import           Control.Lens                                   ((^.))
 import qualified Katip                                          as K
 import           SignalMarket.Common.Contracts.SignalToken      as Contract
 import           SignalMarket.Common.EventTypes
-import           SignalMarket.Common.Models.SignalTokenTransfer as Model
+import           SignalMarket.Common.Models.SignalTokenTransfer as Transfer
+import           SignalMarket.Common.Models.SignalTokenTrackedToken as Tracked
 import           SignalMarket.Indexer.Class                     (MonadPG (..))
 import           SignalMarket.Indexer.Types
 import           SignalMarket.Indexer.Utils                     (insert)
@@ -18,9 +19,27 @@ signalTokenTransferH Event{eventEventID, eventData} =
     K.katipAddNamespace "Transfer" $ do
       case eventData of
         Contract.Transfer{..} ->
-          insert Model.transferTable $ Model.Transfer
-            { Model.to = transfer_to_ ^. _EthAddress
-            , Model.from = transfer_from_ ^. _EthAddress
-            , Model.tokenID = transfer_tokenId_ ^. _TokenID
-            , Model.eventID = eventEventID
+          insert Transfer.transferTable $ Transfer.Transfer
+            { Transfer.to = transfer_to_ ^. _EthAddress
+            , Transfer.from = transfer_from_ ^. _EthAddress
+            , Transfer.tokenID = transfer_tokenId_ ^. _TokenID
+            , Transfer.eventID = eventEventID
+            }
+
+signalTokenTrackedTokenH
+  :: MonadPG m
+  => Event Contract.TrackedToken
+  -> m ()
+signalTokenTrackedTokenH Event{eventEventID, eventData} =
+  K.katipAddNamespace "SignalToken" $ do
+    K.katipAddNamespace "TrackedToken" $ do
+      case eventData of
+        Contract.TrackedToken{..} ->
+          insert TrackedToken.trackedTokenTable $ TrackedToken.TrackedToken
+            { TrackedToken.nftAddress = trackedTokenNftAddress_ ^. _EthAddress
+            , TrackedToken.cst =  -- trackedTokenCst_
+            , TrackedToken.geohash = undefined -- trackedTokenGeohash_
+            , TrackedToken.radius = trackedTokenRadius_ ^. _Value
+            , TrackedToken.tokenID = trackedTokenTokenID_ ^. _TokenID
+            , TrackedToken.eventID = eventEventID
             }

@@ -3,6 +3,10 @@
 
 module SignalMarket.Common.Models.SignalTokenTrackedToken where
 
+import           SignalMarket.Common.Aeson       (defaultAesonOptions)
+import qualified Katip                           as K
+import qualified Data.Aeson                      as A
+import           GHC.Generics                    (Generic)
 import           Data.Profunctor.Product.Default
 import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
 import           Opaleye                         (Field, SqlBytea, SqlNumeric,
@@ -20,7 +24,7 @@ data TrackedToken' nftAddress cst geohash radius tokenID eventID = TrackedToken
   , radius     :: radius
   , tokenID    :: tokenID
   , eventID    :: eventID
-  }
+  } deriving Generic
 
 $(makeAdaptorAndInstance "pTrackedToken" ''TrackedToken')
 
@@ -37,3 +41,14 @@ trackedTokenTable = table "tracked_token"
                                                        , eventID = tableField "event_id"
                                                        }
                            )
+
+instance A.ToJSON TrackedToken where
+  toJSON = A.genericToJSON (defaultAesonOptions "")
+
+instance A.FromJSON TrackedToken where
+  parseJSON = A.genericParseJSON (defaultAesonOptions "")
+
+instance K.ToObject TrackedToken
+
+instance K.LogItem TrackedToken where
+  payloadKeys _ _ = K.AllKeys

@@ -18,7 +18,7 @@ import qualified Data.Text.Lazy.Builder          as B
 import qualified Data.Text.Lazy.Builder.Int      as B
 import qualified Data.Text.Read                  as R
 import           GHC.TypeLits
-import           Opaleye                         (Column, SqlNumeric, SqlText,
+import           Opaleye                         (Column, SqlNumeric, SqlText, SqlBytea,
                                                   ToFields)
 import           Opaleye.Internal.RunQuery       as IQ
 import           Opaleye.RunQuery                (QueryRunnerColumnDefault,
@@ -103,6 +103,9 @@ instance QueryRunnerColumnDefault SqlText HexString where
         Left err  -> error $ "Error Parsing HexString from DB: " <> err
         Right res -> res
 
+-- instance IQ.QueryRunnerColumnDefault SqlBytea HexString where
+--   defaultFromField = undefined -- HexString . Hx.toText <$> fieldQueryRunnerColumn @_
+
 instance D.Default ToFields HexString (Column SqlText) where
   def = lmap (\(HexString a) -> a) D.def
 
@@ -118,7 +121,7 @@ instance D.Default ToFields EventID (Column SqlText) where
 
 --------------------------------------------------------------------------------
 
-newtype ByteNValue = ByteNValue HexString deriving (Eq, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+newtype ByteNValue = ByteNValue HexString deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlBytea, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields ByteNValue (Column SqlText) where
   def = lmap (\(ByteNValue a) -> a) D.def
