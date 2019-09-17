@@ -55,7 +55,7 @@ _HexInteger = iso (HexInteger . toInteger) (\(HexInteger n) -> fromInteger n)
 
 --------------------------------------------------------------------------------
 
-newtype Value = Value HexInteger deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
+newtype Value = Value HexInteger deriving (Eq, Show, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields Value (Column SqlNumeric) where
   def = lmap (\(Value a) -> a) D.def
