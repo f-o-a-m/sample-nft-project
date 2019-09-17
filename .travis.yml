@@ -34,6 +34,9 @@ matrix:
       # DEPLOY
       - docker run -d -p 8545:8545 -e ACCOUNTS_TO_CREATE=10 foamspace/cliquebait:latest
       - sleep 10
+      - nvm install lts/carbon
+      - nvm use lts/carbon
+      - nvm alias default lts/carbon
       - travis_wait make install
       - travis_wait make deploy-contracts
       install:
