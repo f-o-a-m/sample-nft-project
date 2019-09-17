@@ -41,6 +41,7 @@ dependencies:
 - katip
 - lens
 - lens-aeson
+- memory
 - mtl
 - opaleye
 - postgresql-simple

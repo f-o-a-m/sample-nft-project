@@ -1,15 +1,17 @@
 module SignalMarket.Common.EventTypes where
 
-import           Control.Lens                    (Iso', from, iso, to, view)
+import           Control.Lens                    (Iso', from, iso, to, view, (^.))
 import qualified Data.Aeson                      as A
 import qualified Data.ByteArray.HexString        as Hx
 import           Data.Char                       (isHexDigit)
+import Data.ByteArray.Sized (unsafeSizedByteArray)
 import           Data.Profunctor
 import qualified Data.Profunctor.Product.Default as D
 import           Data.Scientific                 (Scientific)
 import           Data.Solidity.Prim.Address      (Address, fromHexString,
                                                   toHexString)
 import           Data.Solidity.Prim.Int          (UIntN)
+import           Data.Solidity.Prim.Bytes        (BytesN)
 import           Data.String                     (fromString)
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
@@ -112,6 +114,7 @@ instance D.Default ToFields HexString (Column SqlText) where
 _HexString :: Iso' Hx.HexString HexString
 _HexString = iso (HexString . Hx.toText) (\(HexString hx) -> fromString $ T.unpack hx)
 
+
 --------------------------------------------------------------------------------
 
 newtype EventID = EventID HexString deriving (Eq, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
@@ -121,10 +124,14 @@ instance D.Default ToFields EventID (Column SqlText) where
 
 --------------------------------------------------------------------------------
 
-newtype ByteNValue = ByteNValue HexString deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlBytea, A.ToJSON, A.FromJSON)
+newtype ByteNValue = ByteNValue HexString deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields ByteNValue (Column SqlText) where
   def = lmap (\(ByteNValue a) -> a) D.def
+
+_HexBytesN :: (KnownNat n, n <= 32) => Iso' (BytesN n) ByteNValue
+_HexBytesN = iso (ByteNValue . view _HexString . Hx.fromBytes) (\(ByteNValue bs) -> bs ^. from _HexString . to Hx.toBytes . to unsafeSizedByteArray)
+
 
 --------------------------------------------------------------------------------
 
