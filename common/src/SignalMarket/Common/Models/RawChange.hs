@@ -2,26 +2,11 @@
 module SignalMarket.Common.Models.RawChange where
 
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
-import           Data.Text                      (Text)
-import           Database.PostgreSQL.Simple     (Connection)
-import           Opaleye                        (Field, Select, SqlNumeric,
-                                                 SqlText, Table, ToFields,
-                                                 constant, runInsertMany,
-                                                 runSelect, selectTable, table,
-                                                 tableField)
+import           Opaleye                        (Field, SqlNumeric,
+                                                 SqlText, Table,
+                                                 table, tableField)
 import           SignalMarket.Common.EventTypes (EthAddress, EventID,
                                                  HexInteger, HexString)
-
-{-
-
-data Change = Change
-  { changeLogIndex         :: HexInteger
-  , changeTransactionHash  :: HexInteger
-  , changeBlockHash        :: Text
-  , changeAddress          :: EthAddress
-  } deriving (Eq, Show, Generic)
-
--}
 
 data RawChange' li txh bh addr eid = RawChange
   { logIndex        :: li
@@ -36,15 +21,6 @@ $(makeAdaptorAndInstance "pRawChange" ''RawChange')
 
 type RawChangePG = RawChange' (Field SqlNumeric) (Field SqlText) (Field SqlText) (Field SqlText) (Field SqlText)
 type RawChange = RawChange' HexInteger HexString HexString EthAddress EventID
-
-{-
-eventID :: RawChange -> EventID
-eventID RawChange{logIndex, blockHash} =
-  EventID . convert $ Data.Cryptonite.sha256 $ blockHash <> logIndex
-  where
-    convert :: ByteString -> Text
-    convert = undefined
--}
 
 rawChangeTable :: Table RawChangePG RawChangePG
 rawChangeTable = table "raw_change"

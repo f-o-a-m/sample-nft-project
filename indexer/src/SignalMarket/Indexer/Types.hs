@@ -1,6 +1,6 @@
 module SignalMarket.Indexer.Types where
 
-import           Control.Lens                         (from, view, (^.))
+import           Control.Lens                         (view, (^.))
 import           Crypto.Hash                          (Digest, hash)
 import           Crypto.Hash.Algorithms               (Keccak_256)
 import           Data.ByteArray                       (Bytes, convert)
@@ -17,9 +17,9 @@ import qualified Data.Text.Lazy.Builder.Int           as B
 import           Network.Ethereum.Api.Types           as W3
 import           SignalMarket.Common.EventTypes       (EventID (..),
                                                        HexInteger (..),
-                                                       _EthAddress, _HexInteger,
-                                                       _HexString)
-import           SignalMarket.Common.Models.RawChange (RawChange (..))
+                                                       _EthAddress, _HexString)
+import           SignalMarket.Common.Models.RawChange (RawChange)
+import           SignalMarket.Common.Models.RawChange as RC
 
 mkEvent
   :: W3.Change

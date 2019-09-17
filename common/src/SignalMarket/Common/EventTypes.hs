@@ -3,7 +3,6 @@ module SignalMarket.Common.EventTypes where
 import           Control.Lens                    (Iso', from, iso, to, view)
 import qualified Data.Aeson                      as A
 import qualified Data.ByteArray.HexString        as Hx
-import           Data.ByteString                 (ByteString)
 import           Data.Char                       (isHexDigit)
 import           Data.Profunctor
 import qualified Data.Profunctor.Product.Default as D
@@ -19,7 +18,7 @@ import qualified Data.Text.Lazy.Builder          as B
 import qualified Data.Text.Lazy.Builder.Int      as B
 import qualified Data.Text.Read                  as R
 import           GHC.TypeLits
-import           Opaleye                         (Column, SqlBytea, SqlNumeric,
+import           Opaleye                         (Column, SqlNumeric,
                                                   SqlText, ToFields)
 import           Opaleye.Internal.RunQuery       as IQ
 import           Opaleye.RunQuery                (QueryRunnerColumnDefault,
