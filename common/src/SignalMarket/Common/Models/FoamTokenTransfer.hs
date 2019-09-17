@@ -51,3 +51,7 @@ instance K.ToObject Transfer
 
 instance K.LogItem Transfer where
   payloadKeys _ _ = K.AllKeys
+
+insertTransfer :: Connection -> Transfer -> IO Int64
+insertTransfer conn transfer = runInsertMany conn transferTable [constant transfer]
+

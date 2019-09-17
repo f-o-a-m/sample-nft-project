@@ -1,43 +1,43 @@
-matrix:
-  include:
-    - language: node_js
-      dist: trusty
-      sudo: required
-      node_js: stable
-      services:
-        - docker
-      install:
-        - npm install -g bower
-        - make install
-      script:
-        - make compile-contracts
-        - make build-dapp
-        - docker run -d -p 8545:8545 foamspace/cliquebait:latest
-        - sleep 10
-        - make test-dapp
-    - language: haskell
-      ghc:
-        - "8.6.1"
-      cabal: "2.4"
-      sudo: required
-      # Cache .stack for build_times--
-      cache:
-        directories:
-        - $HOME/.stack
-      before_install:
-      # Download and unpack the stack executable
-      - mkdir -p ~/.local/bin
-      - export PATH=$HOME/.local/bin:$PATH
-      - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-      # From https://github.com/google/proto-lens/blob/5ab25dfeb51f700204db4aa8a9e7fbc5a74ed1e9/.travis.yml#L41-L44
-      - curl -L https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/protoc-3.7.1-linux-x86_64.zip > protoc-release.zip
-      - unzip -p protoc-release.zip bin/protoc > $HOME/.local/bin/protoc
-      - chmod a+x $HOME/.local/bin/protoc
-      - rm protoc-release.zip
-      install:
-      - travis_wait stack --skip-ghc-check setup
-      - travis_wait stack --skip-ghc-check install hlint-2.1.10 stylish-haskell-0.9.2.1
-      script:
-      - make hlint
-      # When branch is `master` we run `haskell-stylish` and fail if git working directory becomes dirty
-      - if [ "$TRAVIS_BRANCH" == "master" ]; then make stylish && git diff-index --quiet HEAD; fi
+language: haskell
+ghc:
+  - "8.6.1"
+cabal: "2.4"
+sudo: required
+# Cache .stack for build_times--
+before_cache:
+- rm -fv $HOME/.cabal/packages/hackage.haskell.org/build-reports.log
+- rm -fv $HOME/.cabal/packages/hackage.haskell.org/00-index.tar
+cache:
+  directories:
+  - $HOME/.stack
+  - $HOME/.cabsnap
+  - $HOME/.cabal/packages
+services:
+  - docker
+before_install:
+# Download and unpack the stack executable
+- mkdir -p ~/.local/bin
+- export PATH=$HOME/.local/bin:$PATH
+- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+# Set up node env
+- nvm install lts/carbon
+- nvm use lts/carbon
+- nvm alias default lts/carbon
+install:
+# DEPLOY
+- npm install -g bower
+- travis_wait make install
+- travis_wait docker run -d -p 8545:8545 -e ACCOUNTS_TO_CREATE=10 foamspace/cliquebait:latest
+- sleep 10
+- make compile-contracts
+- make test-dapp
+- travis_wait make deploy-contracts
+# BUILD
+- travis_wait 30 stack --skip-ghc-check setup
+- travis_wait 30 stack --skip-ghc-check build
+- travis_wait 30 stack --skip-ghc-check install hlint
+- travis_wait 30 stack --skip-ghc-check install stylish-haskell
+script:
+- make hlint
+# When branch is `master` we run `haskell-stylish` and fail if git working directory becomes dirty
+- if [ "$TRAVIS_BRANCH" == "master" ]; then make stylish && git diff-index --quiet HEAD; fi

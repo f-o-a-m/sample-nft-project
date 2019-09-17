@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+
 module SignalMarket.Common.Models.RawChange where
 
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)

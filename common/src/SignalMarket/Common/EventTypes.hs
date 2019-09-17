@@ -63,6 +63,9 @@ instance D.Default ToFields Value (Column SqlNumeric) where
 _Value :: (KnownNat n, n <= 256) => Iso' (UIntN n) Value
 _Value = iso (view $ _HexInteger . to Value) (view $ to (\(Value v) -> v) . from _HexInteger)
 
+instance IQ.QueryRunnerColumnDefault SqlNumeric Value where
+  defaultFromField = Value . HexInteger . toInteger . truncate . toRational <$> fieldQueryRunnerColumn @Scientific
+
 --------------------------------------------------------------------------------
 
 newtype TokenID = TokenID HexInteger deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
