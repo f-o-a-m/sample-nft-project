@@ -21,9 +21,14 @@ matrix:
       cabal: "2.4"
       sudo: required
       # Cache .stack for build_times--
+      before_cache:
+      - rm -fv $HOME/.cabal/packages/hackage.haskell.org/build-reports.log
+      - rm -fv $HOME/.cabal/packages/hackage.haskell.org/00-index.tar
       cache:
         directories:
         - $HOME/.stack
+        - $HOME/.cabsnap
+        - $HOME/.cabal/packages
       services:
         - docker
       before_install:
@@ -31,15 +36,17 @@ matrix:
       - mkdir -p ~/.local/bin
       - export PATH=$HOME/.local/bin:$PATH
       - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-      # DEPLOY
-      - docker run -d -p 8545:8545 -e ACCOUNTS_TO_CREATE=10 foamspace/cliquebait:latest
-      - sleep 10
+      # Set up node env
       - nvm install lts/carbon
       - nvm use lts/carbon
       - nvm alias default lts/carbon
-      - travis_wait make install
-      - travis_wait make deploy-contracts
       install:
+      # DEPLOY
+      - travis_wait make install
+      - travis_wait docker run -d -p 8545:8545 -e ACCOUNTS_TO_CREATE=10 foamspace/cliquebait:latest
+      - sleep 10
+      - travis_wait make deploy-contracts
+      # BUILD
       - travis_wait 30 stack --skip-ghc-check setup
       - travis_wait 30 stack --skip-ghc-check build
       - travis_wait 30 stack --skip-ghc-check install hlint
