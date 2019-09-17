@@ -1,8 +1,6 @@
 module SignalMarket.Indexer.Events.FoamToken where
 
 import Control.Lens ((^.))
-import           Data.ByteArray.HexString                     (toText)
-import           Data.Maybe                                   (fromJust)
 import qualified Katip                                        as K
 import           SignalMarket.Common.Contracts.FoamToken      as Contract
 import           SignalMarket.Common.EventTypes
