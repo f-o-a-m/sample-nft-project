@@ -24,11 +24,13 @@ matrix:
       cache:
         directories:
         - $HOME/.stack
+      services:
+        - docker
       before_install:
       # Download and unpack the stack executable
       - mkdir -p ~/.local/bin
       - export PATH=$HOME/.local/bin:$PATH
-      - travis_retry curl -L https://www.ostackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+      - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
       # DEPLOY
       - docker run -d -p 8545:8545 -e ACCOUNTS_TO_CREATE=10 foamspace/cliquebait:latest
       - sleep 10
