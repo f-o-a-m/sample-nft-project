@@ -31,10 +31,10 @@ matrix:
       - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
       # From https://github.com/google/proto-lens/blob/5ab25dfeb51f700204db4aa8a9e7fbc5a74ed1e9/.travis.yml#L41-L44
       install:
-      - travis_wait stack --skip-ghc-check setup
-      - travis_wait stack --skip-ghc-check build
-      - travis_wait stack --skip-ghc-check install hlint
-      - travis_wait stack --skip-ghc-check install stylish-haskell
+      - travis_wait 30 stack --skip-ghc-check setup
+      - travis_wait 30 stack --skip-ghc-check build
+      - travis_wait 30 stack --skip-ghc-check install hlint
+      - travis_wait 30 stack --skip-ghc-check install stylish-haskell
       script:
       - make hlint
       # When branch is `master` we run `haskell-stylish` and fail if git working directory becomes dirty
