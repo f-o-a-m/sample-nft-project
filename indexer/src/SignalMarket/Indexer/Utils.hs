@@ -66,24 +66,22 @@ insert table a = do
     then K.katipAddContext a $ logFM DebugS "Inserted"
     else K.logFM K.ErrorS $ fromString ("Inserted " <> show n <> " rows, expected 1.")
 
-tryInsert
-  :: Default ToFields haskells fields
-  => MonadPG m
+tryInsertCheckpoint
+  :: MonadPG m
   => K.Katip m
   => K.KatipContext m
-  => K.LogItem haskells
-  => Table fields fields
-  -> haskells
+  => Checkpoint.Checkpoint
   -> m ()
-tryInsert table a = do
+tryInsertCheckpoint cp = K.katipAddContext cp $ do
   en <- runDB' $ \conn ->
-    runInsertMany conn table [constant a]
+    runInsertMany conn Checkpoint.checkpointTable [constant cp]
   case en of
-    Left e -> K.katipAddContext (SqlErrorCTX e) $ logFM ErrorS "Failed to open checkpoint"
+    Left e -> K.katipAddContext (SqlErrorCTX e) $
+      K.logFM K.WarningS "Failed to open checkpoint"
     Right n ->
        if n == 1
-         then K.katipAddContext a $ logFM DebugS "Inserted"
-         else K.logFM K.ErrorS $ fromString ("Inserted " <> show n <> " rows, expected 1.")
+         then K.logFM DebugS "Inserted Checkpoint"
+         else K.logFM K.ErrorS $ fromString ("Inserted" <> show n <> " rows, expected 1.")
 
 makeFilter
   :: forall e.
@@ -158,13 +156,10 @@ fetchMostRecentCheckpoint name =
   in queryMaybe $ \conn -> runSelect conn q
 
 modifyHandlerWithCheckpoint
-  :: forall e.
-     (HasEventName e)
-  => IndexerConfig
-  -> Checkpoint.Checkpoint
+  :: Checkpoint.Checkpoint
   -> Handler (ReaderT Change Web3 EventAction) e
   -> Handler (ReaderT Change Web3 EventAction) e
-modifyHandlerWithCheckpoint cfg Checkpoint.Checkpoint{..} (H h) = H $ \e -> do
+modifyHandlerWithCheckpoint Checkpoint.Checkpoint{..} (H h) = H $ \e -> do
   change@Change{..} <- ask
   let blockNumber' =  HexInteger . unQuantity . fromJust $ changeBlockNumber
       logIndex' =  HexInteger . unQuantity . fromJust $ changeLogIndex
@@ -186,8 +181,7 @@ wrapHandlerWithCheckpointing cfg (H h) = H $ \e -> do
   let eventID = eventEventID $ mkEvent change e
   _ <- liftIO $ runIndexerM cfg $ do
      let cp = mkOpenCheckpoint (eventName (Proxy :: Proxy e)) eventID change
-     K.katipAddContext cp $ do K.logFM K.InfoS "Opening Checkpoint"
-     insert Checkpoint.checkpointTable cp
+     tryInsertCheckpoint cp
   eventAction <- h e
   liftIO $ runIndexerM cfg $ do
     cp <- closeCheckpoint eventID
@@ -214,7 +208,7 @@ makeFilterHandlerPair deployReceipt h = do
       "Indexing " <> cs name <> " from checkpoint."
   let handlerWithCheckpoint :: Handler (ReaderT Change Web3 EventAction) e
                             -> Handler (ReaderT Change Web3 EventAction) e
-      handlerWithCheckpoint = maybe id (modifyHandlerWithCheckpoint indexerCfg) mCheckpoint
+      handlerWithCheckpoint = maybe id modifyHandlerWithCheckpoint mCheckpoint
       filterWithCheckpoint :: Filter e -> Filter e
       filterWithCheckpoint = maybe id (\cp f -> f {filterFromBlock = mkFromBlock $ Checkpoint.blockNumber cp}) mCheckpoint
 
