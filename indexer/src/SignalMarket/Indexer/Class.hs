@@ -74,6 +74,21 @@ queryMaybe q = do
         "Expected at most 1 result, got " <> show (length as) <> "!"
       throwM SqlQueryException
 
+queryExact
+  :: ( MonadPG m
+     , MonadThrow m
+     )
+  => (PG.Connection -> IO [a])
+  -> m a
+queryExact q = do
+  mRes <- queryMaybe q
+  case mRes of
+    Nothing -> do
+      K.logFM K.ErrorS $ fromString $
+        "Expected exactly 1 result, got 0!"
+      throwM SqlQueryException
+    Just a -> pure a
+
 
 data Web3ErrorCTX = Web3ErrorCTX Web3Error
 

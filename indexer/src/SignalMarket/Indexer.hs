@@ -37,10 +37,10 @@ monitor = do
   let
     contracts = indexerCfgContracts cfg
     (window, _) = indexerMultiFilterOpts cfg
-    foamTokenAddress = deployReceiptAddress . contractsFoamToken $ contracts
+    foamTokenReceipt = contractsFoamToken $ contracts
 
   -- FOAM Token events
-  (ftTransferF, ftTransferH) <- makeFilterHandlerPair foamTokenAddress FoamToken.foamTokenTransferH
+  (ftTransferF, ftTransferH) <- makeFilterHandlerPair foamTokenReceipt FoamToken.foamTokenTransferH
 
   let
     filters = ftTransferF

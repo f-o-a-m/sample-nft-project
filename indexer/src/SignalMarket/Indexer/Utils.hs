@@ -18,7 +18,7 @@ import           Data.Text                                   (Text)
 import           Database.PostgreSQL.Simple                  (Connection)
 import           Katip                                       as K
 import           Network.Ethereum.Api.Provider               (Web3)
-import           Network.Ethereum.Api.Types                  (Change (..),
+import           Network.Ethereum.Api.Types                  (Change (..), DefaultBlock(..), 
                                                               Filter (..),
                                                               unQuantity)
 import           Network.Ethereum.Contract.Event.MultiFilter (Handler (..))
@@ -33,8 +33,8 @@ import           Opaleye                                     (Column, Order,
                                                               restrict,
                                                               runInsertMany,
                                                               runSelect,
-                                                              runUpdate, (.==))
-import           SignalMarket.Common.Config.Types            (HasEventName (..))
+                                                              runUpdateReturning, (.==))
+import           SignalMarket.Common.Config.Types            (HasEventName (..), DeployReceipt(..))
 import           SignalMarket.Common.EventTypes              (EventID,
                                                               HexInteger (..),
                                                               _HexInteger)
@@ -63,13 +63,35 @@ insert table a = do
     then K.katipAddContext a $ logFM DebugS "Inserted"
     else K.logFM K.ErrorS $ fromString ("Inserted " <> show n <> " rows, expected 1.")
 
+tryInsert
+  :: Default ToFields haskells fields
+  => MonadPG m
+  => K.Katip m
+  => K.KatipContext m
+  => K.LogItem haskells
+  => Table fields fields
+  -> haskells
+  -> m ()
+tryInsert table a = do
+  en <- runDB' $ \conn ->
+    runInsertMany conn table [constant a]
+  case en of
+    Left e -> K.katipAddContext (SqlErrorCTX e) $ logFM ErrorS "Failed to open checkpoint"
+    Right n ->
+       if n == 1
+         then K.katipAddContext a $ logFM DebugS "Inserted"
+         else K.logFM K.ErrorS $ fromString ("Inserted " <> show n <> " rows, expected 1.")
+
 makeFilter
   :: forall e.
      D.Default (Filter e)
   => Proxy e
-  -> Address
+  -> DeployReceipt
   -> Filter e
-makeFilter _ addr = (D.def :: Filter e) { filterAddress = Just [addr]}
+makeFilter _ DeployReceipt{..} =
+   (D.def :: Filter e) { filterAddress = Just [deployReceiptAddress]
+                       , filterFromBlock = mkFromBlock deployReceiptBlockNumber
+                       }
 
 makeHandler
   :: IndexerConfig
@@ -102,15 +124,17 @@ mkOpenCheckpoint n eid Change{..} = Checkpoint.Checkpoint
   }
 
 closeCheckpoint
-  :: MonadPG m
+  :: ( MonadPG m
+     , MonadThrow m
+     )
   => EventID
-  -> m Int64
-closeCheckpoint eid = runDB $ \conn -> do
+  -> m (Checkpoint.Checkpoint)
+closeCheckpoint eid = queryExact $ \conn -> do
   let updater :: Checkpoint.CheckpointPG -> Checkpoint.CheckpointPG
       updater a = a { Checkpoint.status = constant ("closed" :: Text) }
       p :: Checkpoint.CheckpointPG -> Column SqlBool
       p = \a -> Checkpoint.eventID a .== constant eid
-  runUpdate conn Checkpoint.checkpointTable updater p
+  runUpdateReturning conn Checkpoint.checkpointTable updater p id
 
 
 fetchMostRecentCheckpoint
@@ -131,11 +155,14 @@ fetchMostRecentCheckpoint name =
   in queryMaybe $ \conn -> runSelect conn q
 
 modifyHandlerWithCheckpoint
-  :: Checkpoint.Checkpoint
+  :: forall e.
+     (HasEventName e)
+  => IndexerConfig
+  -> Checkpoint.Checkpoint
   -> Handler (ReaderT Change Web3 EventAction) e
   -> Handler (ReaderT Change Web3 EventAction) e
-modifyHandlerWithCheckpoint Checkpoint.Checkpoint{..} (H h) = H $ \e -> do
-  Change{..} <- ask
+modifyHandlerWithCheckpoint cfg Checkpoint.Checkpoint{..} (H h) = H $ \e -> do
+  change@Change{..} <- ask
   let blockNumber' =  HexInteger . unQuantity . fromJust $ changeBlockNumber
       logIndex' =  HexInteger . unQuantity . fromJust $ changeLogIndex
       shouldSkip = if status == "open"
@@ -144,16 +171,36 @@ modifyHandlerWithCheckpoint Checkpoint.Checkpoint{..} (H h) = H $ \e -> do
   if shouldSkip
     then pure ContinueEvent
     else h e
+      
+wrapHandlerWithCheckpointing
+  :: forall e.
+     (HasEventName e)
+  => IndexerConfig
+  -> Handler (ReaderT Change Web3 EventAction) e
+  -> Handler (ReaderT Change Web3 EventAction) e
+wrapHandlerWithCheckpointing cfg (H h) = H $ \e -> do 
+  change <- ask
+  let eventID = eventEventID $ mkEvent change e 
+  _ <- liftIO $ runIndexerM cfg $ do
+     let cp = mkOpenCheckpoint (eventName (Proxy :: Proxy e)) eventID change
+     K.katipAddContext cp $ do K.logFM K.InfoS "Opening Checkpoint"
+     insert Checkpoint.checkpointTable cp
+  eventAction <- h e
+  liftIO $ runIndexerM cfg $ do
+    cp <- closeCheckpoint eventID
+    K.katipAddContext cp $ K.logFM K.InfoS "Closed Checkpoint"
+  return eventAction
+
 
 makeFilterHandlerPair
   :: forall e.
      ( D.Default (Filter e)
      , HasEventName e
      )
-  => Address
+  => DeployReceipt
   -> (Event e -> IndexerM ())
   -> IndexerM (Filter e, Handler (ReaderT Change Web3 EventAction) e)
-makeFilterHandlerPair addr h = do
+makeFilterHandlerPair deployReceipt h = do
   indexerCfg <- ask
   let name = eventName (Proxy :: Proxy e)
   mCheckpoint <- fetchMostRecentCheckpoint name
@@ -162,9 +209,15 @@ makeFilterHandlerPair addr h = do
       "No checkpoint found for " <> cs name <> ", indexing from contract creation."
     Just cp -> K.katipAddContext cp $ K.logFM K.InfoS . fromString $
       "Indexing " <> cs name <> " from checkpoint."
-  let modifyWithCheckpoint :: Handler (ReaderT Change Web3 EventAction) e
-                           -> Handler (ReaderT Change Web3 EventAction) e
-      modifyWithCheckpoint = maybe id modifyHandlerWithCheckpoint mCheckpoint
-      handler = modifyWithCheckpoint $ makeHandler indexerCfg h
-      fltr = makeFilter (Proxy :: Proxy e) addr
+  let handlerWithCheckpoint :: Handler (ReaderT Change Web3 EventAction) e
+                            -> Handler (ReaderT Change Web3 EventAction) e
+      handlerWithCheckpoint = maybe id (modifyHandlerWithCheckpoint indexerCfg) mCheckpoint
+      filterWithCheckpoint :: Filter e -> Filter e
+      filterWithCheckpoint = maybe id (\cp f -> f {filterFromBlock = mkFromBlock $ Checkpoint.blockNumber cp}) mCheckpoint
+
+      handler = handlerWithCheckpoint . wrapHandlerWithCheckpointing indexerCfg $ makeHandler indexerCfg h
+      fltr = filterWithCheckpoint $ makeFilter (Proxy :: Proxy e) deployReceipt
   pure (fltr, handler)
+
+mkFromBlock :: HexInteger -> DefaultBlock
+mkFromBlock (HexInteger n) = BlockWithNumber $ fromInteger n

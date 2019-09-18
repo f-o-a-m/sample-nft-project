@@ -40,15 +40,16 @@ mkEvent W3.Change{..} e =
           , RC.eventID = eid
           }
       }
-  where
-    integerToBytes :: Integer -> Bytes
-    integerToBytes n =
-      let bytes = convertFromBase Base16 . cs @_ @ByteString . T.justifyRight 64 '0' . cs . B.toLazyText . B.hexadecimal $ n
-      in either error id bytes
-    deriveEID li bh =
-      let digest :: Digest Keccak_256
-          digest = hash (integerToBytes li <> toBytes bh)
-      in EventID . view _HexString . convert . C8.take 32 . convert $ digest
+
+integerToBytes :: Integer -> Bytes
+integerToBytes n =
+  let bytes = convertFromBase Base16 . cs @_ @ByteString . T.justifyRight 64 '0' . cs . B.toLazyText . B.hexadecimal $ n
+  in either error id bytes
+
+deriveEID li bh =
+  let digest :: Digest Keccak_256
+      digest = hash (integerToBytes li <> toBytes bh)
+  in EventID . view _HexString . convert . C8.take 32 . convert $ digest
 
 data Event e = Event
   { eventEventID  :: EventID

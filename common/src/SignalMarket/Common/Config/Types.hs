@@ -18,6 +18,7 @@ import           Data.Text                        (Text)
 import           GHC.Generics                     (Generic)
 import           SignalMarket.Common.Aeson
 import           SignalMarket.Common.Config.Utils
+import           SignalMarket.Common.EventTypes   (HexInteger)
 
 data Contracts = Contracts
   { contractsFoamToken    :: DeployReceipt
@@ -48,7 +49,7 @@ mkContracts networkID = do
 data DeployReceipt = DeployReceipt
   { deployReceiptAddress         :: Address
   , deployReceiptBlockHash       :: HexString
-  , deployReceiptBlockNumber     :: HexString
+  , deployReceiptBlockNumber     :: HexInteger
   , deployReceiptTransactionHash :: HexString
   } deriving (Eq, Show, Generic)
 

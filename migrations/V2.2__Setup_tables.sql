@@ -74,7 +74,7 @@ CREATE TABLE "checkpoint"
     "log_index" numeric NOT NULL,
     "block_number" numeric NOT NULL,
     "status" text NOT NULL,
-    "event_id" numeric NOT NULL PRIMARY KEY
+    "event_id" text NOT NULL PRIMARY KEY
 
   );
 CREATE INDEX ON "checkpoint" ("log_index");
