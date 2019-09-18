@@ -2,6 +2,10 @@
 
 module SignalMarket.Common.Models.Checkpoint where
 
+import qualified Data.Aeson as A
+import qualified Katip as K
+import GHC.Generics (Generic)
+import SignalMarket.Common.Aeson (defaultAesonOptions)
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
 import           Data.Text                      (Text)
 import           Opaleye                        (Field, SqlNumeric, SqlText,
@@ -15,7 +19,7 @@ data Checkpoint' name bn li status eid = Checkpoint
   , logIndex    :: li
   , status      :: status
   , eventID     :: eid
-  }
+  } deriving (Generic)
 
 
 $(makeAdaptorAndInstance "pCheckpoint" ''Checkpoint')
@@ -32,3 +36,15 @@ checkpointTable = table "checkpoint"
                                                , eventID = tableField "event_id"
                                                }
                        )
+                      
+
+instance A.ToJSON Checkpoint where
+  toJSON = A.genericToJSON (defaultAesonOptions "")
+
+instance A.FromJSON Checkpoint where
+  parseJSON = A.genericParseJSON (defaultAesonOptions "")
+
+instance K.ToObject Checkpoint
+
+instance K.LogItem Checkpoint where
+  payloadKeys _ _ = K.AllKeys

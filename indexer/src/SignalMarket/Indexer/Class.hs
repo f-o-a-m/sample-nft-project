@@ -58,13 +58,13 @@ data SqlQueryException = SqlQueryException deriving (Eq, Show)
 
 instance Exception SqlQueryException
 
-runQueryMaybe
+queryMaybe
   :: ( MonadPG m
      , MonadThrow m
      )
   => (PG.Connection -> IO [a])
   -> m (Maybe a)
-runQueryMaybe q = do
+queryMaybe q = do
   res <- runDB q
   case res of
     [] -> pure $ Nothing

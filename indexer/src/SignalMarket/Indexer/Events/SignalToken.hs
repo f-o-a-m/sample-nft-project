@@ -34,12 +34,4 @@ signalTokenTrackedTokenH Event{eventEventID, eventData} =
   K.katipAddNamespace "SignalToken" $ do
     K.katipAddNamespace "TrackedToken" $ do
       case eventData of
-        Contract.TrackedToken{..} ->
-          insert TrackedToken.trackedTokenTable $ TrackedToken.TrackedToken
-            { TrackedToken.nftAddress = trackedTokenNftAddress_ ^. _EthAddress
-            , TrackedToken.cst =  -- trackedTokenCst_
-            , TrackedToken.geohash = undefined -- trackedTokenGeohash_
-            , TrackedToken.radius = trackedTokenRadius_ ^. _Value
-            , TrackedToken.tokenID = trackedTokenTokenID_ ^. _TokenID
-            , TrackedToken.eventID = eventEventID
-            }
+        Contract.TrackedToken{..} -> undefined

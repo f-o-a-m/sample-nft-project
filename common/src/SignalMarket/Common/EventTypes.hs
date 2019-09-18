@@ -28,7 +28,7 @@ import           Opaleye.RunQuery                (QueryRunnerColumnDefault,
                                                   fieldQueryRunnerColumn)
 
 --------------------------------------------------------------------------------
-newtype HexInteger = HexInteger Integer deriving (Eq, Show)
+newtype HexInteger = HexInteger Integer deriving (Eq, Show, Ord)
 
 hexIntegerToText :: HexInteger -> Text
 hexIntegerToText (HexInteger n) = TL.toStrict . (<>) "0x" . B.toLazyText $ B.hexadecimal n

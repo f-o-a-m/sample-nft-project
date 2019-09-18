@@ -16,8 +16,7 @@ import           SignalMarket.Indexer.Config                 (IndexerConfig (..)
 import qualified SignalMarket.Indexer.Events.FoamToken       as FoamToken
 import           SignalMarket.Indexer.IndexerM               (IndexerM,
                                                               runIndexerM)
-import           SignalMarket.Indexer.Utils                  (makeFilter,
-                                                              makeHandler)
+import           SignalMarket.Indexer.Utils                  (makeFilterHandlerPair)
 import           System.IO                                   (stdout)
 
 -- For logging setup, see
@@ -38,8 +37,13 @@ monitor = do
     contracts = indexerCfgContracts cfg
     (window, _) = indexerMultiFilterOpts cfg
     foamTokenAddress = deployReceiptAddress . contractsFoamToken $ contracts
-    filters = makeFilter (Proxy :: Proxy FoamToken.Transfer) foamTokenAddress
+
+  -- FOAM Token events
+  (ftTransferF, ftTransferH) <- makeFilterHandlerPair foamTokenAddress FoamToken.foamTokenTransferH
+
+  let
+    filters = ftTransferF
            :? NilFilters
-    handlers = makeHandler cfg FoamToken.foamTokenTransferH
+    handlers = ftTransferH
             :& RNil
   runWeb3 $ multiEventManyNoFilter' filters window handlers
