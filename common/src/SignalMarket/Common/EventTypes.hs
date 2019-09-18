@@ -1,17 +1,18 @@
 module SignalMarket.Common.EventTypes where
 
-import           Control.Lens                    (Iso', from, iso, to, view, (^.))
+import           Control.Lens                    (Iso', from, iso, to, view,
+                                                  (^.))
 import qualified Data.Aeson                      as A
 import qualified Data.ByteArray.HexString        as Hx
+import           Data.ByteArray.Sized            (unsafeSizedByteArray)
 import           Data.Char                       (isHexDigit)
-import Data.ByteArray.Sized (unsafeSizedByteArray)
 import           Data.Profunctor
 import qualified Data.Profunctor.Product.Default as D
 import           Data.Scientific                 (Scientific)
 import           Data.Solidity.Prim.Address      (Address, fromHexString,
                                                   toHexString)
-import           Data.Solidity.Prim.Int          (UIntN)
 import           Data.Solidity.Prim.Bytes        (BytesN)
+import           Data.Solidity.Prim.Int          (UIntN)
 import           Data.String                     (fromString)
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
@@ -20,8 +21,8 @@ import qualified Data.Text.Lazy.Builder          as B
 import qualified Data.Text.Lazy.Builder.Int      as B
 import qualified Data.Text.Read                  as R
 import           GHC.TypeLits
-import           Opaleye                         (Column, SqlNumeric, SqlText, SqlBytea,
-                                                  ToFields)
+import           Opaleye                         (Column, SqlBytea, SqlNumeric,
+                                                  SqlText, ToFields)
 import           Opaleye.Internal.RunQuery       as IQ
 import           Opaleye.RunQuery                (QueryRunnerColumnDefault,
                                                   fieldQueryRunnerColumn)
