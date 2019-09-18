@@ -3,15 +3,14 @@
 
 module SignalMarket.Common.Models.SignalMarketSignalForSale where
 
-import qualified Data.Aeson                      as A
-import           Data.Profunctor.Product.Default
-import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
-import           GHC.Generics                    (Generic)
-import qualified Katip                           as K
-import           Opaleye                         (Field, SqlNumeric, SqlText,
-                                                  Table, table, tableField)
-import           SignalMarket.Common.Aeson       (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes  (EventID, TokenID, Value)
+import qualified Data.Aeson                     as A
+import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
+import           GHC.Generics                   (Generic)
+import qualified Katip                          as K
+import           Opaleye                        (Field, SqlNumeric, SqlText,
+                                                 Table, table, tableField)
+import           SignalMarket.Common.Aeson      (defaultAesonOptions)
+import           SignalMarket.Common.EventTypes (EventID, TokenID, Value)
 
 -- SignalMarket
 -- SignalForSale :: {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6))}

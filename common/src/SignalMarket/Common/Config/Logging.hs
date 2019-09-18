@@ -43,4 +43,4 @@ mkLogConfig processName = do
       , _logEnv = le
       }
   where
-  logEnv = K.initLogEnv (K.Namespace [processName]) (K.Environment "workshop")
+    logEnv = K.initLogEnv (K.Namespace [processName]) (K.Environment "workshop")

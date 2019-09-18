@@ -1,18 +1,13 @@
 module SignalMarket.Indexer.Utils where
 
 
-import           SignalMarket.Common.EventTypes
-import           SignalMarket.Common.Models.RawChange        as RawChange
-
 import           Control.Monad.IO.Class                      (liftIO)
 import           Control.Monad.Reader                        (ReaderT, ask)
 import qualified Data.Default                                as D
-import           Data.Int                                    (Int64)
 import           Data.Profunctor.Product.Default             (Default)
 import           Data.Proxy
 import           Data.Solidity.Prim.Address                  (Address)
 import           Data.String                                 (fromString)
-import           Database.PostgreSQL.Simple                  (Connection)
 import           Katip                                       as K
 import           Network.Ethereum.Api.Provider               (Web3)
 import           Network.Ethereum.Api.Types                  (Change,
@@ -22,6 +17,7 @@ import           Network.Ethereum.Web3                       (EventAction (..))
 import           Opaleye                                     (Table, ToFields,
                                                               constant,
                                                               runInsertMany)
+import           SignalMarket.Common.Models.RawChange        as RawChange
 import           SignalMarket.Indexer.Class
 import           SignalMarket.Indexer.Config                 (IndexerConfig)
 import           SignalMarket.Indexer.IndexerM               (IndexerM,
