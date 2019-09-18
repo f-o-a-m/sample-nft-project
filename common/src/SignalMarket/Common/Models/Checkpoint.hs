@@ -1,13 +1,13 @@
-{-# LANGUAGE  TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module SignalMarket.Common.Models.Checkpoint where
 
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
+import           Data.Text                      (Text)
 import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
 import           SignalMarket.Common.EventTypes (EthAddress, EventID,
                                                  HexInteger, HexString)
-import Data.Text (Text)
 
 data Checkpoint' name bn li status eid = Checkpoint
   { name        :: name

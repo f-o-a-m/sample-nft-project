@@ -1,10 +1,11 @@
 module SignalMarket.Indexer.Class where
 
-import           Control.Exception             (toException, Exception(..))
+import           Control.Exception             (Exception (..), toException)
 import           Control.Monad.Catch           (MonadThrow (..), try)
 import           Control.Monad.IO.Class        (MonadIO (..))
 import           Control.Monad.Reader          (asks)
 import qualified Data.Aeson                    as A
+import           Data.String                   (fromString)
 import           Data.String.Conversions       (cs)
 import           Data.Text                     (Text)
 import           Database.PostgreSQL.Simple    (SqlError (..))
@@ -16,7 +17,6 @@ import           Network.HTTP.Client           (Manager)
 import           SignalMarket.Indexer.Config   (indexerCfgWeb3Manager,
                                                 indexerPGConnection)
 import           SignalMarket.Indexer.IndexerM
-import Data.String (fromString)
 
 data SqlErrorCTX = SqlErrorCTX SqlError
 
@@ -70,11 +70,11 @@ runQueryMaybe q = do
     [] -> pure $ Nothing
     [a] -> pure $ Just a
     as -> do
-      K.logFM K.ErrorS $ fromString $ 
+      K.logFM K.ErrorS $ fromString $
         "Expected at most 1 result, got " <> show (length as) <> "!"
       throwM SqlQueryException
 
-    
+
 data Web3ErrorCTX = Web3ErrorCTX Web3Error
 
 instance A.ToJSON Web3ErrorCTX where

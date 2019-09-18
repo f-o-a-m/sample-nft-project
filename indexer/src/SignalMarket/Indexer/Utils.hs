@@ -1,33 +1,36 @@
 module SignalMarket.Indexer.Utils where
 
-import Control.Lens ((^.))
-import Data.Maybe (fromJust)
-import Data.Text (Text)
+import           Control.Lens                                ((^.))
 import           Control.Monad.IO.Class                      (liftIO)
-import           Control.Monad.Reader                        (MonadReader, ReaderT, ask)
+import           Control.Monad.Reader                        (MonadReader,
+                                                              ReaderT, ask)
 import qualified Data.Default                                as D
 import           Data.Int                                    (Int64)
+import           Data.Maybe                                  (fromJust)
 import           Data.Profunctor.Product.Default             (Default)
 import           Data.Proxy
 import           Data.Solidity.Prim.Address                  (Address)
 import           Data.String                                 (fromString)
+import           Data.Text                                   (Text)
 import           Database.PostgreSQL.Simple                  (Connection)
 import           Katip                                       as K
 import           Network.Ethereum.Api.Provider               (Web3)
-import           Network.Ethereum.Api.Types                  (Change(..), unQuantity,
-                                                              Filter (..))
+import           Network.Ethereum.Api.Types                  (Change (..),
+                                                              Filter (..),
+                                                              unQuantity)
 import           Network.Ethereum.Contract.Event.MultiFilter (Handler (..))
 import           Network.Ethereum.Web3                       (EventAction (..))
 import           Opaleye                                     (Table, ToFields,
                                                               constant,
                                                               runInsertMany)
+import           SignalMarket.Common.EventTypes              (EventID,
+                                                              HexInteger (..))
+import           SignalMarket.Common.Models.Checkpoint       as Checkpoint
 import           SignalMarket.Indexer.Class
 import           SignalMarket.Indexer.Config                 (IndexerConfig)
 import           SignalMarket.Indexer.IndexerM               (IndexerM,
                                                               runIndexerM)
 import           SignalMarket.Indexer.Types                  (Event, mkEvent)
-import SignalMarket.Common.Models.Checkpoint as Checkpoint
-import SignalMarket.Common.EventTypes (EventID, HexInteger(..))
 
 insert
   :: Default ToFields haskells fields
@@ -86,4 +89,4 @@ mkOpenCheckpoint n eid Change{..} = Checkpoint
 --  => Text
 --  -> m (Maybe Checkpoint)
 --fetchMostRecentCheckpoint name = do
---  <- runDB $ \conn -> 
+--  <- runDB $ \conn ->

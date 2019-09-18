@@ -3,15 +3,15 @@
 
 module SignalMarket.Common.Models.SignalTokenTrackedToken where
 
-import           SignalMarket.Common.Aeson       (defaultAesonOptions)
-import qualified Katip                           as K
 import qualified Data.Aeson                      as A
-import           GHC.Generics                    (Generic)
 import           Data.Profunctor.Product.Default
 import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
+import           GHC.Generics                    (Generic)
+import qualified Katip                           as K
 import           Opaleye                         (Field, SqlBytea, SqlNumeric,
                                                   SqlText, Table, table,
                                                   tableField)
+import           SignalMarket.Common.Aeson       (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes  (ByteNValue, EthAddress,
                                                   EventID, TokenID, Value)
 -- SignalToken
