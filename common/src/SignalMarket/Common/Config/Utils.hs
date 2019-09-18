@@ -8,7 +8,6 @@ module SignalMarket.Common.Config.Utils
 
 import           Control.Error
 import           Control.Monad.IO.Class
-import           Data.Text              (Text)
 import           System.Environment
 import qualified Text.Read              as T
 

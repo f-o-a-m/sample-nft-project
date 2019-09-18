@@ -11,9 +11,8 @@ import           Data.Text                     (Text)
 import           Database.PostgreSQL.Simple    (SqlError (..))
 import qualified Database.PostgreSQL.Simple    as PG
 import qualified Katip                         as K
-import           Network.Ethereum.Api.Provider (Provider, Web3, Web3Error (..),
+import           Network.Ethereum.Api.Provider (Web3, Web3Error (..),
                                                 runWeb3With)
-import           Network.HTTP.Client           (Manager)
 import           SignalMarket.Indexer.Config   (indexerCfgWeb3Manager,
                                                 indexerPGConnection)
 import           SignalMarket.Indexer.IndexerM
@@ -94,12 +93,12 @@ data Web3ErrorCTX = Web3ErrorCTX Web3Error
 
 instance A.ToJSON Web3ErrorCTX where
   toJSON (Web3ErrorCTX e) =
-    let (tag :: String, msg) = case e of
+    let (tag :: String, message) = case e of
             JsonRpcFail msg -> ("JsonRpcFail", msg)
             ParserFail msg  -> ("ParserFail", msg)
             UserFail msg    -> ("UserFail", msg)
     in A.object [ "type" A..= tag
-                , "message" A..= msg
+                , "message" A..= message
                 ]
 
 instance K.ToObject Web3ErrorCTX

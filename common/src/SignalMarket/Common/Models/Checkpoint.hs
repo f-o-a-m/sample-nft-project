@@ -10,8 +10,7 @@ import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes (EthAddress, EventID,
-                                                 HexInteger, HexString)
+import           SignalMarket.Common.EventTypes (EventID, HexInteger)
 
 data Checkpoint' name bn li status eid = Checkpoint
   { name        :: name

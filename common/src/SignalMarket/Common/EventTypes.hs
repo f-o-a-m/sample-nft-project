@@ -21,8 +21,8 @@ import qualified Data.Text.Lazy.Builder          as B
 import qualified Data.Text.Lazy.Builder.Int      as B
 import qualified Data.Text.Read                  as R
 import           GHC.TypeLits
-import           Opaleye                         (Column, SqlBytea, SqlNumeric,
-                                                  SqlText, ToFields)
+import           Opaleye                         (Column, SqlNumeric, SqlText,
+                                                  ToFields)
 import           Opaleye.Internal.RunQuery       as IQ
 import           Opaleye.RunQuery                (QueryRunnerColumnDefault,
                                                   fieldQueryRunnerColumn)

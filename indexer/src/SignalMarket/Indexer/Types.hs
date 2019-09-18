@@ -6,7 +6,7 @@ import           Crypto.Hash.Algorithms               (Keccak_256)
 import           Data.ByteArray                       (Bytes, convert)
 import           Data.ByteArray.Encoding              (Base (..),
                                                        convertFromBase)
-import           Data.ByteArray.HexString             (toBytes)
+import           Data.ByteArray.HexString             (HexString, toBytes)
 import           Data.ByteString                      (ByteString)
 import qualified Data.ByteString.Char8                as C8
 import           Data.Maybe                           (fromJust)
@@ -46,6 +46,7 @@ integerToBytes n =
   let bytes = convertFromBase Base16 . cs @_ @ByteString . T.justifyRight 64 '0' . cs . B.toLazyText . B.hexadecimal $ n
   in either error id bytes
 
+deriveEID :: Integer -> HexString -> EventID
 deriveEID li bh =
   let digest :: Digest Keccak_256
       digest = hash (integerToBytes li <> toBytes bh)

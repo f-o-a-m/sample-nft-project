@@ -3,18 +3,14 @@
 
 module SignalMarket.Common.Models.SignalTokenTransfer where
 
-import qualified Data.Aeson                      as A
-import           Data.Int                        (Int64)
-import           Data.Profunctor.Product.Default
-import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
-import           Database.PostgreSQL.Simple      (Connection)
-import           GHC.Generics                    (Generic)
-import qualified Katip                           as K
-import           Opaleye                         (Field, SqlNumeric, SqlText,
-                                                  Table, ToFields, table,
-                                                  tableField)
-import           SignalMarket.Common.Aeson       (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes  (EthAddress, EventID, TokenID)
+import qualified Data.Aeson                     as A
+import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
+import           GHC.Generics                   (Generic)
+import qualified Katip                          as K
+import           Opaleye                        (Field, SqlNumeric, SqlText,
+                                                 Table, table, tableField)
+import           SignalMarket.Common.Aeson      (defaultAesonOptions)
+import           SignalMarket.Common.EventTypes (EthAddress, EventID, TokenID)
 
 -- SignalToken
 -- Transfer :: {_from :: Address,_to :: Address,_tokenId :: (UIntN (D2 :& D5 :& DOne D6))}
