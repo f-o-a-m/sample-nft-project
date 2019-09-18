@@ -18,7 +18,8 @@ import           Data.Text                                   (Text)
 import           Database.PostgreSQL.Simple                  (Connection)
 import           Katip                                       as K
 import           Network.Ethereum.Api.Provider               (Web3)
-import           Network.Ethereum.Api.Types                  (Change (..), DefaultBlock(..), 
+import           Network.Ethereum.Api.Types                  (Change (..),
+                                                              DefaultBlock (..),
                                                               Filter (..),
                                                               unQuantity)
 import           Network.Ethereum.Contract.Event.MultiFilter (Handler (..))
@@ -33,8 +34,10 @@ import           Opaleye                                     (Column, Order,
                                                               restrict,
                                                               runInsertMany,
                                                               runSelect,
-                                                              runUpdateReturning, (.==))
-import           SignalMarket.Common.Config.Types            (HasEventName (..), DeployReceipt(..))
+                                                              runUpdateReturning,
+                                                              (.==))
+import           SignalMarket.Common.Config.Types            (DeployReceipt (..),
+                                                              HasEventName (..))
 import           SignalMarket.Common.EventTypes              (EventID,
                                                               HexInteger (..),
                                                               _HexInteger)
@@ -128,12 +131,12 @@ closeCheckpoint
      , MonadThrow m
      )
   => EventID
-  -> m (Checkpoint.Checkpoint)
+  -> m Checkpoint.Checkpoint
 closeCheckpoint eid = queryExact $ \conn -> do
   let updater :: Checkpoint.CheckpointPG -> Checkpoint.CheckpointPG
       updater a = a { Checkpoint.status = constant ("closed" :: Text) }
       p :: Checkpoint.CheckpointPG -> Column SqlBool
-      p = \a -> Checkpoint.eventID a .== constant eid
+      p a = Checkpoint.eventID a .== constant eid
   runUpdateReturning conn Checkpoint.checkpointTable updater p id
 
 
@@ -171,16 +174,16 @@ modifyHandlerWithCheckpoint cfg Checkpoint.Checkpoint{..} (H h) = H $ \e -> do
   if shouldSkip
     then pure ContinueEvent
     else h e
-      
+
 wrapHandlerWithCheckpointing
   :: forall e.
      (HasEventName e)
   => IndexerConfig
   -> Handler (ReaderT Change Web3 EventAction) e
   -> Handler (ReaderT Change Web3 EventAction) e
-wrapHandlerWithCheckpointing cfg (H h) = H $ \e -> do 
+wrapHandlerWithCheckpointing cfg (H h) = H $ \e -> do
   change <- ask
-  let eventID = eventEventID $ mkEvent change e 
+  let eventID = eventEventID $ mkEvent change e
   _ <- liftIO $ runIndexerM cfg $ do
      let cp = mkOpenCheckpoint (eventName (Proxy :: Proxy e)) eventID change
      K.katipAddContext cp $ do K.logFM K.InfoS "Opening Checkpoint"
