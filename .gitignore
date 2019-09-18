@@ -7,3 +7,4 @@ dapp/src/Contracts
 package-lock.json
 stack.yaml.lock
 .stack-work
+*.dump-slices
