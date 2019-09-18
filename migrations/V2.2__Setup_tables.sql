@@ -42,8 +42,6 @@ CREATE TABLE "signal_token_tracked_token"
     "token_id" numeric NOT NULL,
     "event_id" text NOT NULL PRIMARY KEY REFERENCES "raw_change"("event_id")
   );
-CREATE INDEX ON "signal_token_tracked_token" ("from");
-CREATE INDEX ON "signal_token_tracked_token" ("to");
 
 /*
 SignalMarket
