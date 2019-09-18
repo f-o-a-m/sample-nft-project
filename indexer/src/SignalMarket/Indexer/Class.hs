@@ -1,10 +1,11 @@
 module SignalMarket.Indexer.Class where
 
-import           Control.Exception             (toException)
+import           Control.Exception             (Exception (..), toException)
 import           Control.Monad.Catch           (MonadThrow (..), try)
 import           Control.Monad.IO.Class        (MonadIO (..))
 import           Control.Monad.Reader          (asks)
 import qualified Data.Aeson                    as A
+import           Data.String                   (fromString)
 import           Data.String.Conversions       (cs)
 import           Data.Text                     (Text)
 import           Database.PostgreSQL.Simple    (SqlError (..))
@@ -52,6 +53,42 @@ instance MonadPG IndexerM where
     runDB' action = do
       connection <- asks indexerPGConnection
       liftIO . try $ action connection
+
+data SqlQueryException = SqlQueryException deriving (Eq, Show)
+
+instance Exception SqlQueryException
+
+queryMaybe
+  :: ( MonadPG m
+     , MonadThrow m
+     )
+  => (PG.Connection -> IO [a])
+  -> m (Maybe a)
+queryMaybe q = do
+  res <- runDB q
+  case res of
+    [] -> pure $ Nothing
+    [a] -> pure $ Just a
+    as -> do
+      K.logFM K.ErrorS $ fromString $
+        "Expected at most 1 result, got " <> show (length as) <> "!"
+      throwM SqlQueryException
+
+queryExact
+  :: ( MonadPG m
+     , MonadThrow m
+     )
+  => (PG.Connection -> IO [a])
+  -> m a
+queryExact q = do
+  mRes <- queryMaybe q
+  case mRes of
+    Nothing -> do
+      K.logFM K.ErrorS $ fromString $
+        "Expected exactly 1 result, got 0!"
+      throwM SqlQueryException
+    Just a -> pure a
+
 
 data Web3ErrorCTX = Web3ErrorCTX Web3Error
 

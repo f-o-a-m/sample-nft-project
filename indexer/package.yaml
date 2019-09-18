@@ -28,17 +28,21 @@ default-extensions:
   - RecordWildCards
   - ScopedTypeVariables
   - NamedFieldPuns
+  - Arrows
 
 dependencies:
 - aeson
 - base >= 4.7 && < 5
+- bytestring
 - common
+- cryptonite
 - data-default 
 - exceptions
 - http-client
 - http-client-tls
 - katip
 - lens
+- memory
 - mtl
 - opaleye
 - postgresql-simple

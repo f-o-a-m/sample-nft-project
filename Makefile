@@ -83,3 +83,13 @@ build-server: ## build server and install binaries
 
 run-server: build-server ## run the server
 	stack exec -- server-exe
+
+####################
+# Indexer      #
+####################
+
+build-indexer: ## build indexer and install binaries
+	stack install indexer
+
+run-indexer: build-indexer ## run the indexer
+	stack exec -- indexer-exe

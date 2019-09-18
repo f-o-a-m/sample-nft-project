@@ -1,13 +1,11 @@
 module SignalMarket.Indexer.Events.FoamToken where
 
-import           Control.Monad.IO.Class                       (liftIO)
+import           Control.Lens                                 ((^.))
 import qualified Katip                                        as K
 import           SignalMarket.Common.Contracts.FoamToken      as Contract
 import           SignalMarket.Common.EventTypes
 import           SignalMarket.Common.Models.FoamTokenTransfer as Model
 import           SignalMarket.Indexer.Class                   (MonadPG (..))
-import           SignalMarket.Indexer.Config
-import           SignalMarket.Indexer.IndexerM                (IndexerM)
 import           SignalMarket.Indexer.Types
 import           SignalMarket.Indexer.Utils                   (insert)
 
@@ -15,12 +13,14 @@ foamTokenTransferH
   :: MonadPG m
   => Event Contract.Transfer
   -> m ()
-foamTokenTransferH Event{eventEventID, eventData} = do
+foamTokenTransferH Event{eventEventID, eventData} =
   K.katipAddNamespace "FoamToken" $ do
     K.katipAddNamespace "Transfer" $ do
-      insert Model.transferTable $ Model.Transfer
-        { Model.to = undefined :: EthAddress
-        , Model.from = undefined :: EthAddress
-        , Model.value = undefined  :: Value
-        , Model.eventID = undefined :: EventID
-        }
+      case eventData of
+        Contract.Transfer{..} ->
+          insert Model.transferTable $ Model.Transfer
+            { Model.to = transferTo_ ^. _EthAddress
+            , Model.from = transferFrom_ ^. _EthAddress
+            , Model.value = transferValue_ ^. _Value
+            , Model.eventID = eventEventID
+            }

@@ -23,11 +23,13 @@ default-extensions:
   - DeriveGeneric
   - OverloadedStrings
   - DataKinds
+  - TypeFamilies
   - MultiParamTypeClasses
   - FlexibleInstances
   - RankNTypes
   - GeneralizedNewtypeDeriving
   - TypeApplications
+  - TypeOperators
 
 dependencies:
 - aeson
@@ -39,6 +41,7 @@ dependencies:
 - katip
 - lens
 - lens-aeson
+- memory
 - mtl
 - opaleye
 - postgresql-simple

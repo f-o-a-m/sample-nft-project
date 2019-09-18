@@ -1,48 +1,143 @@
 module SignalMarket.Common.EventTypes where
 
-import           Data.ByteString                 (ByteString)
+import           Control.Lens                    (Iso', from, iso, to, view,
+                                                  (^.))
+import qualified Data.Aeson                      as A
+import qualified Data.ByteArray.HexString        as Hx
+import           Data.ByteArray.Sized            (unsafeSizedByteArray)
+import           Data.Char                       (isHexDigit)
 import           Data.Profunctor
 import qualified Data.Profunctor.Product.Default as D
 import           Data.Scientific                 (Scientific)
+import           Data.Solidity.Prim.Address      (Address, fromHexString,
+                                                  toHexString)
+import           Data.Solidity.Prim.Bytes        (BytesN)
+import           Data.Solidity.Prim.Int          (UIntN)
+import           Data.String                     (fromString)
 import           Data.Text                       (Text)
+import qualified Data.Text                       as T
+import qualified Data.Text.Lazy                  as TL (toStrict)
+import qualified Data.Text.Lazy.Builder          as B
+import qualified Data.Text.Lazy.Builder.Int      as B
+import qualified Data.Text.Read                  as R
+import           GHC.TypeLits
 import           Opaleye                         (Column, SqlBytea, SqlNumeric,
                                                   SqlText, ToFields)
 import           Opaleye.Internal.RunQuery       as IQ
 import           Opaleye.RunQuery                (QueryRunnerColumnDefault,
                                                   fieldQueryRunnerColumn)
 
-newtype EventID = EventID Text deriving (Eq, Show, QueryRunnerColumnDefault SqlText)
+--------------------------------------------------------------------------------
+newtype HexInteger = HexInteger Integer deriving (Eq, Show, Ord)
 
-instance D.Default ToFields EventID (Column SqlText) where
-  def = lmap (\(EventID a) -> a) D.def
+hexIntegerToText :: HexInteger -> Text
+hexIntegerToText (HexInteger n) = TL.toStrict . (<>) "0x" . B.toLazyText $ B.hexadecimal n
 
-newtype HexInteger = HexInteger Integer deriving (Eq, Show)
+hexIntegerFromText :: Text -> Either String HexInteger
+hexIntegerFromText t = case R.hexadecimal . maybeTrim $ t of
+    Right (x, "") -> Right (HexInteger x)
+    _             -> Left "Unable to parse HexInteger"
+  where
+    maybeTrim txt = if T.take 2 txt == "0x" then T.drop 2 txt else txt
+
+instance A.ToJSON HexInteger where
+    toJSON = A.toJSON . hexIntegerToText
+
+instance A.FromJSON HexInteger where
+    parseJSON (A.String v) = either fail pure . hexIntegerFromText $ v
+    parseJSON _ = fail "HexInteger may only be parsed from a JSON String"
+
+instance IQ.QueryRunnerColumnDefault SqlNumeric HexInteger where
+  defaultFromField = HexInteger . toInteger . truncate . toRational <$> fieldQueryRunnerColumn @Scientific
 
 instance D.Default ToFields HexInteger (Column SqlNumeric) where
   def = lmap (\(HexInteger a) -> fromInteger @Scientific a) D.def
 
-newtype Value = Value HexInteger deriving (Eq, Show)
+_HexInteger :: (KnownNat n, n <= 256) => Iso' (UIntN n) HexInteger
+_HexInteger = iso (HexInteger . toInteger) (\(HexInteger n) -> fromInteger n)
+
+--------------------------------------------------------------------------------
+
+newtype Value = Value HexInteger deriving (Eq, Show, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields Value (Column SqlNumeric) where
   def = lmap (\(Value a) -> a) D.def
 
+_Value :: (KnownNat n, n <= 256) => Iso' (UIntN n) Value
+_Value = iso (view $ _HexInteger . to Value) (view $ to (\(Value v) -> v) . from _HexInteger)
+
 instance IQ.QueryRunnerColumnDefault SqlNumeric Value where
   defaultFromField = Value . HexInteger . toInteger . truncate . toRational <$> fieldQueryRunnerColumn @Scientific
 
-newtype ByteNValue = ByteNValue ByteString deriving (Eq, Show, QueryRunnerColumnDefault SqlBytea)
+--------------------------------------------------------------------------------
 
-instance D.Default ToFields ByteNValue (Column SqlBytea) where
-  def = lmap (\(ByteNValue a) -> a) D.def
+newtype TokenID = TokenID HexInteger deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
 
-newtype TokenID = TokenID Integer deriving (Eq, Show)
+_TokenID :: (KnownNat n, n <= 256) => Iso' (UIntN n) TokenID
+_TokenID = iso (view $ _HexInteger . to TokenID) (view $ to (\(TokenID v) -> v) . from _HexInteger)
 
 instance D.Default ToFields TokenID (Column SqlNumeric) where
-  def = lmap (\(TokenID a) -> fromInteger @Scientific a) D.def
+  def = lmap (\(TokenID a) -> a) D.def
 
-instance IQ.QueryRunnerColumnDefault SqlNumeric TokenID where
-  defaultFromField = TokenID . toInteger . truncate . toRational <$> fieldQueryRunnerColumn @Scientific
+--------------------------------------------------------------------------------
 
-newtype EthAddress = EthAddress Text deriving (Eq, Show, QueryRunnerColumnDefault SqlText)
+newtype HexString = HexString Text
+  deriving (Eq, Read, Show, Ord)
+
+instance A.FromJSON HexString where
+  parseJSON = A.withText "HexString" $ \txt ->
+    either fail pure $ parseHexString txt
+
+parseHexString :: Text -> Either String HexString
+parseHexString = parse . T.toLower . trim0x
+  where
+    trim0x s  | T.take 2 s == "0x" = T.drop 2 s
+              | otherwise = s
+    parse txt | T.all isHexDigit txt && (T.length txt `mod` 2 == 0) = Right $ HexString txt
+              | otherwise            = Left $ "Failed to parse text as HexString: " <> show txt
+
+instance A.ToJSON HexString where
+  toJSON (HexString txt) = A.String $ "0x" <> txt
+
+instance QueryRunnerColumnDefault SqlText HexString where
+  queryRunnerColumnDefault = fromRightWithError . parseHexString <$> fieldQueryRunnerColumn @Text
+    where
+      fromRightWithError eHex = case eHex of
+        Left err  -> error $ "Error Parsing HexString from DB: " <> err
+        Right res -> res
+
+instance D.Default ToFields HexString (Column SqlText) where
+  def = lmap (\(HexString a) -> a) D.def
+
+_HexString :: Iso' Hx.HexString HexString
+_HexString = iso (HexString . Hx.toText) (\(HexString hx) -> fromString $ T.unpack hx)
+
+
+--------------------------------------------------------------------------------
+
+newtype EventID = EventID HexString deriving (Eq, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+
+instance D.Default ToFields EventID (Column SqlText) where
+  def = lmap (\(EventID a) -> a) D.def
+
+--------------------------------------------------------------------------------
+
+newtype ByteNValue = ByteNValue HexString deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+
+instance D.Default ToFields ByteNValue (Column SqlText) where
+  def = lmap (\(ByteNValue a) -> a) D.def
+
+_HexBytesN :: (KnownNat n, n <= 32) => Iso' (BytesN n) ByteNValue
+_HexBytesN = iso (ByteNValue . view _HexString . Hx.fromBytes) (\(ByteNValue bs) -> bs ^. from _HexString . to Hx.toBytes . to unsafeSizedByteArray)
+
+
+--------------------------------------------------------------------------------
+
+newtype EthAddress = EthAddress HexString deriving (Eq, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields EthAddress (Column SqlText) where
   def = lmap (\(EthAddress a) -> a) D.def
+
+_EthAddress :: Iso' Address EthAddress
+_EthAddress = iso (EthAddress . view _HexString . toHexString)
+  (\(EthAddress a) -> either error id $ fromHexString $ view (from _HexString) a)
