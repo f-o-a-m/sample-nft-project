@@ -2,6 +2,10 @@
 
 module SignalMarket.Common.Models.RawChange where
 
+import qualified Katip                           as K
+import qualified Data.Aeson                      as A
+import           GHC.Generics                    (Generic)
+import           SignalMarket.Common.Aeson       (defaultAesonOptions)
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
 import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
@@ -14,7 +18,7 @@ data RawChange' li txh bh addr eid = RawChange
   , blockHash       :: bh
   , address         :: addr
   , eventID         :: eid
-  }
+  } deriving Generic
 
 
 $(makeAdaptorAndInstance "pRawChange" ''RawChange')
@@ -31,3 +35,14 @@ rawChangeTable = table "raw_change"
                                              , eventID = tableField "event_id"
                                              }
                        )
+
+instance A.ToJSON RawChange where
+  toJSON = A.genericToJSON (defaultAesonOptions "")
+
+instance A.FromJSON RawChange where
+  parseJSON = A.genericParseJSON (defaultAesonOptions "")
+
+instance K.ToObject RawChange
+
+instance K.LogItem RawChange where
+  payloadKeys _ _ = K.AllKeys

@@ -1,5 +1,9 @@
 module SignalMarket.Indexer.Utils where
 
+
+import SignalMarket.Common.Models.RawChange as RawChange
+import SignalMarket.Common.EventTypes
+  
 import           Control.Monad.IO.Class                      (liftIO)
 import           Control.Monad.Reader                        (ReaderT, ask)
 import qualified Data.Default                                as D
@@ -22,7 +26,7 @@ import           SignalMarket.Indexer.Class
 import           SignalMarket.Indexer.Config                 (IndexerConfig)
 import           SignalMarket.Indexer.IndexerM               (IndexerM,
                                                               runIndexerM)
-import           SignalMarket.Indexer.Types                  (Event, mkEvent)
+import           SignalMarket.Indexer.Types                  (Event (..), mkEvent)
 
 insert
   :: Default ToFields haskells fields
@@ -55,8 +59,12 @@ makeHandler
 makeHandler cfg h = H $ \e -> do
   change <- ask
   liftIO $ runIndexerM cfg $ do
-    processRawChange change
-    h $ mkEvent change e
+    let event = mkEvent change e
+    processRawChange event
+    h event
     pure ContinueEvent
   where
-    processRawChange = undefined
+    processRawChange Event{eventRawEvent} =
+      K.katipAddNamespace "RawChange" $ do
+        K.katipAddNamespace "ProcessRawChange" $ do
+          insert RawChange.rawChangeTable eventRawEvent
