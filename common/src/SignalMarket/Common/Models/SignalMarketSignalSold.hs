@@ -3,11 +3,15 @@
 
 module SignalMarket.Common.Models.SignalMarketSignalSold where
 
+import qualified Data.Aeson                      as A
 import           Data.Profunctor.Product.Default
 import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
 import           Data.Text                       (Text)
+import           GHC.Generics                    (Generic)
+import qualified Katip                           as K
 import           Opaleye                         (Field, SqlNumeric, SqlText,
                                                   Table, table, tableField)
+import           SignalMarket.Common.Aeson       (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes  (EthAddress, EventID, TokenID,
                                                   Value)
 
@@ -20,7 +24,7 @@ data SignalSold' tokenID price soldFrom soldTo eventID = SignalSold
   , soldFrom :: soldFrom
   , soldTo   :: soldTo
   , eventID  :: eventID
-  }
+  } deriving Generic
 
 $(makeAdaptorAndInstance "pSignalSold" ''SignalSold')
 
@@ -36,3 +40,14 @@ signalSoldTable = table "signal_sold"
                                                 , eventID = tableField "event_id"
                                                 }
                         )
+
+instance A.ToJSON SignalSold where
+  toJSON = A.genericToJSON (defaultAesonOptions "")
+
+instance A.FromJSON SignalSold where
+  parseJSON = A.genericParseJSON (defaultAesonOptions "")
+
+instance K.ToObject SignalSold
+
+instance K.LogItem SignalSold where
+  payloadKeys _ _ = K.AllKeys
