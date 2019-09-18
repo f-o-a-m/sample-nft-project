@@ -1,7 +1,10 @@
 module SignalMarket.Indexer.Utils where
 
+import Control.Lens ((^.))
+import Data.Maybe (fromJust)
+import Data.Text (Text)
 import           Control.Monad.IO.Class                      (liftIO)
-import           Control.Monad.Reader                        (ReaderT, ask)
+import           Control.Monad.Reader                        (MonadReader, ReaderT, ask)
 import qualified Data.Default                                as D
 import           Data.Int                                    (Int64)
 import           Data.Profunctor.Product.Default             (Default)
@@ -11,7 +14,7 @@ import           Data.String                                 (fromString)
 import           Database.PostgreSQL.Simple                  (Connection)
 import           Katip                                       as K
 import           Network.Ethereum.Api.Provider               (Web3)
-import           Network.Ethereum.Api.Types                  (Change,
+import           Network.Ethereum.Api.Types                  (Change(..), unQuantity,
                                                               Filter (..))
 import           Network.Ethereum.Contract.Event.MultiFilter (Handler (..))
 import           Network.Ethereum.Web3                       (EventAction (..))
@@ -23,6 +26,8 @@ import           SignalMarket.Indexer.Config                 (IndexerConfig)
 import           SignalMarket.Indexer.IndexerM               (IndexerM,
                                                               runIndexerM)
 import           SignalMarket.Indexer.Types                  (Event, mkEvent)
+import SignalMarket.Common.Models.Checkpoint as Checkpoint
+import SignalMarket.Common.EventTypes (EventID, HexInteger(..))
 
 insert
   :: Default ToFields haskells fields
@@ -60,3 +65,25 @@ makeHandler cfg h = H $ \e -> do
     pure ContinueEvent
   where
     processRawChange = undefined
+
+mkOpenCheckpoint
+  :: Text
+  -> EventID
+  -> Change
+  -> Checkpoint.Checkpoint
+mkOpenCheckpoint n eid Change{..} = Checkpoint
+  { name = n
+  , logIndex = HexInteger . unQuantity . fromJust $ changeLogIndex
+  , blockNumber = HexInteger . unQuantity . fromJust $ changeBlockNumber
+  , status = "open"
+  , eventID = eid
+  }
+
+--fetchMostRecentCheckpoint
+--  :: ( MonadPG m
+--     , MonadReader IndexerConfig m
+--     )
+--  => Text
+--  -> m (Maybe Checkpoint)
+--fetchMostRecentCheckpoint name = do
+--  <- runDB $ \conn -> 

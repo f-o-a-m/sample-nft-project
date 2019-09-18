@@ -1,6 +1,6 @@
 module SignalMarket.Indexer.Class where
 
-import           Control.Exception             (toException)
+import           Control.Exception             (toException, Exception(..))
 import           Control.Monad.Catch           (MonadThrow (..), try)
 import           Control.Monad.IO.Class        (MonadIO (..))
 import           Control.Monad.Reader          (asks)
@@ -16,6 +16,7 @@ import           Network.HTTP.Client           (Manager)
 import           SignalMarket.Indexer.Config   (indexerCfgWeb3Manager,
                                                 indexerPGConnection)
 import           SignalMarket.Indexer.IndexerM
+import Data.String (fromString)
 
 data SqlErrorCTX = SqlErrorCTX SqlError
 
@@ -53,6 +54,27 @@ instance MonadPG IndexerM where
       connection <- asks indexerPGConnection
       liftIO . try $ action connection
 
+data SqlQueryException = SqlQueryException deriving (Eq, Show)
+
+instance Exception SqlQueryException
+
+runQueryMaybe
+  :: ( MonadPG m
+     , MonadThrow m
+     )
+  => (PG.Connection -> IO [a])
+  -> m (Maybe a)
+runQueryMaybe q = do
+  res <- runDB q
+  case res of
+    [] -> pure $ Nothing
+    [a] -> pure $ Just a
+    as -> do
+      K.logFM K.ErrorS $ fromString $ 
+        "Expected at most 1 result, got " <> show (length as) <> "!"
+      throwM SqlQueryException
+
+    
 data Web3ErrorCTX = Web3ErrorCTX Web3Error
 
 instance A.ToJSON Web3ErrorCTX where
