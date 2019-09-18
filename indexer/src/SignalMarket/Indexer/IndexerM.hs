@@ -1,11 +1,12 @@
 module SignalMarket.Indexer.IndexerM where
 
-import           Control.Monad.Catch         (MonadThrow, try)
-import           Control.Monad.IO.Class      (MonadIO(..))
-import           Control.Monad.Reader        (MonadReader, ReaderT, asks, runReaderT)
-import           SignalMarket.Indexer.Config (IndexerConfig(..))
-import SignalMarket.Common.Class
+import           Control.Monad.Catch           (MonadThrow, try)
+import           Control.Monad.IO.Class        (MonadIO (..))
+import           Control.Monad.Reader          (MonadReader, ReaderT, asks,
+                                                runReaderT)
 import           Network.Ethereum.Api.Provider (runWeb3With)
+import           SignalMarket.Common.Class
+import           SignalMarket.Indexer.Config   (IndexerConfig (..))
 
 newtype IndexerM a = IndexerM
   { unIndexerM :: ReaderT IndexerConfig IO a }
