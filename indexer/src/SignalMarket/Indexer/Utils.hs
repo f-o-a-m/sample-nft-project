@@ -37,7 +37,7 @@ import           SignalMarket.Common.EventTypes              (EventID,
                                                               HexInteger (..))
 import qualified SignalMarket.Common.Models.Checkpoint       as Checkpoint
 import qualified SignalMarket.Common.Models.RawChange        as RawChange
-import           SignalMarket.Indexer.Class
+import           SignalMarket.Common.Class
 import           SignalMarket.Indexer.Config                 (IndexerConfig)
 import           SignalMarket.Indexer.IndexerM               (IndexerM,
                                                               runIndexerM)

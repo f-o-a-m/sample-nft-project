@@ -5,7 +5,7 @@ import qualified Katip                                        as K
 import           SignalMarket.Common.Contracts.FoamToken      as Contract
 import           SignalMarket.Common.EventTypes
 import           SignalMarket.Common.Models.FoamTokenTransfer as Model
-import           SignalMarket.Indexer.Class                   (MonadPG (..))
+import           SignalMarket.Common.Class                   (MonadPG (..))
 import           SignalMarket.Indexer.Types
 import           SignalMarket.Indexer.Utils                   (insert)
 
