@@ -2,18 +2,17 @@ module SignalMarket.Indexer (runIndexer) where
 
 import           Control.Exception
 import           Control.Monad.Reader                        (ask)
-import           Data.Proxy
 import qualified Katip                                       as K
 import           Network.Ethereum.Contract.Event.MultiFilter
 import           SignalMarket.Common.Config.Logging          (LogConfig (..),
                                                               mkLogConfig)
-import           SignalMarket.Common.Config.Types            (Contracts (..),
-                                                              DeployReceipt (..))
-import qualified SignalMarket.Common.Contracts.FoamToken     as FoamToken
+import           SignalMarket.Common.Config.Types            (Contracts (..))
 import           SignalMarket.Indexer.Class                  (runWeb3)
 import           SignalMarket.Indexer.Config                 (IndexerConfig (..),
                                                               mkIndexerConfig)
 import qualified SignalMarket.Indexer.Events.FoamToken       as FoamToken
+import qualified SignalMarket.Indexer.Events.SignalMarket    as SignalMarket
+import qualified SignalMarket.Indexer.Events.SignalToken     as SignalToken
 import           SignalMarket.Indexer.IndexerM               (IndexerM,
                                                               runIndexerM)
 import           SignalMarket.Indexer.Utils                  (makeFilterHandlerPair)
@@ -37,15 +36,29 @@ monitor = do
   let
     contracts = indexerCfgContracts cfg
     (window, _) = indexerMultiFilterOpts cfg
-    foamTokenReceipt = contractsFoamToken $ contracts
-
+    foamTokenReceipt = contractsFoamToken contracts
+    signalTokenReceipt = contractsSignalToken contracts
+    signalMarketReceipt = contractsSignalMarket contracts
   -- FOAM Token events
   (ftTransferF, ftTransferH) <- makeFilterHandlerPair foamTokenReceipt FoamToken.foamTokenTransferH
-
+  -- Signal Token events
+  (stTransferF, stTransferH) <- makeFilterHandlerPair signalTokenReceipt SignalToken.signalTokenTransferH
+  (stTrackedTokenF, stTrackedTokenH) <- makeFilterHandlerPair signalTokenReceipt SignalToken.signalTokenTrackedTokenH
+  -- Signal Market events
+  (smSignalForSaleF, smSignalForSaleH) <- makeFilterHandlerPair signalMarketReceipt SignalMarket.signalMarketSignalForSaleH
+  (smSignalSoldF, smSignalSoldH) <- makeFilterHandlerPair signalMarketReceipt SignalMarket.signalMarketSignalSoldH
   let
     filters = ftTransferF
+           :? stTransferF
+           :? stTrackedTokenF
+           :? smSignalForSaleF
+           :? smSignalSoldF
            :? NilFilters
     handlers = ftTransferH
+            :& stTransferH
+            :& stTrackedTokenH
+            :& smSignalForSaleH
+            :& smSignalSoldH
             :& RNil
   runWeb3 $ multiEventManyNoFilter' filters window handlers
   K.logFM K.InfoS "Terminating Indexer ..."
