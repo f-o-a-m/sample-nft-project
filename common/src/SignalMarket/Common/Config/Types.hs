@@ -2,6 +2,7 @@ module SignalMarket.Common.Config.Types
     ( Contracts(..)
     , DeployReceipt(..)
     , mkContracts
+    , HasEventName(..)
     ) where
 
 import           Control.Error
@@ -10,11 +11,14 @@ import           Control.Monad.IO.Class
 import qualified Data.Aeson                       as AE
 import qualified Data.Aeson.Lens                  as AEL
 import           Data.ByteArray.HexString         (HexString)
+import           Data.Proxy
 import           Data.Solidity.Prim.Address       (Address)
 import           Data.String.Conversions          (cs)
+import           Data.Text                        (Text)
 import           GHC.Generics                     (Generic)
 import           SignalMarket.Common.Aeson
 import           SignalMarket.Common.Config.Utils
+import           SignalMarket.Common.EventTypes   (HexInteger)
 
 data Contracts = Contracts
   { contractsFoamToken    :: DeployReceipt
@@ -45,7 +49,7 @@ mkContracts networkID = do
 data DeployReceipt = DeployReceipt
   { deployReceiptAddress         :: Address
   , deployReceiptBlockHash       :: HexString
-  , deployReceiptBlockNumber     :: HexString
+  , deployReceiptBlockNumber     :: HexInteger
   , deployReceiptTransactionHash :: HexString
   } deriving (Eq, Show, Generic)
 
@@ -71,3 +75,6 @@ getDeployReceipt contractName networkID = do
     abi <- liftIO $ readFile abiPath
     parseDeployReceiptFromABI abi networkID ??
       ("Couldn't parse address from ABI at " <> abiPath <> " with networkID " <> cs networkID)
+
+class HasEventName a where
+  eventName :: Proxy a -> Text

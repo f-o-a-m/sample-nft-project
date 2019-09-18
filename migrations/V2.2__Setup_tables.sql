@@ -70,3 +70,14 @@ CREATE TABLE "signal_market_signal_sold"
 CREATE INDEX ON "signal_market_signal_sold" ("token_id");
 CREATE INDEX ON "signal_market_signal_sold" ("sold_from");
 CREATE INDEX ON "signal_market_signal_sold" ("sold_to");
+
+CREATE TABLE "checkpoint"
+  ( "name" text NOT NULL,
+    "log_index" numeric NOT NULL,
+    "block_number" numeric NOT NULL,
+    "status" text NOT NULL,
+    "event_id" text NOT NULL PRIMARY KEY
+
+  );
+CREATE INDEX ON "checkpoint" ("log_index");
+CREATE INDEX ON "checkpoint" ("block_number");
