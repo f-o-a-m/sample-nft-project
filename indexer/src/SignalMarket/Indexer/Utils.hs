@@ -1,21 +1,17 @@
 module SignalMarket.Indexer.Utils where
 
 import           Control.Arrow                               (returnA)
-import           Control.Lens                                ((^.))
 import           Control.Monad.Catch                         (MonadThrow)
 import           Control.Monad.IO.Class                      (liftIO)
 import           Control.Monad.Reader                        (MonadReader,
                                                               ReaderT, ask)
 import qualified Data.Default                                as D
-import           Data.Int                                    (Int64)
 import           Data.Maybe                                  (fromJust)
 import           Data.Profunctor.Product.Default             (Default)
 import           Data.Proxy
-import           Data.Solidity.Prim.Address                  (Address)
 import           Data.String                                 (fromString)
 import           Data.String.Conversions                     (cs)
 import           Data.Text                                   (Text)
-import           Database.PostgreSQL.Simple                  (Connection)
 import           Katip                                       as K
 import           Network.Ethereum.Api.Provider               (Web3)
 import           Network.Ethereum.Api.Types                  (Change (..),
@@ -28,8 +24,7 @@ import           Opaleye                                     (Column, Order,
                                                               SqlBool, Table,
                                                               ToFields,
                                                               constant, desc,
-                                                              keepWhen, limit,
-                                                              orderBy,
+                                                              limit, orderBy,
                                                               queryTable,
                                                               restrict,
                                                               runInsertMany,
@@ -39,8 +34,7 @@ import           Opaleye                                     (Column, Order,
 import           SignalMarket.Common.Config.Types            (DeployReceipt (..),
                                                               HasEventName (..))
 import           SignalMarket.Common.EventTypes              (EventID,
-                                                              HexInteger (..),
-                                                              _HexInteger)
+                                                              HexInteger (..))
 import qualified SignalMarket.Common.Models.Checkpoint       as Checkpoint
 import qualified SignalMarket.Common.Models.RawChange        as RawChange
 import           SignalMarket.Indexer.Class
@@ -160,7 +154,7 @@ modifyHandlerWithCheckpoint
   -> Handler (ReaderT Change Web3 EventAction) e
   -> Handler (ReaderT Change Web3 EventAction) e
 modifyHandlerWithCheckpoint Checkpoint.Checkpoint{..} (H h) = H $ \e -> do
-  change@Change{..} <- ask
+  Change{..} <- ask
   let blockNumber' =  HexInteger . unQuantity . fromJust $ changeBlockNumber
       logIndex' =  HexInteger . unQuantity . fromJust $ changeLogIndex
       shouldSkip = if status == "open"

@@ -3,16 +3,15 @@
 
 module SignalMarket.Common.Models.SignalTokenTrackedToken where
 
-import qualified Data.Aeson                      as A
-import           Data.Profunctor.Product.Default
-import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
-import           GHC.Generics                    (Generic)
-import qualified Katip                           as K
-import           Opaleye                         (Field, SqlNumeric, SqlText,
-                                                  Table, table, tableField)
-import           SignalMarket.Common.Aeson       (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes  (ByteNValue, EthAddress,
-                                                  EventID, TokenID, Value)
+import qualified Data.Aeson                     as A
+import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
+import           GHC.Generics                   (Generic)
+import qualified Katip                          as K
+import           Opaleye                        (Field, SqlNumeric, SqlText,
+                                                 Table, table, tableField)
+import           SignalMarket.Common.Aeson      (defaultAesonOptions)
+import           SignalMarket.Common.EventTypes (ByteNValue, EthAddress,
+                                                 EventID, TokenID, Value)
 -- SignalToken
 -- TrackedToken :: {cst :: (BytesN (D3 :& DOne D2)),nftAddress :: Address,tokenID :: (UIntN (D2 :& D5 :& DOne D6)),geohash :: (BytesN (D3 :& DOne D2)),radius :: (UIntN (D2 :& D5 :& DOne D6))}
 
