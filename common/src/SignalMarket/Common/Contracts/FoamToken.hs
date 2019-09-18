@@ -9,4 +9,4 @@ import           SignalMarket.Common.Config.Types (HasEventName (..))
 [abiFrom|../build/FoamToken.json|]
 
 instance HasEventName Transfer where
-    eventName _ = "FoamTokenTransfer"
+  eventName _ = "FoamTokenTransfer"
