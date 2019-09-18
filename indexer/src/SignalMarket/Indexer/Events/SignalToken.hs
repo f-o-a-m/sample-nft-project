@@ -1,14 +1,14 @@
 module SignalMarket.Indexer.Events.SignalToken where
 
-import           Control.Lens                                   ((^.))
-import qualified Katip                                          as K
-import           SignalMarket.Common.Contracts.SignalToken      as Contract
+import           Control.Lens                                       ((^.))
+import qualified Katip                                              as K
+import           SignalMarket.Common.Contracts.SignalToken          as Contract
 import           SignalMarket.Common.EventTypes
-import           SignalMarket.Common.Models.SignalTokenTransfer as Transfer
-import           SignalMarket.Common.Models.SignalTokenTrackedToken as Tracked
-import           SignalMarket.Indexer.Class                     (MonadPG (..))
+import           SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedToken
+import           SignalMarket.Common.Models.SignalTokenTransfer     as Transfer
+import           SignalMarket.Indexer.Class                         (MonadPG (..))
 import           SignalMarket.Indexer.Types
-import           SignalMarket.Indexer.Utils                     (insert)
+import           SignalMarket.Indexer.Utils                         (insert)
 
 signalTokenTransferH
   :: MonadPG m
@@ -34,4 +34,12 @@ signalTokenTrackedTokenH Event{eventEventID, eventData} =
   K.katipAddNamespace "SignalToken" $ do
     K.katipAddNamespace "TrackedToken" $ do
       case eventData of
-        Contract.TrackedToken{..} -> undefined
+        Contract.TrackedToken{..} ->
+          insert TrackedToken.trackedTokenTable $ TrackedToken.TrackedToken
+            { TrackedToken.nftAddress = trackedTokenNftAddress_ ^. _EthAddress
+            , TrackedToken.cst = trackedTokenCst_ ^. _HexBytesN
+            , TrackedToken.geohash = trackedTokenGeohash_ ^. _HexBytesN
+            , TrackedToken.radius = trackedTokenRadius_ ^. _Value
+            , TrackedToken.tokenID = trackedTokenTokenID_ ^. _TokenID
+            , TrackedToken.eventID = eventEventID
+            }

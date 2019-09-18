@@ -2,14 +2,14 @@
 
 module SignalMarket.Common.Models.Checkpoint where
 
-import qualified Data.Aeson as A
-import qualified Katip as K
-import GHC.Generics (Generic)
-import SignalMarket.Common.Aeson (defaultAesonOptions)
+import qualified Data.Aeson                     as A
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
 import           Data.Text                      (Text)
+import           GHC.Generics                   (Generic)
+import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
+import           SignalMarket.Common.Aeson      (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes (EthAddress, EventID,
                                                  HexInteger, HexString)
 
@@ -36,7 +36,7 @@ checkpointTable = table "checkpoint"
                                                , eventID = tableField "event_id"
                                                }
                        )
-                      
+
 
 instance A.ToJSON Checkpoint where
   toJSON = A.genericToJSON (defaultAesonOptions "")

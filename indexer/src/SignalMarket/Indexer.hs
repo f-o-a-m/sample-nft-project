@@ -28,10 +28,11 @@ runIndexer = do
   let mkLogEnv = K.registerScribe "stdout" handleScribe K.defaultScribeSettings (_logEnv logCfg)
   bracket mkLogEnv K.closeScribes $ \le -> do
     cfg <- mkIndexerConfig logCfg {_logEnv = le}
-    runIndexerM cfg $ pure ()
+    runIndexerM cfg $ monitor
 
 monitor :: IndexerM ()
 monitor = do
+  K.logFM K.InfoS "Starting Indexer ..."
   cfg <- ask
   let
     contracts = indexerCfgContracts cfg
@@ -47,3 +48,6 @@ monitor = do
     handlers = ftTransferH
             :& RNil
   runWeb3 $ multiEventManyNoFilter' filters window handlers
+  K.logFM K.InfoS "Terminating Indexer ..."
+
+

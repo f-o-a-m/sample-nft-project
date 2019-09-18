@@ -13,6 +13,7 @@ import           Data.Profunctor.Product.Default             (Default)
 import           Data.Proxy
 import           Data.Solidity.Prim.Address                  (Address)
 import           Data.String                                 (fromString)
+import           Data.String.Conversions                     (cs)
 import           Data.Text                                   (Text)
 import           Database.PostgreSQL.Simple                  (Connection)
 import           Katip                                       as K
@@ -22,24 +23,29 @@ import           Network.Ethereum.Api.Types                  (Change (..),
                                                               unQuantity)
 import           Network.Ethereum.Contract.Event.MultiFilter (Handler (..))
 import           Network.Ethereum.Web3                       (EventAction (..))
-import           Opaleye                                     (Order, Table, SqlBool, 
-                                                              ToFields, Column,
+import           Opaleye                                     (Column, Order,
+                                                              SqlBool, Table,
+                                                              ToFields,
                                                               constant, desc,
-                                                              limit, orderBy,
-                                                              queryTable, runUpdate, 
-                                                              restrict, keepWhen,
+                                                              keepWhen, limit,
+                                                              orderBy,
+                                                              queryTable,
+                                                              restrict,
                                                               runInsertMany,
-                                                              runSelect, (.==))
-import           SignalMarket.Common.Config.Types            (HasEventName(..))
-import           SignalMarket.Common.EventTypes              (EventID, _HexInteger,
-                                                              HexInteger (..))
+                                                              runSelect,
+                                                              runUpdate, (.==))
+import           SignalMarket.Common.Config.Types            (HasEventName (..))
+import           SignalMarket.Common.EventTypes              (EventID,
+                                                              HexInteger (..),
+                                                              _HexInteger)
 import qualified SignalMarket.Common.Models.Checkpoint       as Checkpoint
+import qualified SignalMarket.Common.Models.RawChange        as RawChange
 import           SignalMarket.Indexer.Class
 import           SignalMarket.Indexer.Config                 (IndexerConfig)
 import           SignalMarket.Indexer.IndexerM               (IndexerM,
                                                               runIndexerM)
-import           SignalMarket.Indexer.Types                  (Event, mkEvent)
-import Data.String.Conversions (cs)
+import           SignalMarket.Indexer.Types                  (Event (..),
+                                                              mkEvent)
 
 insert
   :: Default ToFields haskells fields
@@ -72,11 +78,15 @@ makeHandler
 makeHandler cfg h = H $ \e -> do
   change <- ask
   liftIO $ runIndexerM cfg $ do
-    processRawChange change
-    h $ mkEvent change e
+    let event = mkEvent change e
+    processRawChange event
+    h event
     pure ContinueEvent
   where
-    processRawChange = undefined
+    processRawChange Event{eventRawEvent} =
+      K.katipAddNamespace "RawChange" $ do
+        K.katipAddNamespace "ProcessRawChange" $ do
+          insert RawChange.rawChangeTable eventRawEvent
 
 mkOpenCheckpoint
   :: Text
@@ -128,7 +138,7 @@ modifyHandlerWithCheckpoint Checkpoint.Checkpoint{..} (H h) = H $ \e -> do
   Change{..} <- ask
   let blockNumber' =  HexInteger . unQuantity . fromJust $ changeBlockNumber
       logIndex' =  HexInteger . unQuantity . fromJust $ changeLogIndex
-      shouldSkip = if status == "open" 
+      shouldSkip = if status == "open"
                      then (blockNumber', logIndex') < (blockNumber, logIndex)
                      else (blockNumber', logIndex') <= (blockNumber, logIndex)
   if shouldSkip
@@ -148,11 +158,11 @@ makeFilterHandlerPair addr h = do
   let name = eventName (Proxy :: Proxy e)
   mCheckpoint <- fetchMostRecentCheckpoint name
   case mCheckpoint of
-    Nothing -> K.logFM K.InfoS . fromString $ 
+    Nothing -> K.logFM K.InfoS . fromString $
       "No checkpoint found for " <> cs name <> ", indexing from contract creation."
     Just cp -> K.katipAddContext cp $ K.logFM K.InfoS . fromString $
       "Indexing " <> cs name <> " from checkpoint."
-  let modifyWithCheckpoint :: Handler (ReaderT Change Web3 EventAction) e 
+  let modifyWithCheckpoint :: Handler (ReaderT Change Web3 EventAction) e
                            -> Handler (ReaderT Change Web3 EventAction) e
       modifyWithCheckpoint = maybe id modifyHandlerWithCheckpoint mCheckpoint
       handler = modifyWithCheckpoint $ makeHandler indexerCfg h

@@ -8,9 +8,8 @@ import           Data.Profunctor.Product.Default
 import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
 import           GHC.Generics                    (Generic)
 import qualified Katip                           as K
-import           Opaleye                         (Field, SqlBytea, SqlNumeric,
-                                                  SqlText, Table, table,
-                                                  tableField)
+import           Opaleye                         (Field, SqlNumeric, SqlText,
+                                                  Table, table, tableField)
 import           SignalMarket.Common.Aeson       (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes  (ByteNValue, EthAddress,
                                                   EventID, TokenID, Value)
@@ -28,7 +27,7 @@ data TrackedToken' nftAddress cst geohash radius tokenID eventID = TrackedToken
 
 $(makeAdaptorAndInstance "pTrackedToken" ''TrackedToken')
 
-type TrackedTokenPG = TrackedToken' (Field SqlText) (Field SqlBytea) (Field SqlBytea) (Field SqlNumeric) (Field SqlNumeric) (Field SqlText)
+type TrackedTokenPG = TrackedToken' (Field SqlText) (Field SqlText) (Field SqlText) (Field SqlNumeric) (Field SqlNumeric) (Field SqlText)
 type TrackedToken = TrackedToken' EthAddress ByteNValue ByteNValue Value TokenID EventID
 
 trackedTokenTable :: Table TrackedTokenPG TrackedTokenPG

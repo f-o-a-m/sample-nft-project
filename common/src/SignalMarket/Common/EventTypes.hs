@@ -106,9 +106,6 @@ instance QueryRunnerColumnDefault SqlText HexString where
         Left err  -> error $ "Error Parsing HexString from DB: " <> err
         Right res -> res
 
--- instance IQ.QueryRunnerColumnDefault SqlBytea HexString where
---   defaultFromField = undefined -- HexString . Hx.toText <$> fieldQueryRunnerColumn @_
-
 instance D.Default ToFields HexString (Column SqlText) where
   def = lmap (\(HexString a) -> a) D.def
 

@@ -11,13 +11,13 @@ import           Control.Monad.IO.Class
 import qualified Data.Aeson                       as AE
 import qualified Data.Aeson.Lens                  as AEL
 import           Data.ByteArray.HexString         (HexString)
+import           Data.Proxy
 import           Data.Solidity.Prim.Address       (Address)
 import           Data.String.Conversions          (cs)
+import           Data.Text                        (Text)
 import           GHC.Generics                     (Generic)
 import           SignalMarket.Common.Aeson
 import           SignalMarket.Common.Config.Utils
-import Data.Proxy
-import Data.Text (Text)
 
 data Contracts = Contracts
   { contractsFoamToken    :: DeployReceipt
