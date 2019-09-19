@@ -22,13 +22,14 @@ import           Network.Ethereum.Contract.Event.MultiFilter (Handler (..))
 import           Network.Ethereum.Web3                       (EventAction (..))
 import           Opaleye                                     (Column, Order,
                                                               SqlBool, Table,
-                                                              ToFields,
+                                                              ToFields, FromFields,
                                                               constant, desc,
                                                               limit, orderBy,
                                                               queryTable,
                                                               restrict,
                                                               runInsertMany,
                                                               runSelect,
+                                                              runUpdate,
                                                               runUpdateReturning,
                                                               (.==))
 import           SignalMarket.Common.Class
@@ -59,6 +60,18 @@ insert table a = do
   if n == 1
     then K.katipAddContext a $ logFM DebugS "Inserted"
     else K.logFM K.ErrorS $ fromString ("Inserted " <> show n <> " rows, expected 1.")
+
+update
+  :: Default ToFields haskells fields
+  => Default FromFields fields haskells
+  => MonadPG m
+  => MonadThrow m
+  => Table fields fields
+  -> (fields -> fields)
+  -> (fields -> Column SqlBool)
+  -> m haskells
+update table updateF keyF = queryExact $ \conn -> do
+  runUpdateReturning conn table updateF keyF id
 
 tryInsertCheckpoint
   :: MonadPG m
