@@ -22,6 +22,7 @@ signalMarketSignalForSaleH Event{eventEventID, eventData} =
           insert ForSale.signalForSaleTable $ ForSale.SignalForSale
             { ForSale.tokenID = signalForSaleSignalId_ ^. _TokenID
             , ForSale.price = signalForSalePrice_ ^. _Value
+            , ForSale.saleStatus = ForSale.HActive
             , ForSale.eventID = eventEventID
             }
 
@@ -33,11 +34,19 @@ signalMarketSignalSoldH Event{eventEventID, eventData} =
   K.katipAddNamespace "SignalMarkt" $ do
     K.katipAddNamespace "SignalSold" $ do
       case eventData of
-        Contract.SignalSold{..} ->
+        Contract.SignalSold{..} -> do
+          -- insert sold event into sold table
           insert Sold.signalSoldTable $ Sold.SignalSold
             { Sold.tokenID = signalSoldSignalId_ ^. _TokenID
             , Sold.price = signalSoldPrice_ ^. _Value
             , Sold.soldFrom = signalSoldOwner_ ^. _EthAddress
             , Sold.soldTo = signalSoldNewOwner_ ^. _EthAddress
             , Sold.eventID = eventEventID
+            }
+          -- insert complete sale status into for sale table
+          insert ForSale.signalForSaleTable $ ForSale.SignalForSale
+            { ForSale.tokenID = signalSoldSignalId_ ^. _TokenID
+            , ForSale.price = signalSoldPrice_ ^. _Value
+            , ForSale.saleStatus = ForSale.HComplete
+            , ForSale.eventID = eventEventID
             }
