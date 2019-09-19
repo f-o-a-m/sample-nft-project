@@ -1,4 +1,4 @@
-module SignalMarket.Indexer.Class where
+module SignalMarket.Common.Class where
 
 import           Control.Exception             (Exception (..), toException)
 import           Control.Monad.Catch           (MonadThrow (..), try)
@@ -13,9 +13,6 @@ import qualified Database.PostgreSQL.Simple    as PG
 import qualified Katip                         as K
 import           Network.Ethereum.Api.Provider (Web3, Web3Error (..),
                                                 runWeb3With)
-import           SignalMarket.Indexer.Config   (indexerCfgWeb3Manager,
-                                                indexerPGConnection)
-import           SignalMarket.Indexer.IndexerM
 
 data SqlErrorCTX = SqlErrorCTX SqlError
 
@@ -47,11 +44,6 @@ class (K.Katip m, K.KatipContext m, MonadIO m) => MonadPG m where
             K.logFM K.ErrorS "Postgres action caused an exception!"
             throwM (toException sqlErr)
         Right res   -> return res
-
-instance MonadPG IndexerM where
-    runDB' action = do
-      connection <- asks indexerPGConnection
-      liftIO . try $ action connection
 
 data SqlQueryException = SqlQueryException deriving (Eq, Show)
 
@@ -119,8 +111,3 @@ class (K.Katip m, K.KatipContext m, MonadIO m) => MonadWeb3 m where
             K.logFM K.ErrorS "Web3 action caused an exception!"
             throwM (toException e)
         Right res   -> return res
-
-instance MonadWeb3 IndexerM where
-    runWeb3' action = do
-      (manager, provider) <- asks indexerCfgWeb3Manager
-      liftIO $ runWeb3With provider manager action

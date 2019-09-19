@@ -2,11 +2,11 @@ module SignalMarket.Indexer.Events.SignalToken where
 
 import           Control.Lens                                       ((^.))
 import qualified Katip                                              as K
+import           SignalMarket.Common.Class                          (MonadPG (..))
 import           SignalMarket.Common.Contracts.SignalToken          as Contract
 import           SignalMarket.Common.EventTypes
 import           SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedToken
 import           SignalMarket.Common.Models.SignalTokenTransfer     as Transfer
-import           SignalMarket.Indexer.Class                         (MonadPG (..))
 import           SignalMarket.Indexer.Types
 import           SignalMarket.Indexer.Utils                         (insert)
 

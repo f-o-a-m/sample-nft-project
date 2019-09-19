@@ -4,10 +4,10 @@ import           Control.Exception
 import           Control.Monad.Reader                        (ask)
 import qualified Katip                                       as K
 import           Network.Ethereum.Contract.Event.MultiFilter
+import           SignalMarket.Common.Class                   (runWeb3)
 import           SignalMarket.Common.Config.Logging          (LogConfig (..),
                                                               mkLogConfig)
 import           SignalMarket.Common.Config.Types            (Contracts (..))
-import           SignalMarket.Indexer.Class                  (runWeb3)
 import           SignalMarket.Indexer.Config                 (IndexerConfig (..),
                                                               mkIndexerConfig)
 import qualified SignalMarket.Indexer.Events.FoamToken       as FoamToken
