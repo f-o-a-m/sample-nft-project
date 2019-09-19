@@ -30,6 +30,9 @@ default-extensions:
   - GeneralizedNewtypeDeriving
   - TypeApplications
   - TypeOperators
+  - DefaultSignatures
+  - ScopedTypeVariables
+  - RecordWildCards
 
 dependencies:
 - aeson
@@ -38,6 +41,7 @@ dependencies:
 - bytestring
 - composite-opaleye
 - errors
+- exceptions
 - http-client
 - katip
 - lens
