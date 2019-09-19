@@ -14,6 +14,7 @@ import           SignalMarket.Server.Config           (AppConfig (..),
                                                        Contracts, mkAppConfig)
 import           SignalMarket.Server.Server.Config    (configServer)
 import           SignalMarket.Server.Server.FoamToken (foamTokenServer)
+
 --------------------------------------------------------------------------------
 
 server :: AppConfig -> Server API

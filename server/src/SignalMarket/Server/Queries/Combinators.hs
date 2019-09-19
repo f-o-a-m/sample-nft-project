@@ -19,3 +19,15 @@ withMetadata getEventID q =
     let joiner = (,)
         selector a rc = getEventID a O..== RawChange.eventID rc
     in O.joinF joiner selector q (O.selectTable  RawChange.rawChangeTable)
+
+withOrdering
+  :: API.BlockNumberOrdering
+  -> (a -> O.Column O.SqlNumeric)
+  -> O.Select a
+  -> O.Select a
+withOrdering ord getBlockNumber =
+    let ordering = case ord of
+            API.ASC  -> O.asc getBlockNumber
+            API.DESC -> O.desc getBlockNumber
+    in O.orderBy ordering
+

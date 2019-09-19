@@ -36,6 +36,7 @@ mkEvent W3.Change{..} e =
           { RC.logIndex = HexInteger li
           , RC.transactionHash = fromJust changeTransactionHash ^. _HexString
           , RC.blockHash = bh  ^. _HexString
+          , RC.blockNumber = HexInteger . unQuantity . fromJust $ changeBlockNumber
           , RC.address = changeAddress ^. _EthAddress
           , RC.eventID = eid
           }

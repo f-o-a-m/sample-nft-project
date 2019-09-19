@@ -5,6 +5,7 @@ module SignalMarket.Server.API.Types where
 import           Control.Error                        (fmapL)
 import qualified Data.Aeson                           as A
 import           Data.String.Conversions              (cs)
+import qualified Data.Text                            as T
 import           GHC.Generics                         (Generic)
 import           SignalMarket.Common.Aeson            (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes       (EthAddress (..),
@@ -25,6 +26,14 @@ instance FromHttpApiData HexString where
     parseQueryParam = fmapL cs . parseHexString
 
 deriving instance FromHttpApiData EthAddress
+
+data BlockNumberOrdering = ASC | DESC
+
+instance FromHttpApiData BlockNumberOrdering where
+    parseQueryParam qp
+      | T.toLower qp == "asc" = Right ASC
+      | T.toLower qp == "desc" = Right DESC
+      | otherwise = Left "BlockNumberOrdering must be either \"asc\" or \"desc\""
 
 data Cursor = Cursor
   { limit  :: Int

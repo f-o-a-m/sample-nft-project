@@ -45,4 +45,5 @@ type GetFoamTokenTransfers =
   :> QueryParam "from" EthAddress
   :> QueryParam "limit" Int
   :> QueryParam "offset" Int
+  :> QueryParam "ordering" BlockNumberOrdering
   :> Get '[JSON] [WithMetadata FoamTokenTransfer.Transfer]
