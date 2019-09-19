@@ -1,4 +1,4 @@
-module SignalMarket.Server.Server.FoamToken where
+module SignalMarket.Server.Server.FoamToken (foamTokenServer) where
 
 import           Control.Arrow                                ((>>>))
 import qualified Control.Category                             as Cat
