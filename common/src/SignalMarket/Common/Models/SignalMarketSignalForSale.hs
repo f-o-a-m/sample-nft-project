@@ -3,7 +3,11 @@
 
 module SignalMarket.Common.Models.SignalMarketSignalForSale where
 
-import           Composite.Opaleye.TH           (deriveOpaleyeEnum)
+
+import Data.Profunctor.Product.Default (Default)
+import Database.PostgreSQL.Simple.FromField (FromField)
+import Opaleye.Internal.RunQuery (QueryRunnerColumnDefault, fieldQueryRunnerColumn)
+
 import           Control.Applicative            (pure)
 import           Data.Char                      (toLower)
 import           Data.List                      (stripPrefix)
@@ -14,7 +18,9 @@ import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
 import           GHC.Generics                   (Generic)
 import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
+                                                 Constant, Column, PGText,
                                                  Table, table, tableField)
+                 
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes (EventID, TokenID, Value)
 
@@ -47,7 +53,29 @@ mkHStatus "complete"  = HComplete
 mkHStatus "unllisted" = HUnlisted
 mkHStatus _           = error "Invalid status token"
 
-$(deriveOpaleyeEnum ''HStatus "status" (stripPrefix "h" . map toLower))
+-- $(deriveOpaleyeEnum ''HStatus "status" (stripPrefix "h" . map toLower))
+data PGHStatus
+
+instance FromField HStatus where
+  fromField f mbs = do
+    tname <- typename f
+    case mbs of
+      _ | tname /= "myenum" -> returnError Incompatible f ""
+      Just "active" -> pure HActive
+      Just "complete" -> pure HComplete
+      Just "unlisted" -> pure HUnlisted
+      Just other -> returnError ConversionFailed f ("Unexpected status value: " <> unpack other)
+      Nothing    -> returnError UnexpectedNull f ""
+
+instance QueryRunnerColumnDefault PGHStatus HStatus where
+  queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance Default Constant HStatus (Column PGHStatus) where
+  def = constantColumnUsing (def :: Constant String (Column PGText)) $ \v ->
+    case v of
+      HActive -> "active"
+      HComplete -> "complete"
+      HUnlisted -> "unlisted"
 
 type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlText) (Field PGHStatus)
 type SignalForSale = SignalForSale' TokenID Value EventID HStatus
