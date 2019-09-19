@@ -20,11 +20,14 @@ import           SignalMarket.Common.Config.Types   (Contracts (..),
                                                      mkContracts)
 import           SignalMarket.Common.Config.Utils   (getEnvVarWithDefault,
                                                      makeConfig)
+import           Database.PostgreSQL.Simple         (Connection, connect)
+import           SignalMarket.Common.Config.PG      (mkPGConnectInfo)
 
 data AppConfig = AppConfig
   { appCfgContracts   :: Contracts
   , appCfgWeb3Manager :: (Provider, Manager)
-  , appLogConfig      :: LogConfig
+  , appCfgLogConfig      :: LogConfig
+  , appCfgPGConnection :: Connection
   }
 
 mkAppConfig :: LogConfig -> IO AppConfig
@@ -34,14 +37,16 @@ mkAppConfig lc = do
   web3Mgr <- newTlsManager
   networkID <- makeConfig $ cs <$> getNetworkID web3Mgr provider
   contracts <- makeConfig $ mkContracts networkID
+  pg <- makeConfig mkPGConnectInfo >>= connect
   return $ AppConfig
     { appCfgContracts = contracts
     , appCfgWeb3Manager = (provider, web3Mgr)
-    , appLogConfig = lc
+    , appCfgLogConfig = lc
+    , appCfgPGConnection = pg
     }
 
 instance HasLogConfig AppConfig where
   logConfig = lens g s
     where
-      g = appLogConfig
-      s cfg lc = cfg {appLogConfig = lc}
+      g = appCfgLogConfig
+      s cfg lc = cfg {appCfgLogConfig = lc}

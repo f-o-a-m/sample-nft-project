@@ -9,11 +9,15 @@ import           SignalMarket.Server.API
 import           SignalMarket.Server.Application  (AppHandler, runAppHandler)
 import           SignalMarket.Server.Config       (AppConfig (..), Contracts,
                                                    mkAppConfig)
+import SignalMarket.Server.Server.FoamToken as FT
+import Servant.API ((:<|>)(..))
+import SignalMarket.Server.API.Types ()
 --------------------------------------------------------------------------------
 
 server :: AppConfig -> Server API
 server cfg = hoistServerWithContext api (Proxy :: Proxy '[]) (runAppHandler cfg) $
-    getContracts
+    getContracts :<|>
+    FT.foamTokenServer
 
 mkApplication :: AppConfig -> Application
 mkApplication cfg = serveWithContext api EmptyContext $ server cfg

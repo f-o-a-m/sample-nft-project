@@ -21,11 +21,15 @@ dependencies:
 - base >= 4.7 && < 5
 - common
 - errors
+- exceptions
+- http-api-data
 - http-client
 - http-client-tls
 - katip
 - lens
 - mtl
+- opaleye
+- postgresql-simple
 - servant
 - servant-server
 - string-conversions
@@ -47,6 +51,10 @@ default-extensions:
   - TypeOperators
   - PolyKinds
   - DataKinds
+  - RecordWildCards
+  - StandaloneDeriving
+  - FlexibleInstances
+  - ScopedTypeVariables
 
 executables:
   server-exe:
