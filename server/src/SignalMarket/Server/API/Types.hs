@@ -2,17 +2,19 @@
 
 module SignalMarket.Server.API.Types where
 
-import Control.Error (fmapL)
-import qualified Data.Aeson as A
-import SignalMarket.Common.Models.RawChange as RawChange
-import SignalMarket.Common.EventTypes (HexString, EthAddress(..), parseHexString)
-import GHC.Generics (Generic)
-import SignalMarket.Common.Aeson (defaultAesonOptions)
-import Data.String.Conversions (cs)
-import Web.HttpApiData (FromHttpApiData(..))
+import           Control.Error                        (fmapL)
+import qualified Data.Aeson                           as A
+import           Data.String.Conversions              (cs)
+import           GHC.Generics                         (Generic)
+import           SignalMarket.Common.Aeson            (defaultAesonOptions)
+import           SignalMarket.Common.EventTypes       (EthAddress (..),
+                                                       HexString,
+                                                       parseHexString)
+import           SignalMarket.Common.Models.RawChange as RawChange
+import           Web.HttpApiData                      (FromHttpApiData (..))
 
 data WithMetadata a = WithMetadata
-  { withMetadataData :: a 
+  { withMetadataData     :: a
   , withMetadataMetaData :: RawChange.RawChange
   } deriving Generic
 
@@ -25,6 +27,6 @@ instance FromHttpApiData HexString where
 deriving instance FromHttpApiData EthAddress
 
 data Cursor = Cursor
-  { limit :: Int
+  { limit  :: Int
   , offset :: Int
   }

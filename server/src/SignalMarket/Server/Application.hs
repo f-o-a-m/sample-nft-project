@@ -3,14 +3,15 @@ module SignalMarket.Server.Application
   , runAppHandler
   ) where
 
-import           Control.Monad.Except       (ExceptT, MonadError)
-import           Control.Monad.IO.Class     (MonadIO(..))
-import           Control.Monad.Reader       (MonadReader, ReaderT, runReaderT, asks)
-import           Servant.Server             (Handler (..), ServerError)
-import           SignalMarket.Server.Config (AppConfig(..))
-import           SignalMarket.Common.Class
+import           Control.Monad.Catch           (MonadThrow, try)
+import           Control.Monad.Except          (ExceptT, MonadError)
+import           Control.Monad.IO.Class        (MonadIO (..))
+import           Control.Monad.Reader          (MonadReader, ReaderT, asks,
+                                                runReaderT)
 import           Network.Ethereum.Api.Provider (runWeb3With)
-import Control.Monad.Catch (MonadThrow, try)
+import           Servant.Server                (Handler (..), ServerError)
+import           SignalMarket.Common.Class
+import           SignalMarket.Server.Config    (AppConfig (..))
 
 newtype AppHandler a = AppHandler
   { unAppHandler :: ReaderT AppConfig (ExceptT ServerError IO) a }

@@ -1,17 +1,20 @@
 module SignalMarket.Server.Server.FoamToken where
 
-import Control.Arrow ((>>>))
-import SignalMarket.Server.Queries.FoamToken (foamTokenTransfersQ)
-import SignalMarket.Server.Queries.Combinators (withCursor, withMetadata)
-import SignalMarket.Server.Application (AppHandler)
+import           Control.Arrow                                ((>>>))
+import qualified Control.Category                             as Cat
+import qualified Opaleye                                      as O
+import           Servant.Server
+import           SignalMarket.Common.Class                    (runDB)
+import           SignalMarket.Common.EventTypes               (EthAddress)
 import qualified SignalMarket.Common.Models.FoamTokenTransfer as FoamTokenTransfer
-import qualified SignalMarket.Common.Models.RawChange as RawChange
-import SignalMarket.Common.EventTypes (EthAddress)
-import SignalMarket.Common.Class (runDB)
-import Servant.Server
-import SignalMarket.Server.API (FoamTokenAPI)
-import SignalMarket.Server.API.Types (WithMetadata(..), Cursor(..))
-import qualified Opaleye as O
+import qualified SignalMarket.Common.Models.RawChange         as RawChange
+import           SignalMarket.Server.API                      (FoamTokenAPI)
+import           SignalMarket.Server.API.Types                (Cursor (..),
+                                                               WithMetadata (..))
+import           SignalMarket.Server.Application              (AppHandler)
+import           SignalMarket.Server.Queries.Combinators      (withCursor,
+                                                               withMetadata)
+import           SignalMarket.Server.Queries.FoamToken        (foamTokenTransfersQ)
 
 foamTokenServer :: ServerT FoamTokenAPI AppHandler
 foamTokenServer = getFoamTokenTransfersH
@@ -27,11 +30,11 @@ getFoamTokenTransfersH
   -- ^ offset
   -> AppHandler [WithMetadata FoamTokenTransfer.Transfer]
 getFoamTokenTransfersH mto mfrom mlimit moffset = do
-    let mCursor = Cursor <$> mlimit <*> moffset
-        toFilter = maybe id (\to -> O.keepWhen (\a -> FoamTokenTransfer.to O..== to)) mto
-        fromFilter = maybe id (\from -> O.keepWhen (\a -> FoamTokenTransfer.from a O..== from)) mfrom
-    as :: [(FoamTokenTransfer.Transfer, RawChange.RawChange)] <- runDB $ \conn -> O.runQuery conn $ 
-      withCursor $ 
-        withMetadata FoamTokenTransfer.eventID 
+    let withLimitAndOffset = maybe Cat.id withCursor (Cursor <$> mlimit <*> moffset)
+        toFilter = maybe Cat.id (\to -> O.keepWhen (\a -> FoamTokenTransfer.to a O..== O.constant to)) mto
+        fromFilter = maybe Cat.id (\from -> O.keepWhen (\a -> FoamTokenTransfer.from a O..== O.constant from)) mfrom
+    as <- runDB $ \conn -> O.runQuery conn $
+      withLimitAndOffset $
+        withMetadata FoamTokenTransfer.eventID
           $ foamTokenTransfersQ >>> toFilter >>> fromFilter
     pure . flip map as $ \(t, rc) -> WithMetadata t rc

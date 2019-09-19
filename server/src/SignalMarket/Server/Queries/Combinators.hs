@@ -1,14 +1,14 @@
 module SignalMarket.Server.Queries.Combinators where
 
-import qualified Opaleye as O
-import qualified SignalMarket.Server.API.Types as API
+import qualified Opaleye                              as O
 import qualified SignalMarket.Common.Models.RawChange as RawChange
+import qualified SignalMarket.Server.API.Types        as API
 
-withCursor 
+withCursor
   :: API.Cursor
   -> O.Select a
   -> O.Select a
-withCursor API.Cursor{..} = 
+withCursor API.Cursor{..} =
   O.limit limit . O.offset offset
 
 withMetadata

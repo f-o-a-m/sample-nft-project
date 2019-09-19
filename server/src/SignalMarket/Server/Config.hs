@@ -9,24 +9,24 @@ module SignalMarket.Server.Config
 
 import           Control.Lens                       (lens)
 import           Data.String.Conversions            (cs)
+import           Database.PostgreSQL.Simple         (Connection, connect)
 import           Network.Ethereum.Api.Provider      (Provider (..))
 import           Network.HTTP.Client                (Manager)
 import           Network.HTTP.Client.TLS            (newTlsManager)
 import           SignalMarket.Common.Config.Logging (HasLogConfig (..),
                                                      LogConfig)
 import           SignalMarket.Common.Config.Node    (getNetworkID)
+import           SignalMarket.Common.Config.PG      (mkPGConnectInfo)
 import           SignalMarket.Common.Config.Types   (Contracts (..),
                                                      DeployReceipt (..),
                                                      mkContracts)
 import           SignalMarket.Common.Config.Utils   (getEnvVarWithDefault,
                                                      makeConfig)
-import           Database.PostgreSQL.Simple         (Connection, connect)
-import           SignalMarket.Common.Config.PG      (mkPGConnectInfo)
 
 data AppConfig = AppConfig
-  { appCfgContracts   :: Contracts
-  , appCfgWeb3Manager :: (Provider, Manager)
-  , appCfgLogConfig      :: LogConfig
+  { appCfgContracts    :: Contracts
+  , appCfgWeb3Manager  :: (Provider, Manager)
+  , appCfgLogConfig    :: LogConfig
   , appCfgPGConnection :: Connection
   }
 

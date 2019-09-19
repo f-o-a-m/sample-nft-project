@@ -7,11 +7,11 @@ module SignalMarket.Server.API
 
 import           Data.Proxy
 import           Servant
-import           SignalMarket.Server.Config (Contracts)
-import Servant.API
-import SignalMarket.Server.API.Types
+import           Servant.API
+import           SignalMarket.Common.EventTypes               (EthAddress)
 import qualified SignalMarket.Common.Models.FoamTokenTransfer as FoamTokenTransfer
-import           SignalMarket.Common.EventTypes (EthAddress)
+import           SignalMarket.Server.API.Types
+import           SignalMarket.Server.Config                   (Contracts)
 
 type API =
        ConfigAPI
@@ -27,15 +27,15 @@ api = Proxy
 type GetDeployReceipts =
     "contracts" :> Get '[JSON] Contracts
 
-type ConfigAPI = 
-    "config" 
-  :> GetDeployReceipts 
+type ConfigAPI =
+    "config"
+  :> GetDeployReceipts
 
 --------------------------------------------------------------------------------
 -- /foam_token
 --------------------------------------------------------------------------------
 
-type FoamTokenAPI = 
+type FoamTokenAPI =
      "foam_token"
   :> GetFoamTokenTransfers
 
