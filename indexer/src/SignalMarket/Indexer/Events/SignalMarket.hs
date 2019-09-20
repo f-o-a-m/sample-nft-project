@@ -27,7 +27,8 @@ signalMarketSignalForSaleH Event{eventEventID, eventData} =
       case eventData of
         Contract.SignalForSale{..} ->
           insert ForSale.signalForSaleTable $ ForSale.SignalForSale
-            { ForSale.tokenID = signalForSaleSignalId_ ^. _TokenID
+            { ForSale.saleID = signalForSaleSaleId_ ^. _SaleID
+            , ForSale.tokenID = signalForSaleSignalId_ ^. _TokenID
             , ForSale.price = signalForSalePrice_ ^. _Value
             , ForSale.saleStatus = ForSale.HActive
             , ForSale.eventID = eventEventID
@@ -46,7 +47,8 @@ signalMarketSignalSoldH Event{eventEventID, eventData} =
         Contract.SignalSold{..} -> do
           -- insert sold event into sold table
           insert Sold.signalSoldTable $ Sold.SignalSold
-            { Sold.tokenID = signalSoldSignalId_ ^. _TokenID
+            { Sold.saleID = signalSoldSaleId_ ^. _SaleID
+            , Sold.tokenID = signalSoldSignalId_ ^. _TokenID
             , Sold.price = signalSoldPrice_ ^. _Value
             , Sold.soldFrom = signalSoldOwner_ ^. _EthAddress
             , Sold.soldTo = signalSoldNewOwner_ ^. _EthAddress
@@ -56,8 +58,6 @@ signalMarketSignalSoldH Event{eventEventID, eventData} =
           let updateSaleStatus :: ForSale.SignalForSalePG -> ForSale.SignalForSalePG
               updateSaleStatus a = a { ForSale.saleStatus = constant ForSale.HComplete }
               isActiveTokenID :: ForSale.SignalForSalePG -> Column SqlBool
-              isActiveTokenID a =
-                ForSale.tokenID a .== constant (signalSoldSignalId_ ^. _TokenID) .&&
-                ForSale.saleStatus a .== constant ForSale.HActive
+              isActiveTokenID a = ForSale.saleID a .== constant (signalSoldSaleId_ ^. _SaleID)
           _ :: ForSale.SignalForSale <- update ForSale.signalForSaleTable updateSaleStatus isActiveTokenID
           pure ()

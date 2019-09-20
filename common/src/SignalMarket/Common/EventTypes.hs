@@ -71,6 +71,16 @@ instance IQ.QueryRunnerColumnDefault SqlNumeric Value where
 
 --------------------------------------------------------------------------------
 
+newtype SaleID = SaleID HexInteger deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
+
+_SaleID :: (KnownNat n, n <= 256) => Iso' (UIntN n) SaleID
+_SaleID = iso (view $ _HexInteger . to SaleID) (view $ to (\(SaleID v) -> v) . from _HexInteger)
+
+instance D.Default ToFields SaleID (Column SqlNumeric) where
+  def = lmap (\(SaleID a) -> a) D.def
+
+--------------------------------------------------------------------------------
+
 newtype TokenID = TokenID HexInteger deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
 
 _TokenID :: (KnownNat n, n <= 256) => Iso' (UIntN n) TokenID
