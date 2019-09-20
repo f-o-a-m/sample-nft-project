@@ -10,14 +10,14 @@ import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes (EthAddress, SaleID, EventID, TokenID,
-                                                 Value)
+import           SignalMarket.Common.EventTypes (EthAddress, EventID, SaleID,
+                                                 TokenID, Value)
 
 -- SignalMarket
 -- SignalSold :: {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6)),owner :: Address,newOwner :: Address}
 
 data SignalSold' saleID tokenID price soldFrom soldTo eventID = SignalSold
-  { saleID :: saleID
+  { saleID   :: saleID
   , tokenID  :: tokenID
   , price    :: price
   , soldFrom :: soldFrom
