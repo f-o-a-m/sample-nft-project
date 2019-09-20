@@ -14,7 +14,7 @@ contract SignalMarket is ERC721Holder {
   }
 
   // provides a unique key for sales.
-  uint256 saleNonce; 
+  uint256 saleNonce;
 
   FoamToken public foamToken;
   SignalToken public signalToken;
