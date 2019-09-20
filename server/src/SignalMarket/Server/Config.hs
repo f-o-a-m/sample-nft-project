@@ -9,12 +9,14 @@ module SignalMarket.Server.Config
 
 import           Control.Lens                       (lens)
 import           Data.String.Conversions            (cs)
+import           Database.PostgreSQL.Simple         (Connection, connect)
 import           Network.Ethereum.Api.Provider      (Provider (..))
 import           Network.HTTP.Client                (Manager)
 import           Network.HTTP.Client.TLS            (newTlsManager)
 import           SignalMarket.Common.Config.Logging (HasLogConfig (..),
                                                      LogConfig)
 import           SignalMarket.Common.Config.Node    (getNetworkID)
+import           SignalMarket.Common.Config.PG      (mkPGConnectInfo)
 import           SignalMarket.Common.Config.Types   (Contracts (..),
                                                      DeployReceipt (..),
                                                      mkContracts)
@@ -22,9 +24,10 @@ import           SignalMarket.Common.Config.Utils   (getEnvVarWithDefault,
                                                      makeConfig)
 
 data AppConfig = AppConfig
-  { appCfgContracts   :: Contracts
-  , appCfgWeb3Manager :: (Provider, Manager)
-  , appLogConfig      :: LogConfig
+  { appCfgContracts    :: Contracts
+  , appCfgWeb3Manager  :: (Provider, Manager)
+  , appCfgLogConfig    :: LogConfig
+  , appCfgPGConnection :: Connection
   }
 
 mkAppConfig :: LogConfig -> IO AppConfig
@@ -34,14 +37,16 @@ mkAppConfig lc = do
   web3Mgr <- newTlsManager
   networkID <- makeConfig $ cs <$> getNetworkID web3Mgr provider
   contracts <- makeConfig $ mkContracts networkID
+  pg <- makeConfig mkPGConnectInfo >>= connect
   return $ AppConfig
     { appCfgContracts = contracts
     , appCfgWeb3Manager = (provider, web3Mgr)
-    , appLogConfig = lc
+    , appCfgLogConfig = lc
+    , appCfgPGConnection = pg
     }
 
 instance HasLogConfig AppConfig where
   logConfig = lens g s
     where
-      g = appLogConfig
-      s cfg lc = cfg {appLogConfig = lc}
+      g = appCfgLogConfig
+      s cfg lc = cfg {appCfgLogConfig = lc}

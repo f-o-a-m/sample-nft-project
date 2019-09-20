@@ -74,6 +74,7 @@
 - ignore: {name: Use <$>}
 - ignore: {name: Use tuple-section}
 - ignore: {name: Use ***}
+- ignore: {name: Use uncurry}
 # - ignore: {name: Use const, within: SpecialModule} # Only within certain modules
 
 
