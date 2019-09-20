@@ -1,9 +1,8 @@
 module SignalMarket.Common.Class where
 
 import           Control.Exception             (Exception (..), toException)
-import           Control.Monad.Catch           (MonadThrow (..), try)
+import           Control.Monad.Catch           (MonadThrow (..))
 import           Control.Monad.IO.Class        (MonadIO (..))
-import           Control.Monad.Reader          (asks)
 import qualified Data.Aeson                    as A
 import           Data.String                   (fromString)
 import           Data.String.Conversions       (cs)
@@ -11,8 +10,7 @@ import           Data.Text                     (Text)
 import           Database.PostgreSQL.Simple    (SqlError (..))
 import qualified Database.PostgreSQL.Simple    as PG
 import qualified Katip                         as K
-import           Network.Ethereum.Api.Provider (Web3, Web3Error (..),
-                                                runWeb3With)
+import           Network.Ethereum.Api.Provider (Web3, Web3Error (..))
 
 data SqlErrorCTX = SqlErrorCTX SqlError
 

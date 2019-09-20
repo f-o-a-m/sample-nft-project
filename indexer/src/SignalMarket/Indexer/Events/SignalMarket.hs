@@ -1,17 +1,21 @@
 module SignalMarket.Indexer.Events.SignalMarket where
 
-import Opaleye ((.==), (.&&), constant, ToFields)
-import           Data.Profunctor.Product.Default             (Default)
-
 import           Control.Lens                                         ((^.))
+import           Control.Monad.Catch                                  (MonadThrow)
 import qualified Katip                                                as K
+import           Opaleye                                              (Column,
+                                                                       SqlBool,
+                                                                       constant,
+                                                                       (.&&),
+                                                                       (.==))
 import           SignalMarket.Common.Class                            (MonadPG (..))
 import           SignalMarket.Common.Contracts.SignalMarket           as Contract
 import           SignalMarket.Common.EventTypes
 import           SignalMarket.Common.Models.SignalMarketSignalForSale as ForSale
 import           SignalMarket.Common.Models.SignalMarketSignalSold    as Sold
 import           SignalMarket.Indexer.Types
-import           SignalMarket.Indexer.Utils                           (insert, update)
+import           SignalMarket.Indexer.Utils                           (insert,
+                                                                       update)
 
 signalMarketSignalForSaleH
   :: MonadPG m
@@ -30,8 +34,9 @@ signalMarketSignalForSaleH Event{eventEventID, eventData} =
             }
 
 signalMarketSignalSoldH
-  :: MonadPG m
-  -- => Default ToFields f h 
+  :: ( MonadPG m
+     , MonadThrow m
+     )
   => Event Contract.SignalSold
   -> m ()
 signalMarketSignalSoldH Event{eventEventID, eventData} =
@@ -47,11 +52,12 @@ signalMarketSignalSoldH Event{eventEventID, eventData} =
             , Sold.soldTo = signalSoldNewOwner_ ^. _EthAddress
             , Sold.eventID = eventEventID
             }
-            
-          let updateSaleStatus a = a { ForSale.saleStatus = constant ForSale.HComplete }
+          -- update complete sale status into for sale table
+          let updateSaleStatus :: ForSale.SignalForSalePG -> ForSale.SignalForSalePG
+              updateSaleStatus a = a { ForSale.saleStatus = constant ForSale.HComplete }
+              isActiveTokenID :: ForSale.SignalForSalePG -> Column SqlBool
               isActiveTokenID a =
                 ForSale.tokenID a .== constant (signalSoldSignalId_ ^. _TokenID) .&&
                 ForSale.saleStatus a .== constant ForSale.HActive
-          -- update complete sale status into for sale table
-          update ForSale.signalForSaleTable updateSaleStatus isActiveTokenID
+          _ :: ForSale.SignalForSale <- update ForSale.signalForSaleTable updateSaleStatus isActiveTokenID
           pure ()

@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans -fno-warn-name-shadowing #-}
 
 module SignalMarket.Common.Config.Logging
   ( LogConfig(..)

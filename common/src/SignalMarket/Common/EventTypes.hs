@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
+
 module SignalMarket.Common.EventTypes where
 
 import           Control.Lens                    (Iso', from, iso, to, view,

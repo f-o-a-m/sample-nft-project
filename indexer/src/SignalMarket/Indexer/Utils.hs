@@ -20,16 +20,16 @@ import           Network.Ethereum.Api.Types                  (Change (..),
                                                               unQuantity)
 import           Network.Ethereum.Contract.Event.MultiFilter (Handler (..))
 import           Network.Ethereum.Web3                       (EventAction (..))
-import           Opaleye                                     (Column, Order,
+import           Opaleye                                     (Column,
+                                                              FromFields, Order,
                                                               SqlBool, Table,
-                                                              ToFields, FromFields,
+                                                              ToFields,
                                                               constant, desc,
                                                               limit, orderBy,
                                                               queryTable,
                                                               restrict,
                                                               runInsertMany,
                                                               runSelect,
-                                                              runUpdate,
                                                               runUpdateReturning,
                                                               (.==))
 import           SignalMarket.Common.Class
