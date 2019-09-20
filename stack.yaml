@@ -6,5 +6,7 @@ packages:
 - "indexer"
 extra-deps:
  - opaleye-0.6.7004.1
+ - composite-opaleye-0.6.0.0
+ - composite-base-0.6.0.0
 ghc-options:
     "$locals": -ddump-splices -ddump-to-file -Werror
