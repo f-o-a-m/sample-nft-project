@@ -163,7 +163,6 @@ spec' testCfg env@{ logger, signalAttrGen } = do
               acc2BuyFilter = eventFilter (Proxy :: Proxy SignalMarket.SignalSold) signalMarket
           logger $ "BUY: Attempting to buy Signal with saleId " <> show _saleId
           -- make account2 buy the signal from account1
-          -- @TODO: this fails
           sold@(SignalMarket.SignalSold purchase) <- monitorUntil provider logger acc2BuyAction acc2BuyFilter
           logger $ "BUY: Signal purchased " <> show sold
           -- check sale details and transfer of ownership
@@ -188,7 +187,6 @@ spec' testCfg env@{ logger, signalAttrGen } = do
               unlistFilter = eventFilter (Proxy :: Proxy SignalMarket.SignalUnlisted) signalMarket
           -- unlist the signal with account1
           logger $ "UNLIST: Attempting to unlist signal with saleId " <> show _saleId
-          -- @TODO: this fails
           unlisted@(SignalMarket.SignalUnlisted nfs) <- monitorUntil provider logger unlistAction unlistFilter
           logger $ "UNLIST: Signal unlisted " <> show unlisted
           liftAff $ nfs.saleId `shouldEqual` _saleId
