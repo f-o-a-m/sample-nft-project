@@ -51,7 +51,9 @@ contract SignalMarket is ERC721Holder {
       owner: msg.sender
     });
 
+    // index sale
     signalToSale[_tokenId] = s;
+    saleIdToSale[saleNonce] = s;
 
     // emit new sale
     emit SignalForSale(saleNonce, _tokenId, _price);
