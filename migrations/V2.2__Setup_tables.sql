@@ -54,7 +54,8 @@ but maybe not, since signals can be sold, bought, and sold again.
 
 */
 
-CREATE TYPE status AS ENUM(active, complete, unlisted);
+CREATE TYPE salestatus AS ENUM(active, complete, unlisted);
+
 CREATE TABLE "signal_market_signal_for_sale"
   ( "token_id" numeric NOT NULL,
     "price" numeric NOT NULL,

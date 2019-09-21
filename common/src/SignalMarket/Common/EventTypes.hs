@@ -14,6 +14,7 @@ import           Data.Solidity.Prim.Address      (Address, fromHexString,
 import           Data.Solidity.Prim.Bytes        (BytesN)
 import           Data.Solidity.Prim.Int          (UIntN)
 import           Data.String                     (fromString)
+import Data.String.Conversions (cs)
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
 import qualified Data.Text.Lazy                  as TL (toStrict)
@@ -22,8 +23,9 @@ import qualified Data.Text.Lazy.Builder.Int      as B
 import qualified Data.Text.Read                  as R
 import           GHC.TypeLits
 import           Opaleye                         (Column, SqlNumeric, SqlText,
-                                                  ToFields)
-import           Opaleye.Internal.RunQuery       as IQ
+                                                  ToFields, Constant, unsafeCoerceColumn)
+import qualified Database.PostgreSQL.Simple.FromField as FF
+import qualified Opaleye.Internal.RunQuery       as IQ
 import           Opaleye.RunQuery                (QueryRunnerColumnDefault,
                                                   fieldQueryRunnerColumn)
 
@@ -141,3 +143,38 @@ instance D.Default ToFields EthAddress (Column SqlText) where
 _EthAddress :: Iso' Address EthAddress
 _EthAddress = iso (EthAddress . view _HexString . toHexString)
   (\(EthAddress a) -> either error id $ fromHexString $ view (from _HexString) a)
+
+--------------------------------------------------------------------------------
+-- the way we do enums is vendered from https://hackage.haskell.org/package/composite-opaleye-0.6.0.0/docs/Composite-Opaleye-TH.html#v:deriveOpaleyeEnum
+
+data SaleStatus = SSActive | SSComplete | SSUnlisted
+
+data SqlSaleStatus
+
+instance FF.FromField SaleStatus where
+  fromField f mbs = do
+    tname <- FF.typename f
+    case mbs of
+      _ | tname /= "salestatus" -> FF.returnError FF.Incompatible f ""
+      Just "active" -> pure SSActive
+      Just "complete" -> pure SSComplete
+      Just "unlisted" -> pure SSUnlisted
+      Just other -> FF.returnError FF.ConversionFailed f ("Unexpected myenum value: " <> cs other)
+      Nothing    -> FF.returnError FF.UnexpectedNull f ""
+
+instance QueryRunnerColumnDefault SqlSaleStatus SaleStatus where
+  queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance D.Default Constant SaleStatus (Column SqlSaleStatus) where
+  def = constantColumnUsing (D.def :: Constant String (Column SqlText)) $ \case
+    SSActive -> "active"
+    SSComplete -> "complete"
+    SSUnlisted -> "unlisted"
+
+--------------------------------------------------------------------------------
+-- vendored from https://hackage.haskell.org/package/composite-opaleye-0.6.0.0/docs/Composite-Opaleye-Util.html#v:constantColumnUsing
+constantColumnUsing 
+  :: Constant haskell (Column pgType)
+  -> (haskell' -> haskell)
+  -> Constant haskell' (Column pgType')
+constantColumnUsing oldConstant f = dimap f unsafeCoerceColumn oldConstant
