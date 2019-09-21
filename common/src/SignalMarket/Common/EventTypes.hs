@@ -1,33 +1,35 @@
 module SignalMarket.Common.EventTypes where
 
-import           Control.Lens                    (Iso', from, iso, to, view,
-                                                  (^.))
-import qualified Data.Aeson                      as A
-import qualified Data.ByteArray.HexString        as Hx
-import           Data.ByteArray.Sized            (unsafeSizedByteArray)
-import           Data.Char                       (isHexDigit)
+import           Control.Lens                         (Iso', from, iso, to,
+                                                       view, (^.))
+import qualified Data.Aeson                           as A
+import qualified Data.ByteArray.HexString             as Hx
+import           Data.ByteArray.Sized                 (unsafeSizedByteArray)
+import           Data.Char                            (isHexDigit)
 import           Data.Profunctor
-import qualified Data.Profunctor.Product.Default as D
-import           Data.Scientific                 (Scientific)
-import           Data.Solidity.Prim.Address      (Address, fromHexString,
-                                                  toHexString)
-import           Data.Solidity.Prim.Bytes        (BytesN)
-import           Data.Solidity.Prim.Int          (UIntN)
-import           Data.String                     (fromString)
-import Data.String.Conversions (cs)
-import           Data.Text                       (Text)
-import qualified Data.Text                       as T
-import qualified Data.Text.Lazy                  as TL (toStrict)
-import qualified Data.Text.Lazy.Builder          as B
-import qualified Data.Text.Lazy.Builder.Int      as B
-import qualified Data.Text.Read                  as R
-import           GHC.TypeLits
-import           Opaleye                         (Column, SqlNumeric, SqlText,
-                                                  ToFields, Constant, unsafeCoerceColumn)
+import qualified Data.Profunctor.Product.Default      as D
+import           Data.Scientific                      (Scientific)
+import           Data.Solidity.Prim.Address           (Address, fromHexString,
+                                                       toHexString)
+import           Data.Solidity.Prim.Bytes             (BytesN)
+import           Data.Solidity.Prim.Int               (UIntN)
+import           Data.String                          (fromString)
+import           Data.String.Conversions              (cs)
+import           Data.Text                            (Text)
+import qualified Data.Text                            as T
+import qualified Data.Text.Lazy                       as TL (toStrict)
+import qualified Data.Text.Lazy.Builder               as B
+import qualified Data.Text.Lazy.Builder.Int           as B
+import qualified Data.Text.Read                       as R
 import qualified Database.PostgreSQL.Simple.FromField as FF
-import qualified Opaleye.Internal.RunQuery       as IQ
-import           Opaleye.RunQuery                (QueryRunnerColumnDefault,
-                                                  fieldQueryRunnerColumn)
+import           GHC.TypeLits
+import           Opaleye                              (Column, Constant,
+                                                       SqlNumeric, SqlText,
+                                                       ToFields,
+                                                       unsafeCoerceColumn)
+import qualified Opaleye.Internal.RunQuery            as IQ
+import           Opaleye.RunQuery                     (QueryRunnerColumnDefault,
+                                                       fieldQueryRunnerColumn)
 
 --------------------------------------------------------------------------------
 newtype HexInteger = HexInteger Integer deriving (Eq, Show, Ord)
@@ -173,7 +175,7 @@ instance D.Default Constant SaleStatus (Column SqlSaleStatus) where
 
 --------------------------------------------------------------------------------
 -- vendored from https://hackage.haskell.org/package/composite-opaleye-0.6.0.0/docs/Composite-Opaleye-Util.html#v:constantColumnUsing
-constantColumnUsing 
+constantColumnUsing
   :: Constant haskell (Column pgType)
   -> (haskell' -> haskell)
   -> Constant haskell' (Column pgType')
