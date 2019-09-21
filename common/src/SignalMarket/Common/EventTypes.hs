@@ -173,6 +173,18 @@ instance D.Default Constant SaleStatus (Column SqlSaleStatus) where
     SSComplete -> "complete"
     SSUnlisted -> "unlisted"
 
+instance A.FromJSON SaleStatus where
+  parseJSON = A.withText "SaleStatus" $ \case
+      "active" -> pure SSActive
+      "complete" -> pure SSComplete
+      "unlisted" -> pure SSUnlisted
+      a -> fail "SaleStatus must be \"active\", \"complete\", or \"unlisted\"."
+
+instance A.ToJSON SaleStatus where
+  toJSON SSActive   = "active"
+  toJSON SSComplete = "complete"
+  toJSON SSUnlisted = "unlisted"
+
 --------------------------------------------------------------------------------
 -- vendored from https://hackage.haskell.org/package/composite-opaleye-0.6.0.0/docs/Composite-Opaleye-Util.html#v:constantColumnUsing
 constantColumnUsing
