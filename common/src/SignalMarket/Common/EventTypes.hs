@@ -48,7 +48,7 @@ instance A.FromJSON HexInteger where
     parseJSON _ = fail "HexInteger may only be parsed from a JSON String"
 
 instance IQ.QueryRunnerColumnDefault SqlNumeric HexInteger where
-  defaultFromField = HexInteger . toInteger . truncate . toRational <$> fieldQueryRunnerColumn @Scientific
+  defaultFromField = HexInteger . truncate . toRational <$> fieldQueryRunnerColumn @Scientific
 
 instance D.Default ToFields HexInteger (Column SqlNumeric) where
   def = lmap (\(HexInteger a) -> fromInteger @Scientific a) D.def
@@ -67,7 +67,7 @@ _Value :: (KnownNat n, n <= 256) => Iso' (UIntN n) Value
 _Value = iso (view $ _HexInteger . to Value) (view $ to (\(Value v) -> v) . from _HexInteger)
 
 instance IQ.QueryRunnerColumnDefault SqlNumeric Value where
-  defaultFromField = Value . HexInteger . toInteger . truncate . toRational <$> fieldQueryRunnerColumn @Scientific
+  defaultFromField = Value . HexInteger . truncate . toRational <$> fieldQueryRunnerColumn @Scientific
 
 --------------------------------------------------------------------------------
 
