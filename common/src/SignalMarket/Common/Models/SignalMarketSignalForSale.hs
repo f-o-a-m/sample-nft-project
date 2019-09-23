@@ -49,6 +49,12 @@ unsafeMkHStatus "complete" = HComplete
 unsafeMkHStatus "unlisted" = HUnlisted
 unsafeMkHStatus _          = error "Invalid status token"
 
+parseHStatus :: Text -> Either String HStatus
+parseHStatus "active"   = Right HActive
+parseHStatus "complete" = Right HComplete
+parseHStatus "unlisted" = Right HUnlisted
+parseHStatus txt        = Left $ "Invalid status token" <> show txt
+
 $(deriveOpaleyeEnum ''HStatus "status" (stripPrefix "h" . map toLower))
 
 type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlNumeric) (Field PGHStatus) (Field SqlText) (Field SqlText)

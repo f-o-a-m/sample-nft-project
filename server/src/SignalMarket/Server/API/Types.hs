@@ -2,17 +2,23 @@
 
 module SignalMarket.Server.API.Types where
 
-import           Control.Error                        (fmapL)
-import qualified Data.Aeson                           as A
-import           Data.String.Conversions              (cs)
-import qualified Data.Text                            as T
-import           GHC.Generics                         (Generic)
-import           SignalMarket.Common.Aeson            (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes       (EthAddress (..),
-                                                       HexString,
-                                                       parseHexString)
-import           SignalMarket.Common.Models.RawChange as RawChange
-import           Web.HttpApiData                      (FromHttpApiData (..))
+import           Control.Error                                        (fmapL)
+import qualified Data.Aeson                                           as A
+import           Data.String.Conversions                              (cs)
+import qualified Data.Text                                            as T
+import           GHC.Generics                                         (Generic)
+import           SignalMarket.Common.Aeson                            (defaultAesonOptions)
+import           SignalMarket.Common.EventTypes                       (EthAddress (..),
+                                                                       HexInteger,
+                                                                       HexString,
+                                                                       SaleID (..),
+                                                                       TokenID (..),
+                                                                       Value (..),
+                                                                       hexIntegerFromText,
+                                                                       parseHexString)
+import           SignalMarket.Common.Models.RawChange                 as RawChange
+import           SignalMarket.Common.Models.SignalMarketSignalForSale as SignalMarketSignalForSale
+import           Web.HttpApiData                                      (FromHttpApiData (..))
 
 data WithMetadata a = WithMetadata
   { withMetadataData     :: a
@@ -20,12 +26,22 @@ data WithMetadata a = WithMetadata
   } deriving Generic
 
 instance A.ToJSON a => A.ToJSON (WithMetadata a) where
-    toJSON = A.genericToJSON (defaultAesonOptions "withMetadata")
+  toJSON = A.genericToJSON (defaultAesonOptions "withMetadata")
 
 instance FromHttpApiData HexString where
-    parseQueryParam = fmapL cs . parseHexString
+  parseQueryParam = fmapL cs . parseHexString
 
 deriving instance FromHttpApiData EthAddress
+
+instance FromHttpApiData HexInteger where
+  parseQueryParam = fmapL cs . hexIntegerFromText
+
+deriving instance FromHttpApiData Value
+deriving instance FromHttpApiData SaleID
+deriving instance FromHttpApiData TokenID
+
+instance FromHttpApiData SignalMarketSignalForSale.HStatus where
+  parseQueryParam = fmapL cs . SignalMarketSignalForSale.parseHStatus
 
 data BlockNumberOrdering = ASC | DESC
 
