@@ -15,17 +15,18 @@ import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes (EventID, SaleID, TokenID,
-                                                 Value)
+import           SignalMarket.Common.EventTypes (EthAddress, EventID, SaleID,
+                                                 TokenID, Value)
 
 -- SignalMarket
 -- SignalForSale :: {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6))}
 
-data SignalForSale' saleID tokenID price saleStatus eventID = SignalForSale
+data SignalForSale' saleID tokenID price saleStatus seller eventID = SignalForSale
   { saleID     :: saleID
   , tokenID    :: tokenID
   , price      :: price
   , saleStatus :: saleStatus
+  , seller     :: seller
   , eventID    :: eventID
   } deriving Generic
 
@@ -50,8 +51,8 @@ unsafeMkHStatus _          = error "Invalid status token"
 
 $(deriveOpaleyeEnum ''HStatus "status" (stripPrefix "h" . map toLower))
 
-type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlNumeric) (Field PGHStatus) (Field SqlText)
-type SignalForSale = SignalForSale' SaleID TokenID Value HStatus EventID
+type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlNumeric) (Field PGHStatus) (Field SqlText) (Field SqlText)
+type SignalForSale = SignalForSale' SaleID TokenID Value HStatus EthAddress EventID
 
 signalForSaleTable :: Table SignalForSalePG SignalForSalePG
 signalForSaleTable = table "signal_for_sale"
@@ -59,6 +60,7 @@ signalForSaleTable = table "signal_for_sale"
                                                          , tokenID = tableField "token_id"
                                                          , price = tableField "price"
                                                          , saleStatus = tableField "sale_status"
+                                                         , seller = tableField "seller"
                                                          , eventID = tableField "event_id"
                                                          }
                            )
