@@ -76,7 +76,7 @@ type DeployResults =
 deployScript :: DeployM (Record DeployResults)
 deployScript = do
   deployCfg@(DeployConfig {primaryAccount, provider}) <- ask
-  let bigGasLimit = unsafePartial fromJust $ parseBigNumber decimal "4712388"
+  let bigGasLimit = unsafePartial fromJust $ parseBigNumber decimal "6712388"
       txOpts = defaultTransactionOptions # _from ?~ primaryAccount
                                          # _gas ?~ bigGasLimit
   -- deploy simple storage

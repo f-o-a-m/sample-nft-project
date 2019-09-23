@@ -1,4 +1,4 @@
-pragma solidity ^0.4.26;
+pragma solidity ^0.5.0;
 
 import "./FoamToken.sol";
 import "./SignalToken.sol";
@@ -10,7 +10,7 @@ contract SignalMarket is ERC721Holder {
     uint256 saleId;
     uint256 tokenId;
     uint256 price;
-    address owner;
+    address payable owner;
   }
 
   // provides a unique key for sales.

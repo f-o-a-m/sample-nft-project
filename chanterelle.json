@@ -7,11 +7,11 @@
                , "FoamToken"
                , "SignalToken"
                ],
-    "dependencies": [ "openzeppelin-solidity"
-                    , "erc20-tokens"
-                    ],
+    "dependencies": [ "openzeppelin-solidity" ],
     "purescript-generator": {
         "output-path": "dapp/src",
         "module-prefix": "Contracts"
-    }
+    },
+    "solc-evm-version": "byzantium",
+    "solc-version": "0.5.11"
 }

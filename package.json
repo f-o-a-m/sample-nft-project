@@ -5,8 +5,7 @@
     "devDependencies": {
         "pulp": "^12.2.0",
         "purescript": "^0.12.0",
-        "purescript-psa": "^0.7.3",
-        "erc20-tokens": "ConsenSys/Tokens#812791dfbf3c9a9f5e8370e26cda0009bde43f03"
+        "purescript-psa": "^0.7.3"
     },
     "main": "index.js",
     "scripts": {
@@ -19,13 +18,13 @@
     "license": "ISC",
     "dependencies": {
         "bn.js": "^4.11.0",
-        "chanterelle": "github:f-o-a-m/chanterelle#v3.0.0",
+        "chanterelle": "github:f-o-a-m/chanterelle#late-linking-wip",
         "ethjs-provider-http": "^0.1.6",
         "keccak": "^1.0.2",
         "mkdirp": "^0.5.1",
-        "openzeppelin-solidity": "https://github.com/OpenZeppelin/openzeppelin-solidity/archive/v1.12.0.tar.gz",
+        "openzeppelin-solidity": "^2.3",
         "rlp": "^2.0.0",
         "secp256k1": "^3.5.2",
-        "solc": "^0.4.24"
+        "solc": "^0.5"
     }
 }
