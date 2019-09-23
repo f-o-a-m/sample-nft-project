@@ -29,18 +29,19 @@ SignalToken
 CREATE TABLE "signal_token_transfer"
   ( "to" text NOT NULL,
     "from" text NOT NULL,
-    "token_id" numeric NOT NULL,
+    "token_id" numeric NOT NULL REFERENCES "signal_token_tracked_token"("token_id"),
     "event_id" text NOT NULL PRIMARY KEY REFERENCES "raw_change"("event_id")
   );
 CREATE INDEX ON "signal_token_transfer" ("from");
 CREATE INDEX ON "signal_token_transfer" ("to");
 
+/* freshly minted signals */
 CREATE TABLE "signal_token_tracked_token"
   ( "nft_address" text NOT NULL,
     "cst" text NOT NULL, /* no idea why this is text; foam-tcr uses `text` here */
     "geohash" text NOT NULL,
     "radius" numeric NOT NULL,
-    "token_id" numeric NOT NULL,
+    "token_id" numeric NOT NULL UNIQUE,
     "event_id" text NOT NULL PRIMARY KEY REFERENCES "raw_change"("event_id")
   );
 CREATE INDEX ON "signal_token_tracked_token" ("nft_address");
@@ -56,8 +57,8 @@ but maybe not, since signals can be sold, bought, and sold again.
 
 CREATE TYPE status AS ENUM(active, complete, unlisted);
 CREATE TABLE "signal_market_signal_for_sale"
-  ( "sale_id" numeric NOT NULL,
-    "token_id" numeric NOT NULL,
+  ( "sale_id" numeric NOT NULL UNIQUE,
+    "token_id" numeric NOT NULL REFERENCES "signal_token_tracked_token"("token_id"),
     "price" numeric NOT NULL,
     "sale_status" status NOT NULL,
     "event_id" text NOT NULL PRIMARY KEY REFERENCES "raw_change"("event_id"),
@@ -67,8 +68,8 @@ CREATE INDEX ON "signal_market_signal_for_sale" ("token_id");
 CREATE INDEX ON "signal_market_signal_for_sale" ("sale_status");
 
 CREATE TABLE "signal_market_signal_sold"
-  ( "sale_id" numeric NOT NULL,
-    "token_id" numeric NOT NULL,
+  ( "sale_id" numeric NOT NULL REFERENCES "signal_market_signal_for_sale"("sale_id"),
+    "token_id" numeric NOT NULL REFERENCES "signal_token_tracked_token"("token_id"),
     "price" numeric NOT NULL,
     "sold_from" text NOT NULL,
     "sold_to" text NOT NULL,
