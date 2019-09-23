@@ -39,7 +39,6 @@ dependencies:
 - aeson-casing
 - base >= 4.7 && < 5
 - bytestring
-- composite-opaleye
 - errors
 - exceptions
 - http-client

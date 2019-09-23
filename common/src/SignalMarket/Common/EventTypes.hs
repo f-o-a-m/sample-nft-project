@@ -1,31 +1,35 @@
 module SignalMarket.Common.EventTypes where
 
-import           Control.Lens                    (Iso', from, iso, to, view,
-                                                  (^.))
-import qualified Data.Aeson                      as A
-import qualified Data.ByteArray.HexString        as Hx
-import           Data.ByteArray.Sized            (unsafeSizedByteArray)
-import           Data.Char                       (isHexDigit)
+import           Control.Lens                         (Iso', from, iso, to,
+                                                       view, (^.))
+import qualified Data.Aeson                           as A
+import qualified Data.ByteArray.HexString             as Hx
+import           Data.ByteArray.Sized                 (unsafeSizedByteArray)
+import           Data.Char                            (isHexDigit)
 import           Data.Profunctor
-import qualified Data.Profunctor.Product.Default as D
-import           Data.Scientific                 (Scientific)
-import           Data.Solidity.Prim.Address      (Address, fromHexString,
-                                                  toHexString)
-import           Data.Solidity.Prim.Bytes        (BytesN)
-import           Data.Solidity.Prim.Int          (UIntN)
-import           Data.String                     (fromString)
-import           Data.Text                       (Text)
-import qualified Data.Text                       as T
-import qualified Data.Text.Lazy                  as TL (toStrict)
-import qualified Data.Text.Lazy.Builder          as B
-import qualified Data.Text.Lazy.Builder.Int      as B
-import qualified Data.Text.Read                  as R
+import qualified Data.Profunctor.Product.Default      as D
+import           Data.Scientific                      (Scientific)
+import           Data.Solidity.Prim.Address           (Address, fromHexString,
+                                                       toHexString)
+import           Data.Solidity.Prim.Bytes             (BytesN)
+import           Data.Solidity.Prim.Int               (UIntN)
+import           Data.String                          (fromString)
+import           Data.String.Conversions              (cs)
+import           Data.Text                            (Text)
+import qualified Data.Text                            as T
+import qualified Data.Text.Lazy                       as TL (toStrict)
+import qualified Data.Text.Lazy.Builder               as B
+import qualified Data.Text.Lazy.Builder.Int           as B
+import qualified Data.Text.Read                       as R
+import qualified Database.PostgreSQL.Simple.FromField as FF
 import           GHC.TypeLits
-import           Opaleye                         (Column, SqlNumeric, SqlText,
-                                                  ToFields)
-import           Opaleye.Internal.RunQuery       as IQ
-import           Opaleye.RunQuery                (QueryRunnerColumnDefault,
-                                                  fieldQueryRunnerColumn)
+import           Opaleye                              (Column, Constant,
+                                                       SqlNumeric, SqlText,
+                                                       ToFields,
+                                                       unsafeCoerceColumn)
+import qualified Opaleye.Internal.RunQuery            as IQ
+import           Opaleye.RunQuery                     (QueryRunnerColumnDefault,
+                                                       fieldQueryRunnerColumn)
 
 --------------------------------------------------------------------------------
 newtype HexInteger = HexInteger Integer deriving (Eq, Show, Ord)
@@ -151,3 +155,50 @@ instance D.Default ToFields EthAddress (Column SqlText) where
 _EthAddress :: Iso' Address EthAddress
 _EthAddress = iso (EthAddress . view _HexString . toHexString)
   (\(EthAddress a) -> either error id $ fromHexString $ view (from _HexString) a)
+
+--------------------------------------------------------------------------------
+-- the way we do enums is vendered from https://hackage.haskell.org/package/composite-opaleye-0.6.0.0/docs/Composite-Opaleye-TH.html#v:deriveOpaleyeEnum
+
+data SaleStatus = SSActive | SSComplete | SSUnlisted
+
+data SqlSaleStatus
+
+instance FF.FromField SaleStatus where
+  fromField f mbs = do
+    tname <- FF.typename f
+    case mbs of
+      _ | tname /= "salestatus" -> FF.returnError FF.Incompatible f ""
+      Just "active" -> pure SSActive
+      Just "complete" -> pure SSComplete
+      Just "unlisted" -> pure SSUnlisted
+      Just other -> FF.returnError FF.ConversionFailed f ("Unexpected myenum value: " <> cs other)
+      Nothing    -> FF.returnError FF.UnexpectedNull f ""
+
+instance QueryRunnerColumnDefault SqlSaleStatus SaleStatus where
+  queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance D.Default Constant SaleStatus (Column SqlSaleStatus) where
+  def = constantColumnUsing (D.def :: Constant String (Column SqlText)) $ \case
+    SSActive -> "active"
+    SSComplete -> "complete"
+    SSUnlisted -> "unlisted"
+
+instance A.FromJSON SaleStatus where
+  parseJSON = A.withText "SaleStatus" $ \case
+      "active" -> pure SSActive
+      "complete" -> pure SSComplete
+      "unlisted" -> pure SSUnlisted
+      a -> fail "SaleStatus must be \"active\", \"complete\", or \"unlisted\"."
+
+instance A.ToJSON SaleStatus where
+  toJSON SSActive   = "active"
+  toJSON SSComplete = "complete"
+  toJSON SSUnlisted = "unlisted"
+
+--------------------------------------------------------------------------------
+-- vendored from https://hackage.haskell.org/package/composite-opaleye-0.6.0.0/docs/Composite-Opaleye-Util.html#v:constantColumnUsing
+constantColumnUsing
+  :: Constant haskell (Column pgType)
+  -> (haskell' -> haskell)
+  -> Constant haskell' (Column pgType')
+constantColumnUsing oldConstant f = dimap f unsafeCoerceColumn oldConstant

@@ -55,12 +55,13 @@ but maybe not, since signals can be sold, bought, and sold again.
 
 */
 
-CREATE TYPE status AS ENUM(active, complete, unlisted);
+CREATE TYPE salestatus AS ENUM(active, complete, unlisted);
+
 CREATE TABLE "signal_market_signal_for_sale"
   ( "sale_id" numeric NOT NULL UNIQUE,
     "token_id" numeric NOT NULL REFERENCES "signal_token_tracked_token"("token_id"),
     "price" numeric NOT NULL,
-    "sale_status" status NOT NULL,
+    "sale_status" salestatus NOT NULL,
     "event_id" text NOT NULL PRIMARY KEY REFERENCES "raw_change"("event_id"),
   );
 CREATE INDEX ON "signal_market_signal_for_sale" ("sale_id");

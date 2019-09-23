@@ -30,7 +30,7 @@ signalMarketSignalForSaleH Event{eventEventID, eventData} =
             { ForSale.saleID = signalForSaleSaleId_ ^. _SaleID
             , ForSale.tokenID = signalForSaleSignalId_ ^. _TokenID
             , ForSale.price = signalForSalePrice_ ^. _Value
-            , ForSale.saleStatus = ForSale.HActive
+            , ForSale.saleStatus = SSActive
             , ForSale.eventID = eventEventID
             }
 
@@ -56,7 +56,7 @@ signalMarketSignalSoldH Event{eventEventID, eventData} =
             }
           -- update complete sale status into for sale table
           let updateSaleStatus :: ForSale.SignalForSalePG -> ForSale.SignalForSalePG
-              updateSaleStatus a = a { ForSale.saleStatus = constant ForSale.HComplete }
+              updateSaleStatus a = a { ForSale.saleStatus = constant SSComplete }
               isActiveTokenID :: ForSale.SignalForSalePG -> Column SqlBool
               isActiveTokenID a = ForSale.saleID a .== constant (signalSoldSaleId_ ^. _SaleID)
           _ :: ForSale.SignalForSale <- update ForSale.signalForSaleTable updateSaleStatus isActiveTokenID
