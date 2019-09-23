@@ -3,15 +3,13 @@
     "version": "0.0.1",
     "source-dir": "dapp/contracts",
     "modules": [ "SimpleStorage"
-	       , "SignalMarket"
+               , "SignalMarket"
                , "FoamToken"
                , "SignalToken"
-               , "TokenControllerMock"
                ],
     "dependencies": [ "openzeppelin-solidity"
                     , "erc20-tokens"
                     ],
-    "solc-output-selection": [],
     "purescript-generator": {
         "output-path": "dapp/src",
         "module-prefix": "Contracts"

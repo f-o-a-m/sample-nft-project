@@ -3,7 +3,6 @@ pragma solidity ^0.4.24;
 import "erc20-tokens/contracts/eip20/EIP20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Basic.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721BasicToken.sol";
-import "./ERC721Controllable.sol";
 
 contract CSTRegistry {
   function getGeohash(bytes32 cst) public view returns (bytes32 geohash);
