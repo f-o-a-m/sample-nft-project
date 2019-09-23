@@ -53,7 +53,7 @@ compile-contracts: ## Compile all contracts in dapp and write purescript ffi mod
 	chanterelle compile && chanterelle codegen
 
 build-dapp: ## Build the deploy script
-	pulp  build --src-path dapp/src
+	pulp build --src-path dapp/src
 
 deploy-contracts: build-dapp ## Deploy contracts in dapp project
 	chanterelle deploy ./output/Deploy.Main/index.js
@@ -98,3 +98,33 @@ build-indexer: ## build indexer and install binaries
 
 run-indexer: build-indexer ## run the indexer
 	stack exec -- indexer-exe
+
+
+####################
+# frontend      #
+####################
+
+frontend-start: ## Starts webserver with livereload, (you might want to build all purescript sources first). Note that you should also be running PureScript IDE server which compiles PureScript files on change, If it's not the case for you run `make build-purs-watch` too.
+	webpack-dev-server --port 3333 --hot --host 0.0.0.0
+
+frontend-start-https: ## Same as `frontend-start`, but running with `https`
+	webpack-dev-server --port 3333 --hot --host 0.0.0.0 --https
+
+frontend-build: ## Builds css html and js assets.
+	webpack
+
+
+build-purs-strict: ## Build whole purescript src and test file in strict mode
+	pulp build --jobs 8 --src-path frontend/src -I dapp/src -- --strict
+
+build-purs: ## Build whole purescript src and test file
+	pulp build --jobs 8 --src-path frontend/src -I dapp/src
+
+purs-repl: ## Run a pulp repl against the purescript sources
+	pulp repl --src-path frontend/src -I dapp/src
+
+build-purs-watch: ## same as `make build-purs` but watches for changes for re-building
+	pulp -w build --jobs 8 --src-path frontend/src -I dapp/src
+
+build-purs-editor: ## Same as `make build-purs` but with json output, it's used in `purescript.buildCommand` of `.vscode/settings.json`, this could potentially be useful for Atom users too.
+	pulp build --jobs 8 --src-path frontend/src -I dapp/src -- --json-errors

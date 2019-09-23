@@ -14,6 +14,9 @@
   ],
   "dependencies": {
     "purescript-prelude": "^4.1.1",
+    "purescript-routing": "^8.0.0",
+    "purescript-routing-duplex": "^0.2.0",
+    "purescript-react-basic": "^8.0.0",
     "purescript-chanterelle": "f-o-a-m/chanterelle#late-linking-wip"
   },
   "devDependencies": {
