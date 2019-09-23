@@ -15,13 +15,15 @@ import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes (EventID, TokenID, Value)
+import           SignalMarket.Common.EventTypes (EventID, SaleID, TokenID,
+                                                 Value)
 
 -- SignalMarket
 -- SignalForSale :: {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6))}
 
-data SignalForSale' tokenID price saleStatus eventID = SignalForSale
-  { tokenID    :: tokenID
+data SignalForSale' saleID tokenID price saleStatus eventID = SignalForSale
+  { saleID     :: saleID
+  , tokenID    :: tokenID
   , price      :: price
   , saleStatus :: saleStatus
   , eventID    :: eventID
@@ -48,12 +50,13 @@ unsafeMkHStatus _          = error "Invalid status token"
 
 $(deriveOpaleyeEnum ''HStatus "status" (stripPrefix "h" . map toLower))
 
-type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field PGHStatus) (Field SqlText)
-type SignalForSale = SignalForSale' TokenID Value HStatus EventID
+type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlNumeric) (Field PGHStatus) (Field SqlText)
+type SignalForSale = SignalForSale' SaleID TokenID Value HStatus EventID
 
 signalForSaleTable :: Table SignalForSalePG SignalForSalePG
 signalForSaleTable = table "signal_for_sale"
-                           (pSignalForSale SignalForSale { tokenID = tableField "token_id"
+                           (pSignalForSale SignalForSale { saleID = tableField "sale_id"
+                                                         , tokenID = tableField "token_id"
                                                          , price = tableField "price"
                                                          , saleStatus = tableField "sale_status"
                                                          , eventID = tableField "event_id"

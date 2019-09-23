@@ -156,12 +156,12 @@ spec' testCfg env@{ logger, signalAttrGen } = do
           let txOpts = defaultTransactionOptions # _from ?~ account2
                                                  # _gas ?~ embed 8000000
               signal = unwrap signalForSale
-              _tokenId = signal.signalId
+              _saleId = signal.saleId
               acc2BuyAction =
                 SignalMarket.buy (txOpts # _to ?~ signalMarket
-                                         # _value ?~ convert (mkValue one :: Value Ether)) { _tokenId }
+                                         # _value ?~ convert (mkValue one :: Value Ether)) { _saleId }
               acc2BuyFilter = eventFilter (Proxy :: Proxy SignalMarket.SignalSold) signalMarket
-          logger $ "BUY: Attempting to buy Signal with Id " <> show _tokenId
+          logger $ "BUY: Attempting to buy Signal with saleId " <> show _saleId
           -- make account2 buy the signal from account1
           sold@(SignalMarket.SignalSold purchase) <- monitorUntil provider logger acc2BuyAction acc2BuyFilter
           logger $ "BUY: Signal purchased " <> show sold
@@ -180,18 +180,19 @@ spec' testCfg env@{ logger, signalAttrGen } = do
         it "can unlist signal tokens" \{ signalForSale } -> do
           let txOpts = defaultTransactionOptions # _gas ?~ embed 8000000
               txOpts1 = txOpts # _from ?~ account1
-              _tokenId = (unwrap signalForSale).signalId
+              s = unwrap signalForSale
+              _saleId = s.saleId
               -- only account1 can unlist the token
-              unlistAction = SignalMarket.unlist (txOpts1 # _to ?~ signalMarket) { _tokenId }
+              unlistAction = SignalMarket.unlist (txOpts1 # _to ?~ signalMarket) { _saleId }
               unlistFilter = eventFilter (Proxy :: Proxy SignalMarket.SignalUnlisted) signalMarket
           -- unlist the signal with account1
-          logger $ "UNLIST: Attempting to unlist signal with Id " <> show _tokenId
+          logger $ "UNLIST: Attempting to unlist signal with saleId " <> show _saleId
           unlisted@(SignalMarket.SignalUnlisted nfs) <- monitorUntil provider logger unlistAction unlistFilter
           logger $ "UNLIST: Signal unlisted " <> show unlisted
-          liftAff $ nfs.signalId `shouldEqual` _tokenId
+          liftAff $ nfs.saleId `shouldEqual` _saleId
           -- attempting to buy an unlist signal, should result in an error
           -- @NOTE: `safeSignalToSale` is used here in place of the normal FFI to avoid defaulting behavior
-          let signalsForSale = safeSignalToSale (txOpts # _to ?~ signalMarket) Latest _tokenId
+          let signalsForSale = safeSignalToSale (txOpts # _to ?~ signalMarket) Latest s.signalId
           tx <- assertWeb3 provider signalsForSale
           tx `shouldSatisfy` isLeft
 
