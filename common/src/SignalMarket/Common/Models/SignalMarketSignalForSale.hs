@@ -1,5 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TemplateHaskell  #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module SignalMarket.Common.Models.SignalMarketSignalForSale where
 
@@ -14,14 +13,13 @@ import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes (EventID, SaleStatus,
+
+import           SignalMarket.Common.EventTypes (EventID, SaleID, SaleStatus,
                                                  SqlSaleStatus, TokenID, Value)
 
--- SignalMarket
--- SignalForSale :: {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6))}
-
-data SignalForSale' tokenID price saleStatus eventID = SignalForSale
-  { tokenID    :: tokenID
+data SignalForSale' saleID tokenID price saleStatus eventID = SignalForSale
+  { saleID     :: saleID
+  , tokenID    :: tokenID
   , price      :: price
   , saleStatus :: saleStatus
   , eventID    :: eventID
@@ -29,14 +27,13 @@ data SignalForSale' tokenID price saleStatus eventID = SignalForSale
 
 $(makeAdaptorAndInstance "pSignalForSale" ''SignalForSale')
 
-data HStatus = HActive | HComplete | HUnlisted deriving Generic
-
-type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlSaleStatus) (Field SqlText)
-type SignalForSale = SignalForSale' TokenID Value SaleStatus EventID
+type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlNumeric) (Field SqlSaleStatus) (Field SqlText)
+type SignalForSale = SignalForSale' SaleID TokenID Value SaleStatus EventID
 
 signalForSaleTable :: Table SignalForSalePG SignalForSalePG
 signalForSaleTable = table "signal_for_sale"
-                           (pSignalForSale SignalForSale { tokenID = tableField "token_id"
+                           (pSignalForSale SignalForSale { saleID = tableField "sale_id"
+                                                         , tokenID = tableField "token_id"
                                                          , price = tableField "price"
                                                          , saleStatus = tableField "sale_status"
                                                          , eventID = tableField "event_id"

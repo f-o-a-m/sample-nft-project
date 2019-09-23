@@ -7,22 +7,22 @@ import           Data.Profunctor.Product.Default
 import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
 import           Opaleye                         (Field, SqlNumeric, SqlText,
                                                   Table, table, tableField)
-import           SignalMarket.Common.EventTypes  (TokenID)
+import           SignalMarket.Common.EventTypes  (SaleID)
 
 -- SignalMarket
 -- SignalUnlisted :: {signalId :: (UIntN (D2 :& D5 :& DOne D6))}
 
-data SignalUnlisted' tokenID = SignalUnlisted
-  { tokenID :: tokenID
+data SignalUnlisted' saleID = SignalUnlisted
+  { saleID :: saleID
   }
 
 $(makeAdaptorAndInstance "pSignalUnlisted" ''SignalUnlisted')
 
 type SignalUnlistedPG = SignalUnlisted' (Field SqlNumeric)
-type SignalUnlisted = SignalUnlisted' TokenID
+type SignalUnlisted = SignalUnlisted' SaleID
 
 signalUnlistedTable :: Table SignalUnlistedPG SignalUnlistedPG
 signalUnlistedTable = table "signal_unlisted"
-                            (pSignalUnlisted SignalUnlisted { tokenID = tableField "token_id"
+                            (pSignalUnlisted SignalUnlisted { saleID = tableField "sale_id"
                                                             }
                             )

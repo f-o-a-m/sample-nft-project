@@ -55,7 +55,7 @@ compile-contracts: ## Compile all contracts in dapp and write purescript ffi mod
 build-dapp: ## Build the deploy script
 	pulp  build --src-path dapp/src
 
-deploy-contracts: ## Deploy contracts in dapp project
+deploy-contracts: build-dapp ## Deploy contracts in dapp project
 	chanterelle deploy ./output/Deploy.Main/index.js
 
 test-dapp: ## Run the dapp test suite
