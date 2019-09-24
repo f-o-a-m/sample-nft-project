@@ -6,7 +6,6 @@ import qualified Katip                                                as K
 import           Opaleye                                              (Column,
                                                                        SqlBool,
                                                                        constant,
-                                                                       (.&&),
                                                                        (.==))
 import           SignalMarket.Common.Class                            (MonadPG (..))
 import           SignalMarket.Common.Contracts.SignalMarket           as Contract
@@ -31,6 +30,7 @@ signalMarketSignalForSaleH Event{eventEventID, eventData} =
             , ForSale.tokenID = signalForSaleSignalId_ ^. _TokenID
             , ForSale.price = signalForSalePrice_ ^. _Value
             , ForSale.saleStatus = SSActive
+            , ForSale.seller = signalForSaleSeller_ ^. _EthAddress
             , ForSale.eventID = eventEventID
             }
 
