@@ -110,8 +110,11 @@ parseHexString = parse . T.toLower . trim0x
     parse txt | T.all isHexDigit txt && (T.length txt `mod` 2 == 0) = Right $ HexString txt
               | otherwise            = Left $ "Failed to parse text as HexString: " <> show txt
 
+displayHexString :: HexString -> Text
+displayHexString (HexString hex) = "0x" <> hex
+
 instance A.ToJSON HexString where
-  toJSON (HexString txt) = A.String $ "0x" <> txt
+  toJSON = A.String . displayHexString
 
 instance QueryRunnerColumnDefault SqlText HexString where
   queryRunnerColumnDefault = fromRightWithError . parseHexString <$> fieldQueryRunnerColumn @Text
@@ -188,7 +191,7 @@ instance A.FromJSON SaleStatus where
       "active" -> pure SSActive
       "complete" -> pure SSComplete
       "unlisted" -> pure SSUnlisted
-      a -> fail "SaleStatus must be \"active\", \"complete\", or \"unlisted\"."
+      _ -> fail "SaleStatus must be \"active\", \"complete\", or \"unlisted\"."
 
 instance A.ToJSON SaleStatus where
   toJSON SSActive   = "active"
