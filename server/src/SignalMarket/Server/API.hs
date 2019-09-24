@@ -8,9 +8,9 @@ module SignalMarket.Server.API
 
 import           Data.Proxy
 import           Servant
-import           Servant.API
 import           SignalMarket.Common.EventTypes                       (EthAddress,
                                                                        SaleID,
+                                                                       SaleStatus,
                                                                        TokenID,
                                                                        Value)
 import qualified SignalMarket.Common.Models.FoamTokenTransfer         as FoamTokenTransfer
@@ -68,7 +68,7 @@ type GetSignalMarketSignalForSale =
   :> QueryParam "sale_id" SaleID
   :> QueryParam "token_id" TokenID
   :> QueryParam "price" Value -- maybe just a normal int?
-  :> QueryParam "sale_status" SignalMarketSignalForSale.HStatus
+  :> QueryParam "sale_status" SaleStatus
   :> QueryParam "seller" EthAddress
   :> QueryParam "limit" Int
   :> QueryParam "offset" Int

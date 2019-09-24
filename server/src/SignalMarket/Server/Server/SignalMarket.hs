@@ -9,6 +9,7 @@ import           Servant.Server
 import           SignalMarket.Common.Class                            (runDB)
 import           SignalMarket.Common.EventTypes                       (EthAddress,
                                                                        SaleID,
+                                                                       SaleStatus,
                                                                        TokenID,
                                                                        Value)
 import qualified SignalMarket.Common.Models.RawChange                 as RawChange
@@ -43,7 +44,7 @@ getSignalMarketSignalForSaleH
   -- ^ token_id
   -> Maybe Value
   -- ^ price
-  -> Maybe SignalMarketSignalForSale.HStatus
+  -> Maybe SaleStatus
   -- ^ sale_status
   -> Maybe EthAddress
   -- ^ seller
