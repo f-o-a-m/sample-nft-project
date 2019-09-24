@@ -22,7 +22,7 @@ contract SignalMarket is ERC721Holder {
   mapping(uint256 => Sale) public signalToSale;
   mapping(uint256 => Sale) public saleIdToSale;
 
-  event SignalForSale(uint256 saleId, uint256 indexed signalId, uint256 price, address seller);
+  event SignalForSale(uint256 saleId, uint256 indexed signalId, uint256 price, address indexed seller);
   event SignalUnlisted(uint256 saleId);
   event SignalSold(uint256 saleId, uint256 signalId, uint256 price, address owner, address newOwner);
 
