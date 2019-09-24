@@ -9,7 +9,9 @@ import qualified Data.Text                            as T
 import           GHC.Generics                         (Generic)
 import           SignalMarket.Common.Aeson            (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes       (EthAddress (..),
-                                                       HexString,
+                                                       HexInteger, HexString,
+                                                       TokenID (..),
+                                                       hexIntegerFromText,
                                                        parseHexString)
 import           SignalMarket.Common.Models.RawChange as RawChange
 import           Web.HttpApiData                      (FromHttpApiData (..))
@@ -26,6 +28,11 @@ instance FromHttpApiData HexString where
     parseQueryParam = fmapL cs . parseHexString
 
 deriving instance FromHttpApiData EthAddress
+
+instance FromHttpApiData HexInteger where
+  parseQueryParam = fmapL cs . hexIntegerFromText
+
+deriving instance FromHttpApiData TokenID
 
 data BlockNumberOrdering = ASC | DESC
 
