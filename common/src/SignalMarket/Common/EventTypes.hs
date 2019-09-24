@@ -188,7 +188,7 @@ instance A.FromJSON SaleStatus where
       "active" -> pure SSActive
       "complete" -> pure SSComplete
       "unlisted" -> pure SSUnlisted
-      a -> fail "SaleStatus must be \"active\", \"complete\", or \"unlisted\"."
+      _ -> fail "SaleStatus must be \"active\", \"complete\", or \"unlisted\"."
 
 instance A.ToJSON SaleStatus where
   toJSON SSActive   = "active"
