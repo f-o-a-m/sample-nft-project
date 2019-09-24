@@ -26,15 +26,6 @@ CREATE INDEX ON "foam_token_transfer" ("to");
 SignalToken
 */
 
-CREATE TABLE "signal_token_transfer"
-  ( "to" text NOT NULL,
-    "from" text NOT NULL,
-    "token_id" numeric NOT NULL REFERENCES "signal_token_tracked_token"("token_id"),
-    "event_id" text NOT NULL PRIMARY KEY REFERENCES "raw_change"("event_id")
-  );
-CREATE INDEX ON "signal_token_transfer" ("from");
-CREATE INDEX ON "signal_token_transfer" ("to");
-
 /* freshly minted signals */
 CREATE TABLE "signal_token_tracked_token"
   ( "nft_address" text NOT NULL,
@@ -46,6 +37,15 @@ CREATE TABLE "signal_token_tracked_token"
   );
 CREATE INDEX ON "signal_token_tracked_token" ("nft_address");
 CREATE INDEX ON "signal_token_tracked_token" ("token_id");
+
+CREATE TABLE "signal_token_transfer"
+  ( "to" text NOT NULL,
+    "from" text NOT NULL,
+    "token_id" numeric NOT NULL REFERENCES "signal_token_tracked_token"("token_id"),
+    "event_id" text NOT NULL PRIMARY KEY REFERENCES "raw_change"("event_id")
+  );
+CREATE INDEX ON "signal_token_transfer" ("from");
+CREATE INDEX ON "signal_token_transfer" ("to");
 
 /*
 SignalMarket
