@@ -1,9 +1,6 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
-import "erc20-tokens/contracts/eip20/EIP20.sol";
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721Basic.sol";
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721BasicToken.sol";
-import "./ERC721Controllable.sol";
+import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 
 contract CSTRegistry {
   function getGeohash(bytes32 cst) public view returns (bytes32 geohash);
@@ -16,7 +13,7 @@ contract CSTRegistry {
   event TrackedToken(bytes32 cst, address indexed nftAddress, uint256 tokenID, bytes32 geohash, uint256 radius);
 
 /*
-  function trackToken(ERC721Basic nftContract, uint256 tokenID, bytes32 geohash, uint256 radius) public returns (bytes32) {
+  function trackToken(IERC721 nftContract, uint256 tokenID, bytes32 geohash, uint256 radius) public returns (bytes32) {
     require(radius > 0, "radius must be nonzero");
 
     address tokenOwner = nftContract.ownerOf(tokenID);

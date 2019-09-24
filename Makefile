@@ -61,6 +61,11 @@ deploy-contracts: build-dapp ## Deploy contracts in dapp project
 test-dapp: ## Run the dapp test suite
 	pulp test --src-path dapp/src --test-path dapp/test -m Test.Main
 
+clean-dapp: ## Clean up DApp related build artifacts
+	rm -f build/**/*.json
+	rm -rf output/Contracts.**
+	rm -rf dapp/src/Contracts
+
 ####################
 # Haskell      #
 ####################

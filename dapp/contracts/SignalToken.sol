@@ -1,6 +1,6 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
-import "erc20-tokens/contracts/eip20/EIP20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "./StakeToken.sol";
 import "./CSTRegistry.sol";
 
@@ -9,7 +9,7 @@ contract SignalToken is StakeToken, CSTRegistry {
   mapping (uint256 => uint256) public tokenRadius;
   mapping (bytes32 => uint256) public cstToID;
 
-  constructor(EIP20Interface _token) StakeToken(_token) public { }
+  constructor(ERC20 _token) StakeToken(_token) public { }
 
   function mint(address, uint256) public returns (uint256) {
     revert("use mintSignal(address,uint256,bytes32,uint256) instead");
@@ -28,7 +28,7 @@ contract SignalToken is StakeToken, CSTRegistry {
     // `SignalToken.TrackedToken.tokenID` and
     // `ERC721BasicToken.Transfer(address(0), _, tokenID)` and
     // `ERC20.Transfer(_, address(nftToken), value)`
-    emit TrackedToken(cst, this, tokenID, geohash, radius);
+    emit TrackedToken(cst, address(this), tokenID, geohash, radius);
 
     return tokenID;
   }
@@ -54,11 +54,11 @@ contract SignalToken is StakeToken, CSTRegistry {
     return cstToID[cst] != 0;
   }
 
-  function name() external pure returns (string) {
+  function name() external pure returns (string memory) {
     return "FOAM Signal";
   }
 
-  function symbol() external pure returns (string) {
+  function symbol() external pure returns (string memory) {
     return "FSX";
   }
 }

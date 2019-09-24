@@ -37,11 +37,11 @@ instance (MonadIO m, MonadReader config m, HasLogConfig config) => K.KatipContex
 
 mkLogConfig :: Text -> IO LogConfig
 mkLogConfig processName = do
-    le <- logEnv
+    le <- mkLogEnv
     return $ LogConfig
       { _logNamespace = mempty
       , _logContext = mempty
       , _logEnv = le
       }
   where
-    logEnv = K.initLogEnv (K.Namespace [processName]) (K.Environment "workshop")
+    mkLogEnv = K.initLogEnv (K.Namespace [processName]) (K.Environment "workshop")
