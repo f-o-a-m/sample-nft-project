@@ -1,9 +1,7 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TemplateHaskell  #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module SignalMarket.Common.Models.SignalMarketSignalForSale where
 
-import           Composite.Opaleye.TH           (deriveOpaleyeEnum)
 import           Control.Applicative            (pure)
 import qualified Data.Aeson                     as A
 import           Data.Char                      (toLower)
@@ -16,10 +14,8 @@ import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes (EthAddress, EventID, SaleID,
+                                                 SaleStatus, SqlSaleStatus,
                                                  TokenID, Value)
-
--- SignalMarket
--- SignalForSale :: {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6))}
 
 data SignalForSale' saleID tokenID price saleStatus seller eventID = SignalForSale
   { saleID     :: saleID
@@ -32,33 +28,8 @@ data SignalForSale' saleID tokenID price saleStatus seller eventID = SignalForSa
 
 $(makeAdaptorAndInstance "pSignalForSale" ''SignalForSale')
 
-data HStatus = HActive | HComplete | HUnlisted deriving Generic
-
-instance A.FromJSON HStatus where
-  parseJSON (A.String s) =  pure $ unsafeMkHStatus s
-  parseJSON _            = fail "Failed to parse HStatus object"
-
-instance A.ToJSON HStatus where
-  toJSON HActive   = "active"
-  toJSON HComplete = "complete"
-  toJSON HUnlisted = "unlisted"
-
-unsafeMkHStatus :: Text -> HStatus
-unsafeMkHStatus "active"   = HActive
-unsafeMkHStatus "complete" = HComplete
-unsafeMkHStatus "unlisted" = HUnlisted
-unsafeMkHStatus _          = error "Invalid status token"
-
-parseHStatus :: Text -> Either String HStatus
-parseHStatus "active"   = Right HActive
-parseHStatus "complete" = Right HComplete
-parseHStatus "unlisted" = Right HUnlisted
-parseHStatus txt        = Left $ "Invalid status token" <> show txt
-
-$(deriveOpaleyeEnum ''HStatus "status" (stripPrefix "h" . map toLower))
-
-type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlNumeric) (Field PGHStatus) (Field SqlText) (Field SqlText)
-type SignalForSale = SignalForSale' SaleID TokenID Value HStatus EthAddress EventID
+type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlNumeric) (Field SqlSaleStatus) (Field SqlText) (Field SqlText)
+type SignalForSale = SignalForSale' SaleID TokenID Value SaleStatus EthAddress EventID
 
 signalForSaleTable :: Table SignalForSalePG SignalForSalePG
 signalForSaleTable = table "signal_for_sale"
