@@ -7,4 +7,4 @@ packages:
 extra-deps:
  - opaleye-0.6.7004.1
 ghc-options:
-    "$locals": -ddump-splices -ddump-to-file -Werror
+    "$locals": -Wall -Werror -Wno-error=missing-import-lists -Wno-error=unused-imports -ddump-splices -ddump-to-file

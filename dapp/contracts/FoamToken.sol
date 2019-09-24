@@ -1,17 +1,16 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
-import "./ERC20Controllable.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/DetailedERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20Capped.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 
-contract FoamToken is ERC20Controllable, DetailedERC20 {
-    event FoamTokenConstructor(address _from, uint _value);
+contract FoamToken is ERC20Capped, ERC20Detailed {
+    event FoamTokenConstructor(address _creator, uint _supply);
 
-    uint constant public SUPPLY = 1000000000000000000000000000; // this should amount to 1 Billion * denomination
+    uint256 constant public SUPPLY   = 1000000000 * DECIMALS; // this should amount to 1 Billion * denomination
+    uint8   constant public DECIMALS = 18;
 
-    constructor() DetailedERC20("FOAM Token", "FOAM", 18) public {
-        balances[msg.sender] = SUPPLY;
-        totalSupply_ = SUPPLY;
-        emit FoamTokenConstructor(msg.sender,SUPPLY);
+    constructor() ERC20Detailed("FOAM Token", "FOAM", DECIMALS) ERC20Capped(SUPPLY) public {
+        _mint(msg.sender, SUPPLY);
+        emit FoamTokenConstructor(msg.sender, SUPPLY);
     }
 }

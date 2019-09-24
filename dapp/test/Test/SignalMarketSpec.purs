@@ -85,9 +85,9 @@ spec' testCfg env@{ logger, signalAttrGen } = do
       it "can run the faucet" \_ -> do
         let txOpts = defaultTransactionOptions # _to ?~ foamToken
         a1balance <- assertStorageCall provider $
-                     FoamToken.balanceOf txOpts Latest { _owner: account1 }
+                     FoamToken.balanceOf txOpts Latest { account: account1 }
         a2balance <- assertStorageCall provider $
-                     FoamToken.balanceOf txOpts Latest { _owner: account2 }
+                     FoamToken.balanceOf txOpts Latest { account: account2 }
         liftAff do
           unUIntN a1balance `shouldSatisfy` (_ > zero)
           unUIntN a2balance `shouldSatisfy` (_ > zero)
@@ -127,8 +127,8 @@ spec' testCfg env@{ logger, signalAttrGen } = do
               _tokenId = s.tokenID
               _price = mkUIntN s256 1 -- this is ETH price
               signalApproveAction =
-                SignalToken.approve (txOpts # _to ?~ signalToken) { _to: signalMarket
-                                                                  , _tokenId
+                SignalToken.approve (txOpts # _to ?~ signalToken) { to: signalMarket
+                                                                  , tokenId: _tokenId
                                                                   }
               signalApproveFilter = eventFilter (Proxy :: Proxy SignalToken.Approval) signalToken
               forSaleAction =
@@ -206,8 +206,8 @@ faucet
 faucet { recipient, foamToken, tokenFaucet } =
   let txOpts = defaultTransactionOptions # _to ?~ foamToken
                                          # _from ?~ tokenFaucet
-  in FoamToken.transfer txOpts { _to: recipient
-                               , _value: mkUIntN s256 1000000
+  in FoamToken.transfer txOpts { recipient
+                               , amount: mkUIntN s256 1000000
                                }
 
 ethFaucetOne
@@ -266,8 +266,8 @@ trackMintSignal { logger } { geohash, radius, foamToken, signalToken, provider, 
                                          # _from ?~ account1
                                          # _gas ?~ embed 8000000
       approvalAmount = mkUIntN s256 100
-      approveAction = FoamToken.approve txOpts { _spender: signalToken
-                                               , _value: approvalAmount
+      approveAction = FoamToken.approve txOpts { spender: signalToken
+                                               , value: approvalAmount
                                                }
       approvalFilter = eventFilter (Proxy :: Proxy FoamToken.Approval) foamToken
   approval@(FoamToken.Approval ft) <- monitorUntil provider logger approveAction approvalFilter
@@ -303,8 +303,8 @@ markSignalForSale { logger } { signalToken, signalMarket, trackMint, provider, a
       _tokenId = s.tokenID
       _price = mkUIntN s256 1 -- this is ETH price
       signalApproveAction =
-        SignalToken.approve (txOpts # _to ?~ signalToken) { _to: signalMarket
-                                                          , _tokenId
+        SignalToken.approve (txOpts # _to ?~ signalToken) { to: signalMarket
+                                                          , tokenId: _tokenId
                                                           }
       signalApproveFilter = eventFilter (Proxy :: Proxy SignalToken.Approval) signalToken
       forSaleAction =
