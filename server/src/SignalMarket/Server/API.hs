@@ -60,8 +60,8 @@ type GetFoamTokenTransfers =
 --------------------------------------------------------------------------------
 
 type SignalMarketAPI =
-       "signal_market_signal_for_sale" :> GetSignalMarketSignalForSale
-  :<|> "signal_market_signal_sold" :> GetSignalMarketSignalSold
+       "signal_market" :> GetSignalMarketSignalForSale
+  :<|> "signal_market" :> GetSignalMarketSignalSold
 
 type GetSignalMarketSignalForSale =
      "for_sale"
