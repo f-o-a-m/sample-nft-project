@@ -143,6 +143,7 @@ spec' testCfg env@{ logger, signalAttrGen } = do
           signalForSale@(SignalMarket.SignalForSale sfs) <- monitorUntil provider logger forSaleAction forSaleFilter
           logger $ "MARK: Signal for sale " <> show signalForSale
           liftAff do
+            sfs.seller `shouldEqual` account1
             sfs.price `shouldEqual` _price
             sfs.signalId `shouldEqual` _tokenId
 

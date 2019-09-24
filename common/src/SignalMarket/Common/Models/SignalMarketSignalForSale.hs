@@ -13,22 +13,23 @@ import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
+import           SignalMarket.Common.EventTypes (EthAddress, EventID, SaleID,
+                                                 SaleStatus, SqlSaleStatus,
+                                                 TokenID, Value)
 
-import           SignalMarket.Common.EventTypes (EventID, SaleID, SaleStatus,
-                                                 SqlSaleStatus, TokenID, Value)
-
-data SignalForSale' saleID tokenID price saleStatus eventID = SignalForSale
+data SignalForSale' saleID tokenID price saleStatus seller eventID = SignalForSale
   { saleID     :: saleID
   , tokenID    :: tokenID
   , price      :: price
   , saleStatus :: saleStatus
+  , seller     :: seller
   , eventID    :: eventID
   } deriving Generic
 
 $(makeAdaptorAndInstance "pSignalForSale" ''SignalForSale')
 
-type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlNumeric) (Field SqlSaleStatus) (Field SqlText)
-type SignalForSale = SignalForSale' SaleID TokenID Value SaleStatus EventID
+type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlNumeric) (Field SqlSaleStatus) (Field SqlText) (Field SqlText)
+type SignalForSale = SignalForSale' SaleID TokenID Value SaleStatus EthAddress EventID
 
 signalForSaleTable :: Table SignalForSalePG SignalForSalePG
 signalForSaleTable = table "signal_for_sale"
@@ -36,6 +37,7 @@ signalForSaleTable = table "signal_for_sale"
                                                          , tokenID = tableField "token_id"
                                                          , price = tableField "price"
                                                          , saleStatus = tableField "sale_status"
+                                                         , seller = tableField "seller"
                                                          , eventID = tableField "event_id"
                                                          }
                            )
