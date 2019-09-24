@@ -7,7 +7,6 @@ module SignalMarket.Server.API
 
 import           Data.Proxy
 import           Servant
-import           Servant.API
 import           SignalMarket.Common.EventTypes               (EthAddress)
 import qualified SignalMarket.Common.Models.FoamTokenTransfer as FoamTokenTransfer
 import           SignalMarket.Server.API.Types
