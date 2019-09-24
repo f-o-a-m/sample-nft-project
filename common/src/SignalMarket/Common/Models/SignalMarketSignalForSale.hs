@@ -1,9 +1,7 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TemplateHaskell  #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module SignalMarket.Common.Models.SignalMarketSignalForSale where
 
-import           Composite.Opaleye.TH           (deriveOpaleyeEnum)
 import           Control.Applicative            (pure)
 import qualified Data.Aeson                     as A
 import           Data.Char                      (toLower)
@@ -15,11 +13,9 @@ import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes (EventID, SaleID, TokenID,
-                                                 Value)
 
--- SignalMarket
--- SignalForSale :: {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6))}
+import           SignalMarket.Common.EventTypes (EventID, SaleID, SaleStatus,
+                                                 SqlSaleStatus, TokenID, Value)
 
 data SignalForSale' saleID tokenID price saleStatus eventID = SignalForSale
   { saleID     :: saleID
@@ -31,27 +27,8 @@ data SignalForSale' saleID tokenID price saleStatus eventID = SignalForSale
 
 $(makeAdaptorAndInstance "pSignalForSale" ''SignalForSale')
 
-data HStatus = HActive | HComplete | HUnlisted deriving Generic
-
-instance A.FromJSON HStatus where
-  parseJSON (A.String s) =  pure $ unsafeMkHStatus s
-  parseJSON _            = fail "Failed to parse HStatus object"
-
-instance A.ToJSON HStatus where
-  toJSON HActive   = "active"
-  toJSON HComplete = "complete"
-  toJSON HUnlisted = "unlisted"
-
-unsafeMkHStatus :: Text -> HStatus
-unsafeMkHStatus "active"   = HActive
-unsafeMkHStatus "complete" = HComplete
-unsafeMkHStatus "unlisted" = HUnlisted
-unsafeMkHStatus _          = error "Invalid status token"
-
-$(deriveOpaleyeEnum ''HStatus "status" (stripPrefix "h" . map toLower))
-
-type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlNumeric) (Field PGHStatus) (Field SqlText)
-type SignalForSale = SignalForSale' SaleID TokenID Value HStatus EventID
+type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlNumeric) (Field SqlSaleStatus) (Field SqlText)
+type SignalForSale = SignalForSale' SaleID TokenID Value SaleStatus EventID
 
 signalForSaleTable :: Table SignalForSalePG SignalForSalePG
 signalForSaleTable = table "signal_for_sale"
