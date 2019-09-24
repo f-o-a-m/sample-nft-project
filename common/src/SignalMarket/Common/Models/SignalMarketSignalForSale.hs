@@ -13,8 +13,9 @@ import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes (EthAddress, EventID, SaleID, SaleStatus,
-                                                 SqlSaleStatus, TokenID, Value)
+import           SignalMarket.Common.EventTypes (EthAddress, EventID, SaleID,
+                                                 SaleStatus, SqlSaleStatus,
+                                                 TokenID, Value)
 
 data SignalForSale' saleID tokenID price saleStatus seller eventID = SignalForSale
   { saleID     :: saleID
