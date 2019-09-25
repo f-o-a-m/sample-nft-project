@@ -66,8 +66,9 @@ contract SignalMarket is ERC721Holder {
     uint256 tokenId = sale.tokenId;
     // only the owner can do this
     require(signalToSale[tokenId].owner == msg.sender);
-    // remove from sale list
+    // remove from index
     delete signalToSale[tokenId];
+    delete saleIdToSale[_saleId];
     // give signal back (from this contract) to owner address
     signalToken.safeTransferFrom(address(this), msg.sender, tokenId);
 
