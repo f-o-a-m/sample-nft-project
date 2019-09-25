@@ -18,13 +18,16 @@ import qualified SignalMarket.Common.Models.RawChange               as RawChange
 import qualified SignalMarket.Common.Models.SignalTokenTrackedToken as SignalTokenTrackedToken
 import qualified SignalMarket.Common.Models.SignalTokenTransfer     as SignalTokenTransfer
 import           SignalMarket.Server.API                            (SignalTokenAPI)
-import           SignalMarket.Server.API.Types                      (BlockNumberOrdering (..),
+import           SignalMarket.Server.API.Types                      (ApiSignal (..),
+                                                                     BlockNumberOrdering (..),
                                                                      Cursor (..),
                                                                      WithMetadata (..))
 import           SignalMarket.Server.Application                    (AppHandler)
 import           SignalMarket.Server.Queries.Combinators            (withCursor, withMetadata,
                                                                      withOrdering)
-import           SignalMarket.Server.Queries.SignalToken            (signalTokenTrackedTokenQ,
+import           SignalMarket.Server.Queries.SignalToken            (latestSignalTokenTransferQ,
+                                                                     signalTokenByCSTWithMetadataQ,
+                                                                     signalTokenByIDWithMetadataQ,
                                                                      signalTokenTransfersQ)
 
 
@@ -43,6 +46,7 @@ getSignalTokenTransfersH
   -> Maybe Int
   -- ^ offset
   -> Maybe BlockNumberOrdering
+  -- ^ sort by newest/oldest
   -> AppHandler [WithMetadata SignalTokenTransfer.Transfer]
 getSignalTokenTransfersH mto mfrom mtokenid mlimit moffset mord = do
     let withLimitAndOffset = maybe Cat.id withCursor (Cursor <$> mlimit <*> moffset)
@@ -57,21 +61,32 @@ getSignalTokenTransfersH mto mfrom mtokenid mlimit moffset mord = do
             signalTokenTransfersQ >>> tokenIDFilter >>> toFilter >>> fromFilter
     pure . flip map as $ \(t, rc) -> WithMetadata t rc
 
+hydrateOwnershipForTrackedToken
+  :: AppHandler (WithMetadata SignalTokenTrackedToken.TrackedToken)
+  -- ^ Servant handler which gets a TrackedToken event
+  -> AppHandler ApiSignal
+  -- ^ Servant handler which returns an ApiSignal type
+hydrateOwnershipForTrackedToken getTrackedToken = do
+  trackedToken <- getTrackedToken
+  let noTransfersFound    = err500 { errBody = "The impossible happened! A token had no transfers associated with it!"}
+      moreThanOneReturned = err500 { errBody = "The impossible happened! More than one transfer result was returned despite LIMIT 1!"}
+      trackedTokenID      = SignalTokenTrackedToken.tokenID (withMetadataData trackedToken)
+  as <- runDB $ \conn -> O.runQuery conn (latestSignalTokenTransferQ trackedTokenID)
+  case as of
+    [(transfer, rawChange)] -> let fullTransfer = WithMetadata transfer rawChange
+                                in pure (ApiSignal trackedToken fullTransfer)
+    [] -> throwError noTransfersFound
+    _  -> throwError moreThanOneReturned
+
 getSignalTokenByIDH
   :: TokenID
   -- ^ nft id of the token
-  -> AppHandler (WithMetadata SignalTokenTrackedToken.TrackedToken)
-getSignalTokenByIDH tokenID@(TokenID tidHex) = do
+  -> AppHandler ApiSignal
+  -- ^ Servant handler which returns fully hydrated Signal (calls hydrateOwnershipForTrackedToken)
+getSignalTokenByIDH tokenID@(TokenID tidHex) = hydrateOwnershipForTrackedToken $ do
   let signalTokenNotFound = err404 { errBody = cs ("No signal with ID " ++ cs (hexIntegerToText tidHex) ++ " exists.") }
       moreThanOneReturned = err500 { errBody = "The impossible happened! Received more than one token despite LIMIT 1!" }
-      tokenIDFilter = O.keepWhen (\a -> SignalTokenTrackedToken.tokenID a O..== O.constant tokenID)
-      limitOne = withCursor (Cursor 1 0)
-      usingOrdering = withOrdering DESC (RawChange.blockNumber . snd)
-  as <- runDB $ \conn -> O.runQuery conn $
-    limitOne $
-      usingOrdering $
-        withMetadata SignalTokenTrackedToken.eventID $
-          signalTokenTrackedTokenQ >>> tokenIDFilter
+  as <- runDB $ \conn -> O.runQuery conn (signalTokenByIDWithMetadataQ tokenID)
   case as of
     [(token, rawChange)] -> pure (WithMetadata token rawChange)
     []                   -> throwError signalTokenNotFound
@@ -80,18 +95,13 @@ getSignalTokenByIDH tokenID@(TokenID tidHex) = do
 getSignalTokenByCSTH
   :: HexString
   -- ^ CST of the signal token
-  -> AppHandler (WithMetadata SignalTokenTrackedToken.TrackedToken)
-getSignalTokenByCSTH cst = do
+  -> AppHandler ApiSignal
+  -- ^ Servant handler which returns fully hydrated Signal (calls hydrateOwnershipForTrackedToken)
+getSignalTokenByCSTH cst = hydrateOwnershipForTrackedToken $ do
   let signalTokenNotFound = err404 { errBody = cs ("No signal with CST " ++ cs (displayHexString cst) ++ " exists.") }
       moreThanOneReturned = err500 { errBody = "The impossible happened! Received more than one token despite LIMIT 1!" }
-      cstFilter = O.keepWhen (\a -> SignalTokenTrackedToken.cst a O..== O.constant cst)
-      limitOne = withCursor (Cursor 1 0)
-      usingOrdering = withOrdering DESC (RawChange.blockNumber . snd)
-  as <- runDB $ \conn -> O.runQuery conn $
-    limitOne $
-      usingOrdering $
-        withMetadata SignalTokenTrackedToken.eventID $
-          signalTokenTrackedTokenQ >>> cstFilter
+  as <- runDB $ \conn -> do
+    O.runQuery conn (signalTokenByCSTWithMetadataQ cst)
   case as of
     [(token, rawChange)] -> pure (WithMetadata token rawChange)
     []                   -> throwError signalTokenNotFound

@@ -8,14 +8,13 @@ module SignalMarket.Server.API
 
 import           Data.Proxy
 import           Servant
-import           SignalMarket.Common.EventTypes                     (EthAddress,
-                                                                     HexString,
-                                                                     TokenID)
-import qualified SignalMarket.Common.Models.FoamTokenTransfer       as FoamTokenTransfer
-import qualified SignalMarket.Common.Models.SignalTokenTrackedToken as SignalTokenTrackedToken
-import qualified SignalMarket.Common.Models.SignalTokenTransfer     as SignalTokenTransfer
+import           SignalMarket.Common.EventTypes                 (EthAddress,
+                                                                 HexString,
+                                                                 TokenID)
+import qualified SignalMarket.Common.Models.FoamTokenTransfer   as FoamTokenTransfer
+import qualified SignalMarket.Common.Models.SignalTokenTransfer as SignalTokenTransfer
 import           SignalMarket.Server.API.Types
-import           SignalMarket.Server.Config                         (Contracts)
+import           SignalMarket.Server.Config                     (Contracts)
 
 type API =
        ConfigAPI
@@ -75,9 +74,9 @@ type GetSignalTokenTransfers =
 type GetSignalTokenByID =
       "id"
   :> Capture "token_id" TokenID
-  :> Get '[JSON] (WithMetadata SignalTokenTrackedToken.TrackedToken)
+  :> Get '[JSON] ApiSignal
 
 type GetSignalTokenByCST =
       "cst"
   :> Capture "cst" HexString
-  :> Get '[JSON] (WithMetadata SignalTokenTrackedToken.TrackedToken)
+  :> Get '[JSON] ApiSignal
