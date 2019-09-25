@@ -12,3 +12,9 @@ instance HasEventName Transfer where
 
 instance HasEventName TrackedToken where
   eventName _ = "SignalTokenTrackedToken"
+
+instance HasEventName TokensStaked where
+  eventName _ = "SignalTokenTokensStaked"
+
+instance HasEventName TokensUnstaked where
+  eventName _ = "SignalTokenTokensUnstaked"

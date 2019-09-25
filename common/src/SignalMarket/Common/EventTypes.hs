@@ -32,7 +32,7 @@ import           Opaleye.RunQuery                     (QueryRunnerColumnDefault,
                                                        fieldQueryRunnerColumn)
 
 --------------------------------------------------------------------------------
-newtype HexInteger = HexInteger Integer deriving (Eq, Show, Ord)
+newtype HexInteger = HexInteger Integer deriving (Eq, Show, Ord, Num, Enum, Real, Integral)
 
 hexIntegerToText :: HexInteger -> Text
 hexIntegerToText (HexInteger n) = TL.toStrict . (<>) "0x" . B.toLazyText $ B.hexadecimal n
@@ -62,7 +62,7 @@ _HexInteger = iso (HexInteger . toInteger) (\(HexInteger n) -> fromInteger n)
 
 --------------------------------------------------------------------------------
 
-newtype Value = Value HexInteger deriving (Eq, Show, A.ToJSON, A.FromJSON)
+newtype Value = Value HexInteger deriving (Eq, Ord, Show, Num, Enum, Real, Integral, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields Value (Column SqlNumeric) where
   def = lmap (\(Value a) -> a) D.def
@@ -158,6 +158,9 @@ instance D.Default ToFields EthAddress (Column SqlText) where
 _EthAddress :: Iso' Address EthAddress
 _EthAddress = iso (EthAddress . view _HexString . toHexString)
   (\(EthAddress a) -> either error id $ fromHexString $ view (from _HexString) a)
+
+zeroAddress :: EthAddress
+zeroAddress = either (error . ("Failed to create the zero address: " ++)) id $ EthAddress <$> parseHexString "0x0000000000000000000000000000000000000000"
 
 --------------------------------------------------------------------------------
 -- the way we do enums is vendered from https://hackage.haskell.org/package/composite-opaleye-0.6.0.0/docs/Composite-Opaleye-TH.html#v:deriveOpaleyeEnum
