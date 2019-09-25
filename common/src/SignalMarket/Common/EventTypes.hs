@@ -195,6 +195,11 @@ instance A.ToJSON SaleStatus where
   toJSON SSComplete = "complete"
   toJSON SSUnlisted = "unlisted"
 
+parseHStatus :: Text -> Either String SaleStatus
+parseHStatus "active"   = Right SSActive
+parseHStatus "complete" = Right SSComplete
+parseHStatus "unlisted" = Right SSUnlisted
+parseHStatus txt        = Left $ "Invalid status token" <> show txt
 --------------------------------------------------------------------------------
 -- vendored from https://hackage.haskell.org/package/composite-opaleye-0.6.0.0/docs/Composite-Opaleye-Util.html#v:constantColumnUsing
 constantColumnUsing

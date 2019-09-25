@@ -2,12 +2,8 @@
 
 module SignalMarket.Common.Models.SignalMarketSignalForSale where
 
-import           Control.Applicative            (pure)
 import qualified Data.Aeson                     as A
-import           Data.Char                      (toLower)
-import           Data.List                      (stripPrefix)
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
-import           Data.Text                      (Text)
 import           GHC.Generics                   (Generic)
 import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
