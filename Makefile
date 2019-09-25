@@ -24,8 +24,14 @@ PGPORT ?= 5555
 PGPASSWORD ?= password
 PGUSER ?= postgres
 
+GRAPHQL_PORT ?= 3003
+GRAPHQL_PATH ?= /
+GRAPHQL_PG_SCHEMAS ?= public
+GRAPHQL_SIMPLE_AUTH_TOKEN ?= super_secret_token
+
 PSQL ?= docker-compose run postgis psql
 FLYWAY ?= docker-compose run flyway
+
 
 # end export
 # please keep that, it helps with autogenerating env wrappers
@@ -41,6 +47,8 @@ install: ## Runs npm and bower install
 	bower install
 	# hack to build purs deps only
 	pulp build --src-path dapp/contracts
+
+	cd graphql-server && npm install
 
 ############
 # postgres
@@ -145,3 +153,12 @@ faucet-locally: ## Faucet some ETH locally
 
 signal-locally: ## Create signal locally
 	pulp run --jobs 8 --src-path dapp/scripts -I dapp/src:frontend/src -m Signal
+####################
+# GraphQL Server #
+####################
+
+run-gql-server: ## run the graphql server
+	cd graphql-server && npm run start
+
+run-gql-dev: ## run the graphql server in dev mode
+	cd graphql-server && npm run dev
