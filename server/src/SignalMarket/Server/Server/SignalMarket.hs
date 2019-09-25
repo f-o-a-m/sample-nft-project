@@ -61,7 +61,7 @@ getSignalMarketSignalForSaleH msaleID mtokenID mprice msaleStatus mseller mlimit
         priceFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalForSale.price a O..== O.constant x)) mprice
         saleStatusFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalForSale.saleStatus a O..== O.constant x)) msaleStatus
         sellerFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalForSale.seller a O..== O.constant x)) mseller
-        usingOrdering = withOrdering (fromMaybe DESC mord) (RawChange.blockNumber . snd)
+        usingOrdering = withOrdering (fromMaybe DESC mord) (RawChange.blockNumber . snd) (RawChange.logIndex . snd)
     as <- runDB $ \conn -> O.runQuery conn $
       withLimitAndOffset $
         usingOrdering $
@@ -93,7 +93,7 @@ getSignalMarketSignalSoldH msaleID mtokenID mprice mfrom mto mlimit moffset mord
         priceFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalSold.price a O..== O.constant x)) mprice
         fromFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalSold.soldFrom a O..== O.constant x)) mfrom
         toFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalSold.soldTo a O..== O.constant x)) mto
-        usingOrdering = withOrdering (fromMaybe DESC mord) (RawChange.blockNumber . snd)
+        usingOrdering = withOrdering (fromMaybe DESC mord) (RawChange.blockNumber . snd) (RawChange.logIndex . snd)
     as <- runDB $ \conn -> O.runQuery conn $
       withLimitAndOffset $
         usingOrdering $
