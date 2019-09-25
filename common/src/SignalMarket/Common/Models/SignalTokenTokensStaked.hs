@@ -10,7 +10,8 @@ import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes (EthAddress, EventID, TokenID, Value)
+import           SignalMarket.Common.EventTypes (EthAddress, EventID, TokenID,
+                                                 Value)
 
 -- SignalToken
 -- TokensStaked :: {_staker :: Address, _tokenId :: UIntN S256, _stakeAmount :: UIntN S256, _timestamp :: UIntN S256 }

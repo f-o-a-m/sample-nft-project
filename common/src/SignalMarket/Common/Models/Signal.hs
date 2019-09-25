@@ -10,7 +10,8 @@ import           Opaleye                        (Field, FieldNullable,
                                                  SqlNumeric, SqlText, Table,
                                                  table, tableField)
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes (EthAddress, EventID, TokenID, Value)
+import           SignalMarket.Common.EventTypes (EthAddress, EventID, TokenID,
+                                                 Value)
 
 -- Signal cache table, for easily figuring out the owner and stake of a signal
 

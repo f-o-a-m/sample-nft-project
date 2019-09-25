@@ -3,11 +3,10 @@
 
 module SignalMarket.Common.Models.SignalMarketSignalUnlisted where
 
-import           Data.Profunctor.Product.Default
-import           Data.Profunctor.Product.TH      (makeAdaptorAndInstance)
-import           Opaleye                         (Field, SqlNumeric, SqlText,
-                                                  Table, table, tableField)
-import           SignalMarket.Common.EventTypes  (SaleID)
+import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
+import           Opaleye                        (Field, SqlNumeric, Table,
+                                                 table, tableField)
+import           SignalMarket.Common.EventTypes (SaleID)
 
 -- SignalMarket
 -- SignalUnlisted :: {signalId :: (UIntN (D2 :& D5 :& DOne D6))}

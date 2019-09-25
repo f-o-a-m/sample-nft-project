@@ -53,7 +53,7 @@ getSignalTokenTransfersH mto mfrom mtokenid mlimit moffset mord = do
         toFilter = maybe Cat.id (\to -> O.keepWhen (\a -> SignalTokenTransfer.to a O..== O.constant to)) mto
         fromFilter = maybe Cat.id (\from -> O.keepWhen (\a -> SignalTokenTransfer.from a O..== O.constant from)) mfrom
         tokenIDFilter = maybe Cat.id (\tokenID -> O.keepWhen (\a -> SignalTokenTransfer.tokenID a O..== O.constant tokenID)) mtokenid
-        usingOrdering = withOrdering (fromMaybe DESC mord) (RawChange.blockNumber . snd)
+        usingOrdering = withOrdering (fromMaybe DESC mord) (RawChange.blockNumber . snd) (RawChange.logIndex . snd)
     as <- runDB $ \conn -> O.runQuery conn $
       withLimitAndOffset $
         usingOrdering $

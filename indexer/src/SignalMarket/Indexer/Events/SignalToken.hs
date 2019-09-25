@@ -1,21 +1,21 @@
 module SignalMarket.Indexer.Events.SignalToken where
 
-import           Control.Lens                                       ((^.))
-import           Control.Monad.Catch                                (MonadThrow)
-import qualified Katip                                              as K
-import           Opaleye                                            (constant,
-                                                                     (.==))
-import           SignalMarket.Common.Class                          (MonadPG (..))
-import           SignalMarket.Common.Contracts.SignalToken          as Contract
+import           Control.Lens                                         ((^.))
+import           Control.Monad.Catch                                  (MonadThrow)
+import qualified Katip                                                as K
+import           Opaleye                                              (constant,
+                                                                       (.==))
+import           SignalMarket.Common.Class                            (MonadPG (..))
+import           SignalMarket.Common.Contracts.SignalToken            as Contract
 import           SignalMarket.Common.EventTypes
-import           SignalMarket.Common.Models.Signal                  as Signal
-import           SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedToken
-import           SignalMarket.Common.Models.SignalTokenTransfer     as Transfer
-import           SignalMarket.Common.Models.SignalTokenTokensStaked as TokensStaked
+import           SignalMarket.Common.Models.Signal                    as Signal
+import           SignalMarket.Common.Models.SignalTokenTokensStaked   as TokensStaked
 import           SignalMarket.Common.Models.SignalTokenTokensUnstaked as TokensUnstaked
+import           SignalMarket.Common.Models.SignalTokenTrackedToken   as TrackedToken
+import           SignalMarket.Common.Models.SignalTokenTransfer       as Transfer
 import           SignalMarket.Indexer.Types
-import           SignalMarket.Indexer.Utils                         (insert,
-                                                                     update)
+import           SignalMarket.Indexer.Utils                           (insert,
+                                                                       update)
 
 signalTokenTransferH
   :: ( MonadPG m
@@ -43,10 +43,10 @@ signalTokenTransferH Event{eventEventID, eventData} =
             insert Signal.signalsTable $ Signal.Signal
               { Signal.tokenID = tokenID
               , Signal.owner = newTokenOwner
-              , Signal.amountStaked = (0 :: Value) -- gets filled in by TokensStaked event
-              , Signal.trackedTokenEID = (Nothing :: Maybe EventID)
-              , Signal.tokensStakedEID = (Nothing :: Maybe EventID)
-              , Signal.tokensUnstakedEID = (Nothing :: Maybe EventID)
+              , Signal.amountStaked = 0 :: Value -- gets filled in by TokensStaked event
+              , Signal.trackedTokenEID = Nothing :: Maybe EventID
+              , Signal.tokensStakedEID = Nothing :: Maybe EventID
+              , Signal.tokensUnstakedEID = Nothing :: Maybe EventID
               , Signal.lastTransferEID = eventEventID
               , Signal.mintingTransferEID = eventEventID
               }

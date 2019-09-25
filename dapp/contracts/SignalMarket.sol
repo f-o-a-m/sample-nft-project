@@ -22,7 +22,7 @@ contract SignalMarket is ERC721Holder {
   mapping(uint256 => Sale) public signalToSale;
   mapping(uint256 => Sale) public saleIdToSale;
 
-  event SignalForSale(uint256 saleId, uint256 indexed signalId, uint256 price, address seller);
+  event SignalForSale(uint256 saleId, uint256 indexed signalId, uint256 price, address indexed seller);
   event SignalUnlisted(uint256 saleId);
   event SignalSold(uint256 saleId, uint256 signalId, uint256 price, address owner, address newOwner);
 
@@ -66,8 +66,9 @@ contract SignalMarket is ERC721Holder {
     uint256 tokenId = sale.tokenId;
     // only the owner can do this
     require(signalToSale[tokenId].owner == msg.sender);
-    // remove from sale list
+    // remove from index
     delete signalToSale[tokenId];
+    delete saleIdToSale[_saleId];
     // give signal back (from this contract) to owner address
     signalToken.safeTransferFrom(address(this), msg.sender, tokenId);
 

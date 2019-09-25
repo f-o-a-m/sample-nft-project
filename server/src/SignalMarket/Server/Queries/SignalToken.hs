@@ -22,7 +22,7 @@ latestSignalTokenTransferQ
   -- ^ Opaleye query which gets the latest transfer event and its associated metadata
 latestSignalTokenTransferQ tokenID =
   let limitOne      = withCursor (Cursor 1 0)
-      orderDesc     = withOrdering DESC (RawChange.blockNumber . snd)
+      orderDesc     = withOrdering DESC (RawChange.blockNumber . snd) (RawChange.logIndex . snd)
       tokenIDFilter = O.keepWhen (\a -> Transfer.tokenID a O..== O.constant tokenID)
    in limitOne $
         orderDesc $
@@ -41,7 +41,7 @@ signalTokenByIDWithMetadataQ
 signalTokenByIDWithMetadataQ tokenID =
   let tokenIDFilter = O.keepWhen (\a -> TrackedToken.tokenID a O..== O.constant tokenID)
       limitOne = withCursor (Cursor 1 0)
-      orderDesc = withOrdering DESC (RawChange.blockNumber . snd)
+      orderDesc = withOrdering DESC (RawChange.blockNumber . snd) (RawChange.logIndex . snd)
    in limitOne $
         orderDesc $
           withMetadata TrackedToken.eventID $
@@ -55,7 +55,7 @@ signalTokenByCSTWithMetadataQ
 signalTokenByCSTWithMetadataQ cst =
   let cstFilter = O.keepWhen (\a -> TrackedToken.cst a O..== O.constant cst)
       limitOne = withCursor (Cursor 1 0)
-      orderDesc = withOrdering DESC (RawChange.blockNumber . snd)
+      orderDesc = withOrdering DESC (RawChange.blockNumber . snd) (RawChange.logIndex . snd)
    in limitOne $
         orderDesc $
           withMetadata TrackedToken.eventID $

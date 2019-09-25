@@ -6,13 +6,18 @@ import           Control.Error                                      (fmapL)
 import qualified Data.Aeson                                         as A
 import           Data.String.Conversions                            (cs)
 import qualified Data.Text                                          as T
+import           Data.Text.Read                                     (decimal)
 import           GHC.Generics                                       (Generic)
 import           SignalMarket.Common.Aeson                          (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes                     (EthAddress (..),
-                                                                     HexInteger,
+                                                                     HexInteger (..),
                                                                      HexString,
+                                                                     SaleID (..),
+                                                                     SaleStatus,
                                                                      TokenID (..),
+                                                                     Value (..),
                                                                      hexIntegerFromText,
+                                                                     parseHStatus,
                                                                      parseHexString)
 import           SignalMarket.Common.Models.RawChange               as RawChange
 import           SignalMarket.Common.Models.SignalTokenTrackedToken as SignalTokenTrackedToken
@@ -25,17 +30,28 @@ data WithMetadata a = WithMetadata
   } deriving Generic
 
 instance A.ToJSON a => A.ToJSON (WithMetadata a) where
-    toJSON = A.genericToJSON (defaultAesonOptions "withMetadata")
+  toJSON = A.genericToJSON (defaultAesonOptions "withMetadata")
 
 instance FromHttpApiData HexString where
-    parseQueryParam = fmapL cs . parseHexString
+  parseQueryParam = fmapL cs . parseHexString
 
 deriving instance FromHttpApiData EthAddress
 
 instance FromHttpApiData HexInteger where
   parseQueryParam = fmapL cs . hexIntegerFromText
 
+instance FromHttpApiData Value where
+  parseQueryParam x = do
+    (val :: Integer, remainder) <- fmapL cs (decimal x)
+    if T.null remainder
+      then Right (fromIntegral val)
+      else Left "Malformed Number."
+
+deriving instance FromHttpApiData SaleID
 deriving instance FromHttpApiData TokenID
+
+instance FromHttpApiData SaleStatus where
+  parseQueryParam = fmapL cs . parseHStatus
 
 data BlockNumberOrdering = ASC | DESC
 
