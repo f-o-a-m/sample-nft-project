@@ -38,7 +38,7 @@ getFoamTokenTransfersH mto mfrom mlimit moffset mord = do
     let withLimitAndOffset = maybe Cat.id withCursor (Cursor <$> mlimit <*> moffset)
         toFilter = maybe Cat.id (\to -> O.keepWhen (\a -> FoamTokenTransfer.to a O..== O.constant to)) mto
         fromFilter = maybe Cat.id (\from -> O.keepWhen (\a -> FoamTokenTransfer.from a O..== O.constant from)) mfrom
-        usingOrdering = withOrdering (fromMaybe DESC mord) (RawChange.blockNumber . snd)
+        usingOrdering = withOrdering (fromMaybe DESC mord) (RawChange.blockNumber . snd) (RawChange.logIndex . snd)
     as <- runDB $ \conn -> O.runQuery conn $
       withLimitAndOffset $
         usingOrdering $

@@ -23,11 +23,11 @@ withMetadata getEventID q =
 withOrdering
   :: API.BlockNumberOrdering
   -> (a -> O.Column O.SqlNumeric)
+  -> (a -> O.Column O.SqlNumeric)
   -> O.Select a
   -> O.Select a
-withOrdering ord getBlockNumber =
+withOrdering ord getBlockNumber getLogIndex =
     let ordering = case ord of
-            API.ASC  -> O.asc getBlockNumber
-            API.DESC -> O.desc getBlockNumber
+            API.ASC  -> O.asc getBlockNumber <> O.asc getLogIndex
+            API.DESC -> O.desc getBlockNumber <> O.desc getLogIndex
     in O.orderBy ordering
-
