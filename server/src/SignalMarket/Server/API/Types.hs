@@ -6,12 +6,14 @@ import           Control.Error                        (fmapL)
 import qualified Data.Aeson                           as A
 import           Data.String.Conversions              (cs)
 import qualified Data.Text                            as T
+import           Data.Text.Read                       (decimal)
 import           GHC.Generics                         (Generic)
 import           SignalMarket.Common.Aeson            (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes       (EthAddress (..),
-                                                       HexInteger, HexString,
-                                                       SaleID (..), SaleStatus,
-                                                       TokenID (..), Value (..),
+                                                       HexInteger (..),
+                                                       HexString, SaleID (..),
+                                                       SaleStatus, TokenID (..),
+                                                       Value (..),
                                                        hexIntegerFromText,
                                                        parseHStatus,
                                                        parseHexString)
@@ -31,10 +33,16 @@ instance FromHttpApiData HexString where
 
 deriving instance FromHttpApiData EthAddress
 
+instance FromHttpApiData Value where
+  parseQueryParam x = do
+    (val, remainder) <- fmapL cs (decimal x)
+    if T.null remainder
+      then Right (Value (HexInteger val))
+      else Left "Malformed Number."
+
 instance FromHttpApiData HexInteger where
   parseQueryParam = fmapL cs . hexIntegerFromText
 
-deriving instance FromHttpApiData Value
 deriving instance FromHttpApiData SaleID
 deriving instance FromHttpApiData TokenID
 
