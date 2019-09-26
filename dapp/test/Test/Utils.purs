@@ -2,6 +2,7 @@ module Test.Utils where
 
 import Prelude
 
+import Control.Monad.Error.Class (class MonadError, throwError)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Data.Array (intercalate)
 import Data.Array.NonEmpty as NAE
@@ -11,7 +12,9 @@ import Data.Maybe (Maybe(..), fromJust)
 import Effect.Aff (Aff, Fiber, joinFiber)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Class.Console (log)
 import Effect.Class.Console as C
+import Effect.Exception (Error, error)
 import Network.Ethereum.Web3 (class KnownSize, BytesN, CallError, Change(..), DLProxy, EventAction(..), Filter, HexString, Provider, UIntN, Web3, Web3Error, embed, event, forkWeb3, fromByteString, runWeb3, uIntNFromBigNumber)
 import Network.Ethereum.Web3.Solidity (class DecodeEvent)
 import Network.Ethereum.Web3.Solidity.Sizes (S256, S32, s256, s32)
@@ -38,6 +41,28 @@ assertWeb3 provider a = liftAff $ runWeb3 provider a <#> case _ of
   Right x -> x
   Left err -> unsafeCrashWith $ "expected Right in `assertWeb3`, got error" <> show err
 
+expectWeb3
+  :: forall a.
+     Show a
+  => String
+  -> Provider
+  -> Web3 a
+  -> Aff a
+expectWeb3 dbgMsg provider action = do
+  res <- runWeb3 provider action
+  log $ dbgMsg <> ", result: " <> show res
+  expectRight res
+
+expectRight
+  :: forall a m b.
+     MonadError Error m
+  => Show a
+  => Either a b
+  -> m b
+expectRight = case _ of
+  Left l -> throwError $ error $ "Expected Right but got (Left " <> show l <>")"
+  Right r -> pure r
+  
 assertStorageCall
   :: forall m a.
      MonadAff m
