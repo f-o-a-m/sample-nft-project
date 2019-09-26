@@ -2,7 +2,7 @@ module App.Data.User
   ( User(..)
   ) where
 
-import App.Ethereum.Provider (ConnectedState)
+import App.Data.ProviderState (ConnectedState)
 
 data User
   = UserGuest

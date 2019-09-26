@@ -13,6 +13,11 @@ import           SignalMarket.Common.Config.Utils     (makeConfig,
 import           SignalMarket.Server.Config           (mkAppConfig)
 import           SignalMarket.Server.Server           (mkApplication)
 import           System.IO                            (stdout)
+import           Network.Wai.Middleware.Cors          (cors, corsMethods,
+                                                       corsRequestHeaders,
+                                                       simpleCorsResourcePolicy,
+                                                       simpleHeaders,
+                                                       simpleMethods)
 
 -- For logging setup, see
 -- https://github.com/Soostone/katip/blob/master/katip/examples/example_lens.hs
@@ -31,4 +36,8 @@ runServer = do
     addMiddleware = appEndo . mconcat . map Endo $
       [ logStdoutDev
       , gzip def
+      , cors (const $ Just $ simpleCorsResourcePolicy
+          { corsRequestHeaders = "Authorization" : simpleHeaders
+          , corsMethods = "DELETE" : simpleMethods
+          }) -- cors policy
       ]

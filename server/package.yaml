@@ -36,6 +36,7 @@ dependencies:
 - text
 - wai
 - wai-extra
+- wai-cors
 - warp
 - web3
 

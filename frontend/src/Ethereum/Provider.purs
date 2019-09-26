@@ -1,134 +1,123 @@
 module App.Ethereum.Provider
-  ( State(..)
-  , partialStateEq
-  , Network
-  , NotConnectedState
-  , ConnectedState
-  , viewConnectedState
-  , getEnabledEthereumProviderState
+  ( getLegacyProvider
+  , getEthereumProvider
+  , enable
+  , Provider'
+  , kind ApprovalState
+  , toWeb3Provider
+  , Enabled
+  , Unknown
+  , live
+  , Connectivity(..)
   ) where
 
 
 
 import Prelude
 
+import App.Data.Contracts (NetworkId(..))
 import App.Error (printWeb3Error)
+import Control.Apply (lift2)
+import Control.Lazy (fix)
 import Data.Array ((!!))
 import Data.Either (Either(..))
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Eq (genericEq)
+import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), fst)
 import Effect (Effect)
-import Effect.Aff (Milliseconds, delay, launchAff_, parallel, sequential, try)
+import Effect.Aff (Aff, Fiber, Milliseconds, delay, launchAff, launchAff_, parallel, sequential, try)
 import Effect.Aff.AVar.RW as AVar
 import Effect.Aff.BRef (BRefR)
 import Effect.Aff.BRef as BRef
 import Effect.Class (liftEffect)
 import Effect.Console (log)
-import Effect.Exception (Error, catchException)
-import Effect.Uncurried (EffectFn1, EffectFn4, mkEffectFn1, runEffectFn4)
+import Effect.Exception (Error)
+import Effect.Exception as Exception
+import Effect.Uncurried (EffectFn1, EffectFn2, EffectFn3, mkEffectFn1, runEffectFn2, runEffectFn3)
 import Network.Ethereum.Web3 (Address, Provider, metamaskProvider, runWeb3)
 import Network.Ethereum.Web3.Api (eth_getAccounts, net_version)
 
 
--- | Initially state can be `NotInjected`or `PendingApproval`, for legacy
--- | providers it would be `Loading`.
--- |
--- | All possible state transitions:
--- | * PendingApproval -> Rejected err || Loading
--- | * Loading -> Connected a || NotConnected b
--- | * NotConnected a -> NotConnected b || Connected c
--- | * Connected a -> Connected b || NotConnected c
--- |
--- | `NotInjected` and `Rejected err` are terminal states.
-data State
-  = NotInjected
-  | PendingApproval
-  | Rejected Error
-  | Loading
-  | Connected (ConnectedState)
-  | NotConnected (NotConnectedState)
-type Network = String
-type ConnectedState = { userAddress :: Address, provider :: Provider }
-type NotConnectedState = { currentNetwork :: Network, userAddress :: Maybe Address }
+data Connectivity
+  = Loading
+  | Connected { userAddress :: Address }
+  | NotConnected { currentNetwork :: NetworkId, userAddress :: Maybe Address }
+
+derive instance genericConnectivity :: Generic Connectivity _
+instance eqConnectivity :: Eq Connectivity where eq = genericEq
+instance showConnectivity :: Show Connectivity where show = genericShow
+
+foreign import kind ApprovalState
+foreign import data Enabled :: ApprovalState
+foreign import data Unknown :: ApprovalState
+newtype Provider' (st :: ApprovalState) = Provider' Provider
+
+toWeb3Provider :: forall x. Provider' x -> Provider
+toWeb3Provider (Provider' p) = p
 
 
-partialStateEq :: State -> State -> Boolean
-partialStateEq a b = case a, b of
-  NotInjected, NotInjected -> true
-  NotInjected, _ -> false
-  Rejected _, Rejected _ -> true
-  Rejected _, _ -> false
-  PendingApproval, PendingApproval -> true
-  PendingApproval, _ -> false
-  Loading, Loading -> true
-  Loading, _ -> false
-  Connected s, Connected s' -> s.userAddress == s'.userAddress
-  Connected s, _ -> false
-  NotConnected s, NotConnected s' -> s' == s
-  NotConnected s, _ -> false
-
-viewConnectedState :: State -> Maybe ConnectedState
-viewConnectedState (Connected s) = Just s
-viewConnectedState _ = Nothing
-
--- https://medium.com/metamask/https-medium-com-metamask-breaking-change-injecting-web3-7722797916a8
-getEnabledEthereumProviderState
-  ::
-    { expectedNetwork :: String
-    , reconnectionDelay :: Milliseconds
-    }
-  -> Effect (BRefR State)
-getEnabledEthereumProviderState {expectedNetwork, reconnectionDelay} = do
+enable :: Provider' Unknown -> Aff (Maybe (Provider' Enabled))
+enable provider = do
   Tuple accountVarR accountVarW <- AVar.split <$> AVar.empty
-  runEffectFn4 getEnabledEthereumProvider_
-    Just
-    Nothing
+  liftEffect $ runEffectFn3 enable_
+    provider
     (mkEffectFn1 $ launchAff_ <<< flip AVar.put accountVarW)
     (mkEffectFn1 $ launchAff_ <<< flip AVar.kill accountVarW)
-    >>= case _ of
-      Nothing -> catchException (const $ pure Nothing) (Just <$> metamaskProvider) >>= case _ of
-        Just provider -> do
-          stateBRef <- BRef.make Loading
-          launchAff_ $ connectionLoop provider stateBRef
-          pure $ fst $ BRef.split $ stateBRef
-        Nothing -> do
-          stateBRef <- BRef.make NotInjected
-          pure $ fst $ BRef.split $ stateBRef
-      Just provider -> do
-        stateBRef <- BRef.make PendingApproval
-        launchAff_ $ try (AVar.read accountVarR) >>= case _ of
-          Left err ->
-            Rejected err `BRef.write` stateBRef
-          Right _ -> do
-            Loading `BRef.write` stateBRef
-            connectionLoop provider stateBRef
-        pure $ fst $ BRef.split $ stateBRef
-  where
-    connectionLoop provider stateBRef = do
-      currentState <- liftEffect $ BRef.read stateBRef
-      runWeb3 provider loadNetworkAndUserAddress >>= case _ of
-        Left err ->
-          -- NOTE, if something goes wrong we ignore it, as it would be handled in some other place.
-          liftEffect $ log $ "error during loadNetworkAndUserAddress: " <> printWeb3Error err
-        Right (Tuple currentNetwork mbUserAddress) ->
-          let
-            newSt = case mbUserAddress of
-              Nothing -> NotConnected { currentNetwork, userAddress: Nothing }
-              Just userAddress
-                | expectedNetwork == currentNetwork -> Connected { userAddress, provider }
-                | otherwise -> NotConnected { currentNetwork, userAddress: Just userAddress }
-          in unless (currentState `partialStateEq` newSt) $ newSt `BRef.write` stateBRef
-      delay $ reconnectionDelay
-      connectionLoop provider stateBRef
+  try (AVar.read accountVarR) >>= case _ of
+    Left err ->
+      pure Nothing
+    Right _ -> do
+      pure $ Just $ Provider' $ toWeb3Provider provider
 
-    loadNetworkAndUserAddress = sequential $ Tuple
-      <$> parallel net_version
-      <*> parallel (eth_getAccounts <#> (_ !! 0))
+getEthereumProvider :: Effect (Maybe (Provider' Unknown))
+getEthereumProvider = do
+  provider <- runEffectFn2 getEthereumProvider_ Just Nothing
+  pure $ map Provider' provider
 
-foreign import getEnabledEthereumProvider_ :: forall res. EffectFn4
+getLegacyProvider :: Effect (Maybe (Provider' Enabled))
+getLegacyProvider = Exception.try metamaskProvider >>= case _ of
+  Left err -> pure Nothing
+  Right provider -> pure $ Just $ Provider' provider
+
+
+live ::
+  { expectedNetwork :: NetworkId
+  , reconnectionDelay :: Milliseconds
+  , provider :: Provider' Enabled
+  }
+  -> Effect (Tuple (BRefR Connectivity) (Fiber Void))
+live opts= do
+  stateBRef <- BRef.make Loading
+  fib <- launchAff $ fix \loop -> do
+    currentState <- liftEffect $ BRef.read stateBRef
+    res <- runWeb3 (toWeb3Provider opts.provider) $ sequential $ lift2 Tuple 
+      (parallel $ net_version <#> NetworkId)
+      (parallel $ eth_getAccounts <#> (_ !! 0))
+    case res of
+      Left err ->
+        -- NOTE, if something goes wrong we ignore it, as it would be handled in some other place.
+        liftEffect $ log $ "error during loadNetworkAndUserAddress: " <> printWeb3Error err
+      Right (Tuple currentNetwork mbUserAddress) ->
+        let
+          newSt = case mbUserAddress of
+            Nothing -> NotConnected { currentNetwork, userAddress: Nothing }
+            Just userAddress
+              | opts.expectedNetwork == currentNetwork -> Connected { userAddress }
+              | otherwise -> NotConnected { currentNetwork, userAddress: Just userAddress }
+        in unless (currentState == newSt) $ newSt `BRef.write` stateBRef
+    delay $ opts.reconnectionDelay
+    loop
+  pure $ Tuple (fst $ BRef.split $ stateBRef) fib
+
+foreign import getEthereumProvider_ :: forall res. EffectFn2
   (Provider -> res)
   res
-  (EffectFn1 (Array Address) Unit)
-  (EffectFn1 Error Unit)
   res
 
+foreign import enable_ :: EffectFn3
+  (Provider' Unknown)
+  (EffectFn1 (Array Address) Unit)
+  (EffectFn1 Error Unit)
+  Unit

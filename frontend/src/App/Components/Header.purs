@@ -2,16 +2,17 @@ module App.Components.Header where
 
 import Prelude
 
-import App.Config (config)
+import App.Data.Contracts (Contracts(..))
+import App.Data.ProviderState (ConnectedState)
+import App.Data.ProviderState as ProviderState
 import App.Data.Token (Token(..))
 import App.Error (printCallError, printWeb3Error)
-import App.Ethereum.Provider (ConnectedState, partialStateEq, viewConnectedState)
-import App.Ethereum.Provider as Provider
 import Contracts.FoamToken as FoamToken
 import Control.Lazy (fix)
 import Data.Either (Either(..), either)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
+import Data.Newtype (un)
 import Effect.Aff (Aff, Fiber, error, killFiber, launchAff, launchAff_)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
@@ -27,7 +28,7 @@ component :: React.Component Props
 component = React.createComponent "Header"
 
 type Props =
-  { providerState :: Provider.State
+  { providerState :: ProviderState.State
   }
 
 type State = 
@@ -38,7 +39,7 @@ type Self = React.Self Props State
 
 reloadUserBalance :: Self -> ConnectedState -> Aff Unit
 reloadUserBalance self con = fix \loop -> do
-  res <- runWeb3 con.provider $ FoamToken.balanceOf (txTo config.foamTokenAddress) Latest {_owner: con.userAddress}
+  res <- runWeb3 con.provider $ FoamToken.balanceOf (txTo (un Contracts con.contracts).foamToken ) Latest {_owner: con.userAddress}
   case res of
     Left web3Err -> log (printWeb3Error web3Err) *> loop
     Right (Left callError) -> log (printCallError callError) *> loop
@@ -47,8 +48,8 @@ reloadUserBalance self con = fix \loop -> do
 pullUserBalance :: Self -> ConnectedState -> Aff Void
 pullUserBalance self con = fix \loop -> do
   res <- runWeb3 con.provider
-    $ event (eventFilter Proxy config.foamTokenAddress)
-    $ \(FoamToken.Transfer {from, to}) -> do
+    $ event (eventFilter Proxy (un Contracts con.contracts).foamToken )
+    $ \t@(FoamToken.Transfer {from, to}) -> do
       when (con.userAddress == from || con.userAddress == to) do
         liftAff $ reloadUserBalance self con
       pure ContinueEvent
@@ -64,11 +65,11 @@ header = React.make component
   }
   where
     didUpdate self {prevProps} = do
-      let providerStateWasChanged = not partialStateEq self.props.providerState prevProps.providerState
+      let providerStateWasChanged = not ProviderState.partialEq self.props.providerState prevProps.providerState
       when (providerStateWasChanged) $ do
-        for_ self.state.loadingFiber $ killFiber (error "Provider state has changed") >>> launchAff_
-        for_ (viewConnectedState self.props.providerState) \con -> do
-          fib <- launchAff $ (reloadUserBalance *> pullUserBalance) self con
+        for_ (ProviderState.viewConnectedState self.props.providerState) \con -> do
+          for_ self.state.loadingFiber $ killFiber (error "Provider state has changed") >>> launchAff_
+          fib <- launchAff (reloadUserBalance self con *> pullUserBalance self con)
           self.setState _ {loadingFiber = Just fib}
 
     willUnmount self = do
@@ -81,12 +82,11 @@ header = React.make component
       [ R.text "header"
       , R.br {}
       , R.text case props.providerState of
-          Provider.NotInjected -> "NotInjected"
-          Provider.PendingApproval -> "PendingApproval"
-          Provider.Rejected _ -> "Rejected"
-          Provider.Loading -> "Loading"
-          Provider.Connected {userAddress} -> "Connected " <> show {userAddress}
-          Provider.NotConnected {userAddress, currentNetwork} -> "NotConnected " <> show {userAddress, currentNetwork}
+          ProviderState.Unknown -> "Unknown"
+          ProviderState.NotInjected -> "NotInjected"
+          ProviderState.Injected -> "Injected"
+          ProviderState.Rejected _ -> "Rejected"
+          ProviderState.Enabled c _ _ -> "Enabled " <> show c
       , R.br {}
       , R.text $ "balance:" <> show state.balance
       ]

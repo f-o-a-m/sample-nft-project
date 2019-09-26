@@ -13,6 +13,9 @@ ABIS_DIR ?= build
 # default is cliquebait
 NODE_URL = http://localhost:8545
 SERVER_PORT = 9000
+SERVER_BASE_HOST ?= localhost
+SERVER_BASE_URL ?= //$(SERVER_BASE_HOST)
+API_BASE_URL ?= $(SERVER_BASE_URL):$(SERVER_PORT)/
 
 PG_BASE_DATABASE ?= postgres 
 PGDATABASE ?= signal_market
