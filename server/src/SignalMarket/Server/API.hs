@@ -2,6 +2,7 @@ module SignalMarket.Server.API
  ( API
  , api
  , FoamTokenAPI
+ , SignalAPI
  , SignalTokenAPI
  , SignalMarketAPI
  , ConfigAPI
@@ -9,8 +10,8 @@ module SignalMarket.Server.API
 
 import           Data.Proxy
 import           Servant
-import           SignalMarket.Common.EventTypes                       (EthAddress,
-                                                                       HexString,
+import           SignalMarket.Common.EventTypes                       (ByteNValue,
+                                                                       EthAddress,
                                                                        SaleID,
                                                                        SaleStatus,
                                                                        TokenID,
@@ -25,6 +26,7 @@ import           SignalMarket.Server.Config                           (Contracts
 type API =
        ConfigAPI
   :<|> FoamTokenAPI
+  :<|> SignalAPI
   :<|> SignalTokenAPI
   :<|> SignalMarketAPI
 
@@ -63,12 +65,29 @@ type GetFoamTokenTransfers =
 -- /signal
 --------------------------------------------------------------------------------
 
-type SignalTokenAPI =
+type SignalAPI =
      "signal"
-  :> (GetSignalTokenTransfers :<|> GetSignalTokenByID :<|> GetSignalTokenByCST)
+  :> (GetSignalTokenByID :<|> GetSignalTokenByCST)
+
+type GetSignalTokenByID =
+      "id"
+  :> Capture "token_id" TokenID
+  :> Get '[JSON] APISignal
+
+type GetSignalTokenByCST =
+      "cst"
+  :> Capture "cst" ByteNValue
+  :> Get '[JSON] APISignal
+
+--------------------------------------------------------------------------------
+-- /signal/transfers
+--------------------------------------------------------------------------------
+
+type SignalTokenAPI = GetSignalTokenTransfers
 
 type GetSignalTokenTransfers =
-      "transfers"
+    "signal"
+  :> "transfers"
   :> QueryParam "to" EthAddress
   :> QueryParam "from" EthAddress
   :> QueryParam "token_id" TokenID
@@ -76,16 +95,6 @@ type GetSignalTokenTransfers =
   :> QueryParam "offset" Int
   :> QueryParam "ordering" BlockNumberOrdering
   :> Get '[JSON] [WithMetadata SignalTokenTransfer.Transfer]
-
-type GetSignalTokenByID =
-      "id"
-  :> Capture "token_id" TokenID
-  :> Get '[JSON] ApiSignal
-
-type GetSignalTokenByCST =
-      "cst"
-  :> Capture "cst" HexString
-  :> Get '[JSON] ApiSignal
 
 --------------------------------------------------------------------------------
 -- /signal_market

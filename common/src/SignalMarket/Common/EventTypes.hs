@@ -147,6 +147,8 @@ instance D.Default ToFields ByteNValue (Column SqlText) where
 _HexBytesN :: (KnownNat n, n <= 32) => Iso' (BytesN n) ByteNValue
 _HexBytesN = iso (ByteNValue . view _HexString . Hx.fromBytes) (\(ByteNValue bs) -> bs ^. from _HexString . to Hx.toBytes . to unsafeSizedByteArray)
 
+displayByteNValue :: ByteNValue -> Text
+displayByteNValue (ByteNValue v) = displayHexString v
 
 --------------------------------------------------------------------------------
 

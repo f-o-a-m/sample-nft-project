@@ -1,6 +1,9 @@
 CREATE TABLE "signals"
   ( "token_id" text NOT NULL PRIMARY KEY
   , "owner" text NOT NULL
+  , "cst" text
+  , "geohash" text
+  , "radius" numeric
   , "amount_staked" numeric
   , "tokens_staked" text REFERENCES "signal_token_tokens_staked" ("event_id")
   , "tokens_unstaked" text REFERENCES "signal_token_tokens_unstaked" ("event_id")

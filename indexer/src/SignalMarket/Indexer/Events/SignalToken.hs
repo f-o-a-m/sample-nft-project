@@ -43,7 +43,10 @@ signalTokenTransferH Event{eventEventID, eventData} =
             insert Signal.signalsTable $ Signal.Signal
               { Signal.tokenID = tokenID
               , Signal.owner = newTokenOwner
-              , Signal.amountStaked = 0 :: Value -- gets filled in by TokensStaked event
+              , Signal.amountStaked = Nothing :: Maybe Value -- gets filled in by TokensStaked event
+              , Signal.cst = Nothing :: Maybe ByteNValue
+              , Signal.geohash = Nothing :: Maybe ByteNValue
+              , Signal.radius = Nothing :: Maybe Value
               , Signal.trackedTokenEID = Nothing :: Maybe EventID
               , Signal.tokensStakedEID = Nothing :: Maybe EventID
               , Signal.tokensUnstakedEID = Nothing :: Maybe EventID
@@ -52,7 +55,7 @@ signalTokenTransferH Event{eventEventID, eventData} =
               }
           else do
             let updateSignalOwner s = s { Signal.owner = constant newTokenOwner }
-                isTargetSignalID s  = Signal.tokenID s .== constant tokenID
+                isTargetSignalID  s = Signal.tokenID s .== constant tokenID
             _ :: Signal.Signal <- update Signal.signalsTable updateSignalOwner isTargetSignalID
             pure ()
 
@@ -68,17 +71,24 @@ signalTokenTrackedTokenH Event{eventEventID, eventData} =
       case eventData of
         Contract.TrackedToken{..} -> do
           let tokenID = trackedTokenTokenID_ ^. _TokenID
-              setSignalTrackedTokenEID s = s { Signal.trackedTokenEID = constant (Just eventEventID) }
+              cst     = trackedTokenCst_ ^. _HexBytesN
+              geohash = trackedTokenGeohash_ ^. _HexBytesN
+              radius  = trackedTokenRadius_ ^. _Value
+              updateSignal s = s { Signal.trackedTokenEID = constant (Just eventEventID)
+                                 , Signal.cst = constant (Just cst)
+                                 , Signal.geohash = constant (Just geohash)
+                                 , Signal.radius = constant (Just radius)
+                                 }
               isTargetSignalID s = Signal.tokenID s .== constant tokenID
           insert TrackedToken.trackedTokenTable $ TrackedToken.TrackedToken
             { TrackedToken.nftAddress = trackedTokenNftAddress_ ^. _EthAddress
-            , TrackedToken.cst = trackedTokenCst_ ^. _HexBytesN
-            , TrackedToken.geohash = trackedTokenGeohash_ ^. _HexBytesN
-            , TrackedToken.radius = trackedTokenRadius_ ^. _Value
+            , TrackedToken.cst = cst
+            , TrackedToken.geohash = geohash
+            , TrackedToken.radius = radius
             , TrackedToken.tokenID = tokenID
             , TrackedToken.eventID = eventEventID
             }
-          _ :: Signal.Signal <- update Signal.signalsTable setSignalTrackedTokenEID isTargetSignalID
+          _ :: Signal.Signal <- update Signal.signalsTable updateSignal isTargetSignalID
           pure ()
 
 signalTokenTokensStakedH
@@ -94,7 +104,7 @@ signalTokenTokensStakedH Event{eventEventID, eventData} =
         Contract.TokensStaked{..} -> do
           let tokenID = tokensStakedTokenID_ ^. _TokenID
               stakeAmount = tokensStakedTokensStaked_ ^. _Value
-              updateSignal s = s { Signal.tokensStakedEID = constant (Just eventEventID), Signal.amountStaked = constant stakeAmount }
+              updateSignal s = s { Signal.tokensStakedEID = constant (Just eventEventID), Signal.amountStaked = constant (Just stakeAmount) }
               isTargetSignalID s = Signal.tokenID s .== constant tokenID
           insert TokensStaked.tokensStakedTable $ TokensStaked.TokensStaked
             { TokensStaked.tokenID = tokenID
@@ -118,7 +128,7 @@ signalTokenTokensUnstakedH Event{eventEventID, eventData} =
       case eventData of
         Contract.TokensUnstaked{..} -> do
           let tokenID = tokensUnstakedTokenID_ ^. _TokenID
-              updateSignal s = s { Signal.tokensUnstakedEID = constant (Just eventEventID), Signal.amountStaked = constant (0 :: Value) }
+              updateSignal s = s { Signal.tokensUnstakedEID = constant (Just eventEventID), Signal.amountStaked = constant (Just 0 :: Maybe Value) }
               isTargetSignalID s = Signal.tokenID s .== constant tokenID
           insert TokensUnstaked.tokensUnstakedTable $ TokensUnstaked.TokensUnstaked
             { TokensUnstaked.tokenID = tokenID
