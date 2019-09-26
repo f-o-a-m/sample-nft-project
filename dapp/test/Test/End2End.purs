@@ -10,23 +10,18 @@ import Data.EitherR (fmapL)
 import Data.HTTP.Method (Method(..))
 import Data.Maybe (fromMaybe)
 import Effect.Aff (Aff, error, throwError)
+import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Network.Ethereum.Web3 (Address, Provider, httpProvider)
+import Network.Ethereum.Web3.Api (eth_getAccounts, net_version)
 import Node.Process as NP
--- import Effect.Class.Console (log)
+import Test.Utils (expectWeb3)
 
 data Protocol = HTTP | HTTPS
 
 newtype BaseURL = BaseURL String
 
 type ApiSettings = { protocol :: Protocol, baseURL :: BaseURL }
-
--- unProtocol :: Protocol -> String
--- unProtocol HTTP = "http"
--- unProtocol HTTPS = "https"
-
--- mkApiURL :: ApiSettings -> String
--- mkApiURL {protocol, baseURL: (BaseURL url)} = unProtocol protocol <> ":" <> url
 
 newtype Contracts = Contracts
   { foamToken :: Address
@@ -47,11 +42,14 @@ instance decodeJsonContracts :: DecodeJson Contracts where
 
     pure $ Contracts { foamToken, signalToken, signalMarket }
 
+newtype NetworkId = NetworkId String
+
 type End2EndConfig =
   { provider :: Provider
   , apiSettings :: ApiSettings
   , contractAddresses :: Contracts
-  -- , networkId :: Foam.NetworkId
+  , networkId :: NetworkId
+  , accounts :: Array Address
   }
 
 getContractAddresses :: BaseURL -> Aff Contracts
@@ -72,11 +70,11 @@ mkEnd2EndConfig = do
     url <- fromMaybe "http://localhost:8545" <$> NP.lookupEnv "NODE_URL"
     httpProvider url
   baseURL <- liftEffect $ fromMaybe "http://localhost:9000" <$> NP.lookupEnv "BASE_URL"
-  -- @TODO: find out what `expectWeb3` is
-  -- accountsAll <- liftAff $ expectWeb3 "eth_getAccounts" provider eth_getAccounts
-  -- nId <- liftAff $ expectWeb3 "net_version" provider net_version
+  accounts <- liftAff $ expectWeb3 "eth_getAccounts" provider eth_getAccounts
+  nId <- liftAff $ expectWeb3 "net_version" provider net_version
   let apiSettings = { protocol: HTTP
                     , baseURL: BaseURL baseURL
                     }
+      networkId = NetworkId nId
   contractAddresses <- getContractAddresses apiSettings.baseURL
-  pure { provider, apiSettings, contractAddresses }
+  pure { provider, apiSettings, contractAddresses, networkId, accounts }
