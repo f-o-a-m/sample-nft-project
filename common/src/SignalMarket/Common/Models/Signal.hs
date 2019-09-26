@@ -15,9 +15,10 @@ import           SignalMarket.Common.EventTypes (ByteNValue, EthAddress,
 
 -- Signal cache table, for easily figuring out the owner and stake of a signal
 
-data Signal' tokenID owner cst geohash radius amountStaked tokensStakedEID tokensUnstakedEID trackedTokenEID lastTransferEID mintingTransferEID = Signal
+data Signal' tokenID owner creator cst geohash radius amountStaked tokensStakedEID tokensUnstakedEID trackedTokenEID lastTransferEID mintingTransferEID = Signal
   { tokenID            :: tokenID
   , owner              :: owner
+  , creator            :: creator
   , cst                :: cst
   , geohash            :: geohash
   , radius             :: radius
@@ -30,14 +31,15 @@ data Signal' tokenID owner cst geohash radius amountStaked tokensStakedEID token
   } deriving Generic
 
 $(makeAdaptorAndInstance "pSignal" ''Signal')
---                       tokenID            owner           cst                     geohash                 radius                     amountStaked               tokensStakedEID        tokensUnstakedEID        trackedTokenEID         lastTransferEID  mintingTransferEID
-type SignalPG = Signal' (Field SqlNumeric) (Field SqlText) (FieldNullable SqlText) (FieldNullable SqlText) (FieldNullable SqlNumeric) (FieldNullable SqlNumeric) (FieldNullable SqlText) (FieldNullable SqlText) (FieldNullable SqlText) (Field SqlText)  (Field SqlText)
-type Signal   = Signal'  TokenID            EthAddress      (Maybe ByteNValue)      (Maybe ByteNValue)      (Maybe Value)              (Maybe Value)              (Maybe EventID)         (Maybe EventID)         (Maybe EventID)         EventID          EventID
+--                       tokenID            owner           creator         cst                     geohash                 radius                     amountStaked               tokensStakedEID        tokensUnstakedEID        trackedTokenEID         lastTransferEID  mintingTransferEID
+type SignalPG = Signal' (Field SqlNumeric) (Field SqlText) (Field SqlText) (FieldNullable SqlText) (FieldNullable SqlText) (FieldNullable SqlNumeric) (FieldNullable SqlNumeric) (FieldNullable SqlText) (FieldNullable SqlText) (FieldNullable SqlText) (Field SqlText)  (Field SqlText)
+type Signal   = Signal'  TokenID            EthAddress      EthAddress      (Maybe ByteNValue)      (Maybe ByteNValue)      (Maybe Value)              (Maybe Value)              (Maybe EventID)         (Maybe EventID)         (Maybe EventID)         EventID          EventID
 
 signalsTable :: Table SignalPG SignalPG
 signalsTable = table "signals"
                        (pSignal Signal { tokenID            = tableField "token_id"
                                        , owner              = tableField "owner"
+                                       , creator            = tableField "creator"
                                        , cst                = tableField "cst"
                                        , geohash            = tableField "geohash"
                                        , radius             = tableField "radius"

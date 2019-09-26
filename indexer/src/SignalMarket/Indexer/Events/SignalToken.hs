@@ -43,6 +43,7 @@ signalTokenTransferH Event{eventEventID, eventData} =
             insert Signal.signalsTable $ Signal.Signal
               { Signal.tokenID = tokenID
               , Signal.owner = newTokenOwner
+              , Signal.creator = newTokenOwner
               , Signal.amountStaked = Nothing :: Maybe Value -- gets filled in by TokensStaked event
               , Signal.cst = Nothing :: Maybe ByteNValue
               , Signal.geohash = Nothing :: Maybe ByteNValue

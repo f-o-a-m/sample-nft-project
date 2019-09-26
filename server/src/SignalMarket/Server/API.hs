@@ -67,17 +67,27 @@ type GetFoamTokenTransfers =
 
 type SignalAPI =
      "signal"
-  :> (GetSignalTokenByID :<|> GetSignalTokenByCST)
+  :> (GetSignalByID :<|> GetSignalByCST :<|> GetSignalsByOwner :<|> GetSignalsByCreator)
 
-type GetSignalTokenByID =
+type GetSignalByID =
       "id"
   :> Capture "token_id" TokenID
   :> Get '[JSON] APISignal
 
-type GetSignalTokenByCST =
+type GetSignalByCST =
       "cst"
   :> Capture "cst" ByteNValue
   :> Get '[JSON] APISignal
+
+type GetSignalsByOwner =
+    "owned-by"
+  :> Capture "address" EthAddress
+  :> Get '[JSON] [APISignal]
+
+type GetSignalsByCreator =
+    "created-by"
+  :> Capture "address" EthAddress
+  :> Get '[JSON] [APISignal]
 
 --------------------------------------------------------------------------------
 -- /signal/transfers

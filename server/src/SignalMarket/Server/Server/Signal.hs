@@ -8,6 +8,7 @@ import           Servant                                              ((:<|>) (.
 import           Servant.Server
 import           SignalMarket.Common.Class                            (runDB)
 import           SignalMarket.Common.EventTypes                       (ByteNValue,
+                                                                       EthAddress,
                                                                        EventID,
                                                                        TokenID (..),
                                                                        displayByteNValue,
@@ -21,12 +22,14 @@ import           SignalMarket.Server.Application                      (AppHandle
 import           SignalMarket.Server.Queries.Combinators              (withMetadata)
 import           SignalMarket.Server.Queries.Signal                   (hydratedSignalQ,
                                                                        signalByCSTQ,
-                                                                       signalByTokenIDQ)
+                                                                       signalByTokenIDQ,
+                                                                       signalsByCreatorQ,
+                                                                       signalsByOwnerQ)
 import           SignalMarket.Server.Queries.SignalToken              (signalTokenTokensUnstakedByEIDQ)
 
 
 signalServer :: ServerT SignalAPI AppHandler
-signalServer = getSignalByIDH :<|> getSignalByCSTH
+signalServer = getSignalByIDH :<|> getSignalByCSTH :<|> getSignalsByOwnerH :<|> getSignalsByCreatorH
 
 getSignalInternal
   :: O.Select Signal.SignalPG -- ^ Query that finds the desired signals
@@ -40,6 +43,7 @@ getSignalInternal query = do
   for rets $ \(signal, trackedToken, tokensStaked, lastTransfer, mintingTransfer) -> do
       let tokenID'   = Signal.tokenID signal
           owner'     = Signal.owner signal
+          creator'   = Signal.creator signal
 
           -- these are here to provide hints to the typechecker as these fields are otherwise never used directly.
           _lastTransferEID :: EventID = Signal.lastTransferEID signal
@@ -63,6 +67,7 @@ getSignalInternal query = do
               _    -> throwError moreThanOneUnstake
       pure $ APISignal { tokenID              = tokenID'
                        , owner                = owner'
+                       , creator              = creator'
                        , cst                  = cst'
                        , geohash              = geohash'
                        , radius               = radius'
@@ -97,3 +102,17 @@ getSignalByCSTH cst = do
     [signal] -> pure signal
     [] -> throwError $ err404 { errBody = cs ("No signal with CST " ++ cs (displayByteNValue cst) ++ " found!") }
     _  -> throwError $ err500 { errBody = cs ("The impossible happened! More than one signal with token ID " ++ cs (displayByteNValue cst) ++ " was found!") }
+
+getSignalsByOwnerH
+  :: EthAddress
+  -- ^ Address of owner
+  -> AppHandler [APISignal]
+  -- ^ Servant handler which returns fully hydrated signals owned by specified address
+getSignalsByOwnerH owner = getSignalInternal (signalsByOwnerQ owner)
+
+getSignalsByCreatorH
+  :: EthAddress
+  -- ^ Address of owner
+  -> AppHandler [APISignal]
+  -- ^ Servant handler which returns fully hydrated signals owned by specified address
+getSignalsByCreatorH creator = getSignalInternal (signalsByCreatorQ creator)

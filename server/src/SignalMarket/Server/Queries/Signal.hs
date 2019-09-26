@@ -5,6 +5,7 @@ import           Control.Arrow                                      (returnA,
                                                                      (>>>))
 import qualified Opaleye                                            as O
 import           SignalMarket.Common.EventTypes                     (ByteNValue,
+                                                                     EthAddress,
                                                                      TokenID)
 import qualified SignalMarket.Common.Models.Signal                  as Signal
 import qualified SignalMarket.Common.Models.SignalTokenTokensStaked as TokensStaked
@@ -29,6 +30,16 @@ signalByCSTQ cst =
   let tokenIDFilter = O.keepWhen (\a -> Signal.cst a O..== O.constant (Just cst))
       limitOne = withCursor (Cursor 1 0)
    in limitOne $ signalQ >>> tokenIDFilter
+
+signalsByOwnerQ :: EthAddress -> O.Select Signal.SignalPG
+signalsByOwnerQ owner =
+  let ownerFilter = O.keepWhen (\a -> Signal.owner a O..== O.constant owner)
+   in signalQ >>> ownerFilter
+
+signalsByCreatorQ :: EthAddress -> O.Select Signal.SignalPG
+signalsByCreatorQ creator =
+  let creatorFilter = O.keepWhen (\a -> Signal.creator a O..== O.constant creator)
+   in signalQ >>> creatorFilter
 
 hydratedSignalQ
   :: O.Select Signal.SignalPG                              -- ^ Given a query for a Signal

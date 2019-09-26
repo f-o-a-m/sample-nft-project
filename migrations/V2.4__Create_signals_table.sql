@@ -1,6 +1,7 @@
 CREATE TABLE "signals"
   ( "token_id" text NOT NULL PRIMARY KEY
   , "owner" text NOT NULL
+  , "creator" text NOT NULL
   , "cst" text
   , "geohash" text
   , "radius" numeric
@@ -14,4 +15,7 @@ CREATE TABLE "signals"
   , "minting_transfer" text NOT NULL REFERENCES "signal_token_transfer" ("event_id")
   );
 
+CREATE INDEX ON "signals" ("token_id");
+CREATE INDEX ON "signals" ("cst");
 CREATE INDEX ON "signals" ("owner");
+CREATE INDEX ON "signals" ("creator");
