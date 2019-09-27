@@ -23,6 +23,13 @@ import Test.Spec (ComputationType(..), SpecT, hoistSpec)
 
 type Logger m = String -> m Unit
 
+type TestEnv m =
+  { logger :: Logger m -- @NOTE: use this for proper parallel logging
+  , signalAttrGen :: m { geohash :: BytesN S32
+                       , radius :: UIntN S256
+                       }
+  }
+
 go :: SpecT (ReaderT (Logger Aff) Aff) Unit Aff ~> SpecT Aff Unit Aff
 go = hoistSpec identity \cType m ->
   let
