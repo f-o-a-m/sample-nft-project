@@ -28,7 +28,7 @@ type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Fie
 type SignalForSale = SignalForSale' SaleID TokenID Value SaleStatus EthAddress EventID
 
 signalForSaleTable :: Table SignalForSalePG SignalForSalePG
-signalForSaleTable = table "signal_for_sale"
+signalForSaleTable = table "signal_market_signal_for_sale"
                            (pSignalForSale SignalForSale { saleID = tableField "sale_id"
                                                          , tokenID = tableField "token_id"
                                                          , price = tableField "price"

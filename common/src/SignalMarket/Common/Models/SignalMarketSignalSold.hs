@@ -31,7 +31,7 @@ type SignalSoldPG = SignalSold' (Field SqlNumeric) (Field SqlNumeric) (Field Sql
 type SignalSold = SignalSold' SaleID TokenID Value EthAddress EthAddress EventID
 
 signalSoldTable :: Table SignalSoldPG SignalSoldPG
-signalSoldTable = table "signal_sold"
+signalSoldTable = table "signal_market_signal_sold"
                         (pSignalSold SignalSold { saleID = tableField "sale_id"
                                                 , tokenID = tableField "token_id"
                                                 , price = tableField "price"
