@@ -1,0 +1,2 @@
+-- The steps in the 5.x series of migrations create tables that the indexer 
+-- writes events related to indexing events emitted by the SignalToken contract.

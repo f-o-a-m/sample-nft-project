@@ -1,0 +1,14 @@
+-- This is an empty SQL migration used as a placeholder
+-- in the case that *some* schema exists in a database before
+-- flyway puts it there. This commonly happens when using
+-- the PostGIS container with -e POSTGRES_DB=foam_db, for example
+-- which adds some schema to support the PostGIS extension.
+--
+-- Flyway is cautious, and will refuse to run in that situation
+-- we can override the behavior with -baselineOnMigrate=true,
+-- which we do, but this also replaces the V1 migration with a
+-- `<<< Flyway baseline >>>`. So we make this empty migration
+-- so as to not potentially lose the "real" V1 migration.
+--
+-- Note that the "replacing V1" behavior can also be avoided
+-- with the -baselineVersion flag.

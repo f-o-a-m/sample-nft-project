@@ -1,0 +1,2 @@
+-- The steps in the 2.x series of migrations serve to initialize the SQL database
+-- with any necessary extensions, flags, etc. that everything else depends on.

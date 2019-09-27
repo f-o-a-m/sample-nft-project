@@ -1,0 +1,3 @@
+-- The steps in the 3.x series of migrations create tables that the indexer depends on
+-- regardless of what it will actually index. Namely, the "raw_change", and "checkpoint"
+-- tables.
