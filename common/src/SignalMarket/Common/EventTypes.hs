@@ -32,7 +32,7 @@ import           Opaleye.RunQuery                     (QueryRunnerColumnDefault,
                                                        fieldQueryRunnerColumn)
 
 --------------------------------------------------------------------------------
-newtype HexInteger = HexInteger Integer deriving (Eq, Show, Ord)
+newtype HexInteger = HexInteger Integer deriving (Eq, Show, Ord, Num, Enum, Real, Integral)
 
 hexIntegerToText :: HexInteger -> Text
 hexIntegerToText (HexInteger n) = TL.toStrict . (<>) "0x" . B.toLazyText $ B.hexadecimal n
@@ -62,7 +62,7 @@ _HexInteger = iso (HexInteger . toInteger) (\(HexInteger n) -> fromInteger n)
 
 --------------------------------------------------------------------------------
 
-newtype Value = Value HexInteger deriving (Eq, Show, A.ToJSON, A.FromJSON)
+newtype Value = Value HexInteger deriving (Eq, Ord, Show, Num, Enum, Real, Integral, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields Value (Column SqlNumeric) where
   def = lmap (\(Value a) -> a) D.def
@@ -75,7 +75,7 @@ instance IQ.QueryRunnerColumnDefault SqlNumeric Value where
 
 --------------------------------------------------------------------------------
 
-newtype SaleID = SaleID HexInteger deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
+newtype SaleID = SaleID HexInteger deriving (Eq, Ord, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
 
 _SaleID :: (KnownNat n, n <= 256) => Iso' (UIntN n) SaleID
 _SaleID = iso (view $ _HexInteger . to SaleID) (view $ to (\(SaleID v) -> v) . from _HexInteger)
@@ -85,7 +85,7 @@ instance D.Default ToFields SaleID (Column SqlNumeric) where
 
 --------------------------------------------------------------------------------
 
-newtype TokenID = TokenID HexInteger deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
+newtype TokenID = TokenID HexInteger deriving (Eq, Ord, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
 
 _TokenID :: (KnownNat n, n <= 256) => Iso' (UIntN n) TokenID
 _TokenID = iso (view $ _HexInteger . to TokenID) (view $ to (\(TokenID v) -> v) . from _HexInteger)
@@ -110,8 +110,11 @@ parseHexString = parse . T.toLower . trim0x
     parse txt | T.all isHexDigit txt && (T.length txt `mod` 2 == 0) = Right $ HexString txt
               | otherwise            = Left $ "Failed to parse text as HexString: " <> show txt
 
+displayHexString :: HexString -> Text
+displayHexString (HexString hex) = "0x" <> hex
+
 instance A.ToJSON HexString where
-  toJSON (HexString txt) = A.String $ "0x" <> txt
+  toJSON = A.String . displayHexString
 
 instance QueryRunnerColumnDefault SqlText HexString where
   queryRunnerColumnDefault = fromRightWithError . parseHexString <$> fieldQueryRunnerColumn @Text
@@ -129,14 +132,14 @@ _HexString = iso (HexString . Hx.toText) (\(HexString hx) -> fromString $ T.unpa
 
 --------------------------------------------------------------------------------
 
-newtype EventID = EventID HexString deriving (Eq, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+newtype EventID = EventID HexString deriving (Eq, Ord, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields EventID (Column SqlText) where
   def = lmap (\(EventID a) -> a) D.def
 
 --------------------------------------------------------------------------------
 
-newtype ByteNValue = ByteNValue HexString deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+newtype ByteNValue = ByteNValue HexString deriving (Eq, Ord, Show, IQ.QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields ByteNValue (Column SqlText) where
   def = lmap (\(ByteNValue a) -> a) D.def
@@ -144,10 +147,12 @@ instance D.Default ToFields ByteNValue (Column SqlText) where
 _HexBytesN :: (KnownNat n, n <= 32) => Iso' (BytesN n) ByteNValue
 _HexBytesN = iso (ByteNValue . view _HexString . Hx.fromBytes) (\(ByteNValue bs) -> bs ^. from _HexString . to Hx.toBytes . to unsafeSizedByteArray)
 
+displayByteNValue :: ByteNValue -> Text
+displayByteNValue (ByteNValue v) = displayHexString v
 
 --------------------------------------------------------------------------------
 
-newtype EthAddress = EthAddress HexString deriving (Eq, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+newtype EthAddress = EthAddress HexString deriving (Eq, Ord, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields EthAddress (Column SqlText) where
   def = lmap (\(EthAddress a) -> a) D.def
@@ -155,6 +160,9 @@ instance D.Default ToFields EthAddress (Column SqlText) where
 _EthAddress :: Iso' Address EthAddress
 _EthAddress = iso (EthAddress . view _HexString . toHexString)
   (\(EthAddress a) -> either error id $ fromHexString $ view (from _HexString) a)
+
+zeroAddress :: EthAddress
+zeroAddress = either (error . ("Failed to create the zero address: " ++)) id $ EthAddress <$> parseHexString "0x0000000000000000000000000000000000000000"
 
 --------------------------------------------------------------------------------
 -- the way we do enums is vendered from https://hackage.haskell.org/package/composite-opaleye-0.6.0.0/docs/Composite-Opaleye-TH.html#v:deriveOpaleyeEnum

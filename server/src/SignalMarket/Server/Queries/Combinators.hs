@@ -14,11 +14,11 @@ withCursor API.Cursor{..} =
 withMetadata
   :: (a -> O.Column O.SqlText)
   -> O.Select a
-  -> O.Select (a, RawChange.RawChangePG)
+  -> O.Select (API.WithMetadataPG a)
 withMetadata getEventID q =
     let joiner = (,)
         selector a rc = getEventID a O..== RawChange.eventID rc
-    in O.joinF joiner selector q (O.selectTable  RawChange.rawChangeTable)
+    in O.joinF joiner selector q (O.selectTable RawChange.rawChangeTable)
 
 withOrdering
   :: API.BlockNumberOrdering
