@@ -1,4 +1,4 @@
-module Test.End2End where
+module Test.End2EndConfig where
 
 import Prelude
 
@@ -12,6 +12,7 @@ import Data.Maybe (fromMaybe)
 import Effect.Aff (Aff, error, throwError)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
+import Effect.Class.Console (log)
 import Network.Ethereum.Web3 (Address, Provider, httpProvider)
 import Network.Ethereum.Web3.Api (eth_getAccounts, net_version)
 import Node.Process as NP
@@ -28,6 +29,10 @@ newtype Contracts = Contracts
   , signalToken :: Address
   , signalMarket :: Address
   }
+
+instance showContracts :: Show Contracts where
+  show (Contracts c) = show c
+
 instance decodeJsonContracts :: DecodeJson Contracts where
   decodeJson j = do
     obj <- decodeJson j
@@ -70,6 +75,7 @@ mkEnd2EndConfig = do
     url <- fromMaybe "http://localhost:8545" <$> NP.lookupEnv "NODE_URL"
     httpProvider url
   baseURL <- liftEffect $ fromMaybe "http://localhost:9000" <$> NP.lookupEnv "BASE_URL"
+  log $ "Using BASE URL: " <> show baseURL
   accounts <- liftAff $ expectWeb3 "eth_getAccounts" provider eth_getAccounts
   nId <- liftAff $ expectWeb3 "net_version" provider net_version
   let apiSettings = { protocol: HTTP
@@ -77,4 +83,5 @@ mkEnd2EndConfig = do
                     }
       networkId = NetworkId nId
   contractAddresses <- getContractAddresses apiSettings.baseURL
+  log $ "Using addresses: " <> show contractAddresses
   pure { provider, apiSettings, contractAddresses, networkId, accounts }
