@@ -95,20 +95,20 @@ type GetSignalsByCreator =
 
 type GetSignalsByFilter =
   "filtered"
-  :> QueryParam "created-by" EthAddress
-  :> QueryParam "owned-by" EthAddress
-  :> QueryParam "stake-equals" Value
-  :> QueryParam "stake-less-than" Value
-  :> QueryParam "stake-less-than-or-equals" Value
-  :> QueryParam "stake-greater-than" Value
-  :> QueryParam "stake-greater-than-or-equals" Value
-  :> QueryParam "radius-equals" Value
-  :> QueryParam "radius-less-than" Value
-  :> QueryParam "radius-less-than-or-equals" Value
-  :> QueryParam "radius-greater-than" Value
-  :> QueryParam "radius-greater-than-or-equals" Value
-  :> QueryParam "limit" Int
-  :> QueryParam "offset" Int
+  :> QueryParams "created-by" EthAddress
+  :> QueryParams "owned-by" EthAddress
+  :> QueryParams "stake-equals" Value
+  :> QueryParam  "stake-less-than" Value
+  :> QueryParam  "stake-less-than-or-equals" Value
+  :> QueryParam  "stake-greater-than" Value
+  :> QueryParam  "stake-greater-than-or-equals" Value
+  :> QueryParams "radius-equals" Value
+  :> QueryParam  "radius-less-than" Value
+  :> QueryParam  "radius-less-than-or-equals" Value
+  :> QueryParam  "radius-greater-than" Value
+  :> QueryParam  "radius-greater-than-or-equals" Value
+  :> QueryParam  "limit" Int
+  :> QueryParam  "offset" Int
   :> Get '[JSON] [APISignal]
 
 --------------------------------------------------------------------------------

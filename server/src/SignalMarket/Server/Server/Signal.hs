@@ -1,6 +1,7 @@
 module SignalMarket.Server.Server.Signal (signalServer) where
 
-import           Control.Category                                     as Cat
+import           Control.Arrow                                        ((>>>))
+import qualified Control.Category                                     as Cat
 import           Control.Monad.Except                                 (throwError)
 import           Data.Map.Strict                                      (Map)
 import qualified Data.Map.Strict                                      as Map
@@ -158,14 +159,14 @@ getSignalsByCreatorH creator mlimit moffset =
    in getSignalInternal (withLimitAndOffset $ signalsByCreatorQ creator)
 
 getSignalsByFilterH
-  :: Maybe EthAddress       -- ^ creator
-  -> Maybe EthAddress       -- ^ owner
-  -> Maybe Value            -- ^ stake-equals
+  :: [EthAddress]           -- ^ creators
+  -> [EthAddress]           -- ^ owners
+  -> [Value]                -- ^ stake-equals
   -> Maybe Value            -- ^ stake-less-than
   -> Maybe Value            -- ^ stake-less-than-or-equals
   -> Maybe Value            -- ^ stake-greater-than
   -> Maybe Value            -- ^ stake-greater-than-or-equals
-  -> Maybe Value            -- ^ radius-equals
+  -> [Value]                -- ^ radius-equals
   -> Maybe Value            -- ^ radius-less-than
   -> Maybe Value            -- ^ radius-less-than-or-equals
   -> Maybe Value            -- ^ radius-greater-than
@@ -173,16 +174,20 @@ getSignalsByFilterH
   -> Maybe Int              -- ^ limit
   -> Maybe Int              -- ^ offset
   -> AppHandler [APISignal] -- ^ Servant handler which returns fully hydrated signals matching the filter criteria
-getSignalsByFilterH mcreator mowner mstakeEQ mstakeLT mstakeLTE mstakeGT mstakeGTE mradiusEQ mradiusLT mradiusLTE mradiusGT mradiusGTE mlimit moffset =
+getSignalsByFilterH lcreators lowners lstakeEQs mstakeLT mstakeLTE mstakeGT mstakeGTE lradiusEQs mradiusLT mradiusLTE mradiusGT mradiusGTE mlimit moffset =
   let withLimitAndOffset = maybe Cat.id withCursor (Cursor <$> mlimit <*> moffset)
-      creatorFilter   = maybe Cat.id (\creator   -> O.keepWhen (\a -> Signal.creator a O..== O.constant creator)) mcreator
-      ownerFilter     = maybe Cat.id (\owner     -> O.keepWhen (\a -> Signal.owner a   O..== O.constant owner)) mowner
-      stakeEQFilter   = maybe Cat.id (\stakeEQ   -> O.keepWhen (\a -> Signal.amountStaked a O..== O.constant (Just stakeEQ))) mstakeEQ
+      optionalListFilter mkFilter list =
+        case list of
+          [] -> Cat.id
+          xs -> mkFilter xs
+      creatorFilter   = optionalListFilter (\creators -> O.keepWhen (O.in_ (O.constant <$> creators) . Signal.creator)) lcreators
+      ownerFilter     = optionalListFilter (\owners -> O.keepWhen (O.in_  (O.constant <$> owners) . Signal.owner)) lowners
+      stakeEQsFilter  = optionalListFilter (\stakes -> O.keepWhen (O.in_ (O.constant . Just <$> stakes) . Signal.amountStaked)) lstakeEQs
+      radiusEQsFilter = optionalListFilter (\radii  -> O.keepWhen (O.in_ (O.constant . Just <$> radii)  . Signal.radius)) lradiusEQs
       stakeLTFilter   = maybe Cat.id (\stakeLT   -> O.keepWhen (\a -> Signal.amountStaked a O..<  O.constant (Just stakeLT))) mstakeLT
       stakeLTEFilter  = maybe Cat.id (\stakeLTE  -> O.keepWhen (\a -> Signal.amountStaked a O..<= O.constant (Just stakeLTE))) mstakeLTE
       stakeGTFilter   = maybe Cat.id (\stakeGT   -> O.keepWhen (\a -> Signal.amountStaked a O..>  O.constant (Just stakeGT))) mstakeGT
       stakeGTEFilter  = maybe Cat.id (\stakeGTE  -> O.keepWhen (\a -> Signal.amountStaked a O..>= O.constant (Just stakeGTE))) mstakeGTE
-      radiusEQFilter  = maybe Cat.id (\radiusEQ  -> O.keepWhen (\a -> Signal.radius a O..==  O.constant (Just radiusEQ))) mradiusEQ
       radiusLTFilter  = maybe Cat.id (\radiusLT  -> O.keepWhen (\a -> Signal.radius a O..<  O.constant  (Just radiusLT))) mradiusLT
       radiusLTEFilter = maybe Cat.id (\radiusLTE -> O.keepWhen (\a -> Signal.radius a O..<= O.constant  (Just radiusLTE))) mradiusLTE
       radiusGTFilter  = maybe Cat.id (\radiusGT  -> O.keepWhen (\a -> Signal.radius a O..>  O.constant  (Just radiusGT))) mradiusGT
@@ -190,5 +195,5 @@ getSignalsByFilterH mcreator mowner mstakeEQ mstakeLT mstakeLTE mstakeGT mstakeG
    in getSignalInternal $
         withLimitAndOffset $
           signalQ >>> creatorFilter >>> ownerFilter >>>
-              stakeEQFilter  >>> stakeLTFilter  >>> stakeLTEFilter  >>> stakeGTFilter  >>> stakeGTEFilter >>>
-              radiusEQFilter >>> radiusLTFilter >>> radiusLTEFilter >>> radiusGTFilter >>> radiusGTEFilter
+              stakeEQsFilter  >>> stakeLTFilter  >>> stakeLTEFilter  >>> stakeGTFilter  >>> stakeGTEFilter >>>
+              radiusEQsFilter >>> radiusLTFilter >>> radiusLTEFilter >>> radiusGTFilter >>> radiusGTEFilter
