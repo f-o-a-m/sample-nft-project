@@ -124,7 +124,7 @@ instance QueryRunnerColumnDefault SqlText HexString where
         Right res -> res
 
 instance D.Default ToFields HexString (Column SqlText) where
-  def = lmap (\(HexString a) -> a) D.def
+  def = lmap displayHexString D.def
 
 _HexString :: Iso' Hx.HexString HexString
 _HexString = iso (HexString . Hx.toText) (\(HexString hx) -> fromString $ T.unpack hx)
