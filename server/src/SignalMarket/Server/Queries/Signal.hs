@@ -50,6 +50,9 @@ hydratedSignalQ
               , WithMetadataPG Transfer.TransferPG         -- ^ And the original minting Transfer
               )
 hydratedSignalQ getSignal =
+  -- We don't want to return signals that haven't been fully indexed, and Opaleye won't let us compare a NULLABLE field to a
+  -- non-nullable field. We also want to keep the query simple when dealing with NULL columns, so this is a hack that
+  -- tells Opaleye/PG to treat NULLs as a string which can never be an event ID, thereby making the column never match.
   let deNull = O.fromNullable (O.sqlString "_impossible_event_id_")
    in proc () -> do
         signal <- getSignal -< ()
