@@ -67,7 +67,7 @@ type GetFoamTokenTransfers =
 
 type SignalAPI =
      "signal"
-  :> (GetSignalByID :<|> GetSignalByCST :<|> GetSignalsByOwner :<|> GetSignalsByCreator)
+  :> (GetSignalByID :<|> GetSignalByCST :<|> GetSignalsByOwner :<|> GetSignalsByCreator :<|> GetSignalsByFilter)
 
 type GetSignalByID =
       "id"
@@ -82,11 +82,33 @@ type GetSignalByCST =
 type GetSignalsByOwner =
     "owned-by"
   :> Capture "address" EthAddress
+  :> QueryParam "limit" Int
+  :> QueryParam "offset" Int
   :> Get '[JSON] [APISignal]
 
 type GetSignalsByCreator =
     "created-by"
   :> Capture "address" EthAddress
+  :> QueryParam "limit" Int
+  :> QueryParam "offset" Int
+  :> Get '[JSON] [APISignal]
+
+type GetSignalsByFilter =
+  "filtered"
+  :> QueryParam "created-by" EthAddress
+  :> QueryParam "owned-by" EthAddress
+  :> QueryParam "stake-equals" Value
+  :> QueryParam "stake-less-than" Value
+  :> QueryParam "stake-less-than-or-equals" Value
+  :> QueryParam "stake-greater-than" Value
+  :> QueryParam "stake-greater-than-or-equals" Value
+  :> QueryParam "radius-equals" Value
+  :> QueryParam "radius-less-than" Value
+  :> QueryParam "radius-less-than-or-equals" Value
+  :> QueryParam "radius-greater-than" Value
+  :> QueryParam "radius-greater-than-or-equals" Value
+  :> QueryParam "limit" Int
+  :> QueryParam "offset" Int
   :> Get '[JSON] [APISignal]
 
 --------------------------------------------------------------------------------
