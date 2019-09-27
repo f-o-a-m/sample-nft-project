@@ -44,6 +44,8 @@ monitor = do
   -- Signal Token events
   (stTransferF, stTransferH) <- makeFilterHandlerPair signalTokenReceipt SignalToken.signalTokenTransferH
   (stTrackedTokenF, stTrackedTokenH) <- makeFilterHandlerPair signalTokenReceipt SignalToken.signalTokenTrackedTokenH
+  (stTokensStakedF, stTokensStakedH) <- makeFilterHandlerPair signalTokenReceipt SignalToken.signalTokenTokensStakedH
+  (stTokensUnstakedF, stTokensUnstakedH) <- makeFilterHandlerPair signalTokenReceipt SignalToken.signalTokenTokensUnstakedH
   -- Signal Market events
   (smSignalForSaleF, smSignalForSaleH) <- makeFilterHandlerPair signalMarketReceipt SignalMarket.signalMarketSignalForSaleH
   (smSignalSoldF, smSignalSoldH) <- makeFilterHandlerPair signalMarketReceipt SignalMarket.signalMarketSignalSoldH
@@ -51,12 +53,16 @@ monitor = do
     filters = ftTransferF
            :? stTransferF
            :? stTrackedTokenF
+           :? stTokensStakedF
+           :? stTokensUnstakedF
            :? smSignalForSaleF
            :? smSignalSoldF
            :? NilFilters
     handlers = ftTransferH
             :& stTransferH
             :& stTrackedTokenH
+            :& stTokensStakedH
+            :& stTokensUnstakedH
             :& smSignalForSaleH
             :& smSignalSoldH
             :& RNil

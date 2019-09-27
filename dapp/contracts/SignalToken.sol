@@ -23,11 +23,6 @@ contract SignalToken is StakeToken, CSTRegistry {
     bytes32 cst = computeCST(address(this), tokenID);
     cstToID[cst] = tokenID;
 
-    // To know the stake in a Signal
-    // `stake` will have to be looked up through a join on
-    // `SignalToken.TrackedToken.tokenID` and
-    // `ERC721BasicToken.Transfer(address(0), _, tokenID)` and
-    // `ERC20.Transfer(_, address(nftToken), value)`
     emit TrackedToken(cst, address(this), tokenID, geohash, radius);
 
     return tokenID;

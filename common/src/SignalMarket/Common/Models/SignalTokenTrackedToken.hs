@@ -30,7 +30,7 @@ type TrackedTokenPG = TrackedToken' (Field SqlText) (Field SqlText) (Field SqlTe
 type TrackedToken = TrackedToken' EthAddress ByteNValue ByteNValue Value TokenID EventID
 
 trackedTokenTable :: Table TrackedTokenPG TrackedTokenPG
-trackedTokenTable = table "tracked_token"
+trackedTokenTable = table "signal_token_tracked_token"
                            (pTrackedToken TrackedToken { nftAddress = tableField "nft_address"
                                                        , cst = tableField "cst"
                                                        , geohash = tableField "geohash"

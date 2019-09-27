@@ -29,7 +29,7 @@ SignalToken
 /* freshly minted signals */
 CREATE TABLE "signal_token_tracked_token"
   ( "nft_address" text NOT NULL,
-    "cst" text NOT NULL, /* no idea why this is text; foam-tcr uses `text` here */
+    "cst" text NOT NULL,
     "geohash" text NOT NULL,
     "radius" numeric NOT NULL,
     "token_id" numeric NOT NULL UNIQUE,
@@ -46,7 +46,6 @@ CREATE TABLE "signal_token_transfer"
   );
 CREATE INDEX ON "signal_token_transfer" ("from");
 CREATE INDEX ON "signal_token_transfer" ("to");
-
 
 /*
 SignalMarket

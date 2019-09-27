@@ -45,6 +45,9 @@ migrate: ## Run the flyway migration suite to setup postgis
 	# the -jarDirs is temporary fix for https://github.com/NixOS/nixpkgs/issues/59687
 	flyway -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE) -locations=filesystem:migrations -baselineOnMigrate=true migrate
 
+show-migrations: ## Describe the migrations in the current database
+	flyway -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE) -locations=filesystem:core/migrations/tcr -baselineOnMigrate=true info
+
 ####################
 # DAPP       #
 ####################

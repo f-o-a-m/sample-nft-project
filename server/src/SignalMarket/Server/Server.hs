@@ -9,13 +9,17 @@ import           SignalMarket.Server.Application         (runAppHandler)
 import           SignalMarket.Server.Config              (AppConfig (..))
 import           SignalMarket.Server.Server.Config       (configServer)
 import           SignalMarket.Server.Server.FoamToken    (foamTokenServer)
+import           SignalMarket.Server.Server.Signal       (signalServer)
 import           SignalMarket.Server.Server.SignalMarket (signalMarketServer)
+import           SignalMarket.Server.Server.SignalToken  (signalTokenServer)
 --------------------------------------------------------------------------------
 
 server :: AppConfig -> Server API
 server cfg = hoistServerWithContext api (Proxy :: Proxy '[]) (runAppHandler cfg) $
        configServer
   :<|> foamTokenServer
+  :<|> signalServer
+  :<|> signalTokenServer
   :<|> signalMarketServer
 
 
