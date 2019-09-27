@@ -13,6 +13,7 @@ import           SignalMarket.Common.EventTypes (EthAddress, EventID, SaleID,
                                                  SaleStatus, SqlSaleStatus,
                                                  TokenID, Value)
 
+-- | Represents a signal that is for sale (either currently, previously, or it was removed).
 data SignalForSale' saleID tokenID price saleStatus seller eventID = SignalForSale
   { saleID     :: saleID
   , tokenID    :: tokenID

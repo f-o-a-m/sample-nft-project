@@ -12,9 +12,7 @@ import           Opaleye                        (Field, SqlNumeric, SqlText,
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes (EthAddress, EventID, TokenID)
 
--- SignalToken
--- Transfer :: {_from :: Address,_to :: Address,_tokenId :: (UIntN (D2 :& D5 :& DOne D6))}
-
+-- | Represents the transfer of a signal token from one owner to the next.
 data Transfer' to from tokenID eventID = Transfer
   { to      :: to
   , from    :: from
