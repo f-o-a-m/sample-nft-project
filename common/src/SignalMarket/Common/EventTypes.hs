@@ -75,7 +75,7 @@ instance IQ.QueryRunnerColumnDefault SqlNumeric Value where
 
 --------------------------------------------------------------------------------
 
-newtype SaleID = SaleID HexInteger deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
+newtype SaleID = SaleID HexInteger deriving (Eq, Ord, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
 
 _SaleID :: (KnownNat n, n <= 256) => Iso' (UIntN n) SaleID
 _SaleID = iso (view $ _HexInteger . to SaleID) (view $ to (\(SaleID v) -> v) . from _HexInteger)
@@ -85,7 +85,7 @@ instance D.Default ToFields SaleID (Column SqlNumeric) where
 
 --------------------------------------------------------------------------------
 
-newtype TokenID = TokenID HexInteger deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
+newtype TokenID = TokenID HexInteger deriving (Eq, Ord, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
 
 _TokenID :: (KnownNat n, n <= 256) => Iso' (UIntN n) TokenID
 _TokenID = iso (view $ _HexInteger . to TokenID) (view $ to (\(TokenID v) -> v) . from _HexInteger)
@@ -132,14 +132,14 @@ _HexString = iso (HexString . Hx.toText) (\(HexString hx) -> fromString $ T.unpa
 
 --------------------------------------------------------------------------------
 
-newtype EventID = EventID HexString deriving (Eq, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+newtype EventID = EventID HexString deriving (Eq, Ord, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields EventID (Column SqlText) where
   def = lmap (\(EventID a) -> a) D.def
 
 --------------------------------------------------------------------------------
 
-newtype ByteNValue = ByteNValue HexString deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+newtype ByteNValue = ByteNValue HexString deriving (Eq, Ord, Show, IQ.QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields ByteNValue (Column SqlText) where
   def = lmap (\(ByteNValue a) -> a) D.def
@@ -152,7 +152,7 @@ displayByteNValue (ByteNValue v) = displayHexString v
 
 --------------------------------------------------------------------------------
 
-newtype EthAddress = EthAddress HexString deriving (Eq, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+newtype EthAddress = EthAddress HexString deriving (Eq, Ord, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields EthAddress (Column SqlText) where
   def = lmap (\(EthAddress a) -> a) D.def
