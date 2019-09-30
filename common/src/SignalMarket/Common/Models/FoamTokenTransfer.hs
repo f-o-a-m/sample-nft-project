@@ -16,7 +16,6 @@ import           SignalMarket.Common.Aeson      (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes (EthAddress, EventID, Value)
 
 -- FoamToken Transfer
-
 data Transfer' to from value eventID = Transfer
   { to      :: to
   , from    :: from

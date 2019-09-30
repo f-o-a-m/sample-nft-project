@@ -7,6 +7,8 @@ import           Network.Ethereum.Api.Net      (version)
 import           Network.Ethereum.Api.Provider (Provider, runWeb3With)
 import           Network.HTTP.Client           (Manager)
 
+-- | Get the network version via net.version RPC call
+-- (e.g. 1 for mainnet ethereum, 420123 for cliquebait).
 getNetworkID
   :: Manager
   -> Provider

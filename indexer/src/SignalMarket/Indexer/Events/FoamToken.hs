@@ -9,6 +9,7 @@ import           SignalMarket.Common.Models.FoamTokenTransfer as Model
 import           SignalMarket.Indexer.Types
 import           SignalMarket.Indexer.Utils                   (insert)
 
+-- Insert a FOAMToken transfer event into postgres.
 foamTokenTransferH
   :: MonadPG m
   => Event Contract.Transfer

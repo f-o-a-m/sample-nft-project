@@ -12,9 +12,8 @@ import           Opaleye                        (Field, SqlNumeric, SqlText,
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes (ByteNValue, EthAddress,
                                                  EventID, TokenID, Value)
--- SignalToken
--- TrackedToken :: {cst :: (BytesN (D3 :& DOne D2)),nftAddress :: Address,tokenID :: (UIntN (D2 :& D5 :& DOne D6)),geohash :: (BytesN (D3 :& DOne D2)),radius :: (UIntN (D2 :& D5 :& DOne D6))}
 
+-- represents a signal token with the data about the signal
 data TrackedToken' nftAddress cst geohash radius tokenID eventID = TrackedToken
   { nftAddress :: nftAddress
   , cst        :: cst

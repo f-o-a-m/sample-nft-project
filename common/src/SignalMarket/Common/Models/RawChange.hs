@@ -12,6 +12,7 @@ import           SignalMarket.Common.Aeson      (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes (EthAddress, EventID,
                                                  HexInteger, HexString)
 
+-- | 'RawChange' represents the event metadata that comes in with the event.
 data RawChange' li txh bh bn addr eid = RawChange
   { logIndex        :: li
   , transactionHash :: txh

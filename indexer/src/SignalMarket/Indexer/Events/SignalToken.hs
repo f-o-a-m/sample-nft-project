@@ -17,6 +17,13 @@ import           SignalMarket.Indexer.Types
 import           SignalMarket.Indexer.Utils                           (insert,
                                                                        update)
 
+-- | insert a transfer event for signal tokens into postgres.
+-- | In the case that this represents a newly minted signal, i.e.
+-- | the from address is the null address, then we also create a signal
+-- | in the signal table.
+
+-- TODO verify / simplify this
+
 signalTokenTransferH
   :: ( MonadPG m
      , MonadThrow m
@@ -60,6 +67,7 @@ signalTokenTransferH Event{eventEventID, eventData} =
             _ :: Signal.Signal <- update Signal.signalsTable updateSignalOwner isTargetSignalID
             pure ()
 
+-- | insert a newly created signal token into postgres.
 signalTokenTrackedTokenH
   :: ( MonadPG m
      , MonadThrow m

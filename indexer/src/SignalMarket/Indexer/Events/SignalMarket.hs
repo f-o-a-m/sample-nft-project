@@ -16,6 +16,7 @@ import           SignalMarket.Indexer.Types
 import           SignalMarket.Indexer.Utils                           (insert,
                                                                        update)
 
+-- | insert a new sale on the marketplace into postgres
 signalMarketSignalForSaleH
   :: MonadPG m
   => Event Contract.SignalForSale
@@ -34,6 +35,9 @@ signalMarketSignalForSaleH Event{eventEventID, eventData} =
             , ForSale.eventID = eventEventID
             }
 
+-- | insert the details of the closed sale into postres, update the
+-- | status of the sale to 'complete'.
+-- | TODO: use transactions here.
 signalMarketSignalSoldH
   :: ( MonadPG m
      , MonadThrow m

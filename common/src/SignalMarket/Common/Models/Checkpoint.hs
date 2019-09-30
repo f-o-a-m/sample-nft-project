@@ -12,6 +12,9 @@ import           Opaleye                        (Field, SqlNumeric, SqlText,
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes (EventID, HexInteger)
 
+-- | A Checkpoint is an entry into the postgres database noting that an event has been processed.
+-- | It's useful for being able to start and stop the indexer to pick up where you left off,
+-- | without having to fold over the whole blockchain every time.
 data Checkpoint' name bn li status eid = Checkpoint
   { name        :: name
   , blockNumber :: bn
@@ -25,6 +28,7 @@ $(makeAdaptorAndInstance "pCheckpoint" ''Checkpoint')
 
 type CheckpointPG = Checkpoint' (Field SqlText) (Field SqlNumeric) (Field SqlNumeric) (Field SqlText) (Field SqlText)
 type Checkpoint = Checkpoint' Text HexInteger HexInteger Text EventID
+
 
 checkpointTable :: Table CheckpointPG CheckpointPG
 checkpointTable = table "checkpoint"

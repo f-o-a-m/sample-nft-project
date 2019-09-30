@@ -13,9 +13,7 @@ import           SignalMarket.Common.Aeson      (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes (EthAddress, EventID, TokenID,
                                                  Value)
 
--- SignalToken
--- TokensStaked :: {_staker :: Address, _tokenId :: UIntN S256, _stakeAmount :: UIntN S256, _timestamp :: UIntN S256 }
-
+-- Represents the staking action that occurs when a signal token is created.
 data TokensStaked' staker tokenID stakeAmount timestamp eventID = TokensStaked
   { staker      :: staker
   , tokenID     :: tokenID

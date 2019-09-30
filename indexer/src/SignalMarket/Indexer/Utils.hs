@@ -1,4 +1,8 @@
-module SignalMarket.Indexer.Utils where
+module SignalMarket.Indexer.Utils
+ ( insert
+ , update
+ , makeFilterHandlerPair
+ ) where
 
 import           Control.Arrow                               (returnA)
 import           Control.Monad.Catch                         (MonadThrow)
@@ -45,6 +49,7 @@ import           SignalMarket.Indexer.IndexerM               (IndexerM,
 import           SignalMarket.Indexer.Types                  (Event (..),
                                                               mkEvent)
 
+-- | A generic function to perform inserts into postgres.
 insert
   :: Default ToFields haskells fields
   => MonadPG m
@@ -61,6 +66,7 @@ insert table a = do
     then K.katipAddContext a $ logFM DebugS "Inserted"
     else K.logFM K.ErrorS $ fromString ("Inserted " <> show n <> " rows, expected 1.")
 
+-- | A generic function to perform updates in postgres.
 update
   :: Default ToFields haskells fields
   => Default FromFields fields haskells
@@ -73,6 +79,8 @@ update
 update table updateF keyF = queryExact $ \conn -> do
   runUpdateReturning conn table updateF keyF id
 
+-- | Try to insert a checkpoint. In the event that it already exists,
+-- | just log a warning and ignore the error.
 tryInsertCheckpoint
   :: MonadPG m
   => K.Katip m
@@ -90,6 +98,8 @@ tryInsertCheckpoint cp = K.katipAddContext cp $ do
          then K.logFM DebugS "Inserted Checkpoint"
          else K.logFM K.ErrorS $ fromString ("Inserted" <> show n <> " rows, expected 1.")
 
+-- | Make a filter for the given event using the given deploy receipt
+-- | to find the address to listen for.
 makeFilter
   :: forall e.
      D.Default (Filter e)
@@ -101,6 +111,8 @@ makeFilter _ DeployReceipt{..} =
                        , filterFromBlock = mkFromBlock deployReceiptBlockNumber
                        }
 
+-- | Take an event handler that runs in the IndexerM context and run it in a
+-- | Web3 context after first processing the RawChange data.
 makeHandler
   :: IndexerConfig
   -> (Event e -> IndexerM ())
@@ -118,6 +130,7 @@ makeHandler cfg h = H $ \e -> do
         K.katipAddNamespace "ProcessRawChange" $ do
           insert RawChange.rawChangeTable eventRawEvent
 
+-- | Make an 'open' checkpoint with the event metadata.
 mkOpenCheckpoint
   :: Text
   -> EventID
@@ -131,6 +144,7 @@ mkOpenCheckpoint n eid Change{..} = Checkpoint.Checkpoint
   , eventID = eid
   }
 
+-- | Close a checkpoint with the given eventID.
 closeCheckpoint
   :: ( MonadPG m
      , MonadThrow m
@@ -144,7 +158,10 @@ closeCheckpoint eid = queryExact $ \conn -> do
       p a = Checkpoint.eventID a .== constant eid
   runUpdateReturning conn Checkpoint.checkpointTable updater p id
 
-
+-- | Fetch the most recent checkpoint for an event using it's name
+-- | as the key. This is useful to know where to start the filter for this
+-- | event. Note, if you are running this event pipeline for the first time
+-- | it will not be there.
 fetchMostRecentCheckpoint
   :: ( MonadPG m
      , MonadThrow m
@@ -162,6 +179,8 @@ fetchMostRecentCheckpoint name =
             returnA -< cp
   in queryMaybe $ \conn -> runSelect conn q
 
+-- | Transform a handler to ignore events that it has already processed
+-- | using the checkpoint as a source of truth.
 modifyHandlerWithCheckpoint
   :: Checkpoint.Checkpoint
   -> Handler (ReaderT Change Web3 EventAction) e
@@ -177,6 +196,7 @@ modifyHandlerWithCheckpoint Checkpoint.Checkpoint{..} (H h) = H $ \e -> do
     then pure ContinueEvent
     else h e
 
+-- | Transform a handler to open a checkpoint, then run the handler, then close the checkpoint.
 wrapHandlerWithCheckpointing
   :: forall e.
      (HasEventName e)
@@ -195,7 +215,12 @@ wrapHandlerWithCheckpointing cfg (H h) = H $ \e -> do
     K.katipAddContext cp $ K.logFM K.InfoS "Closed Checkpoint"
   return eventAction
 
-
+-- | Takes a handler for an event and deploy receipt for the contract
+-- | emitting that event and constructs a filter and handler in a web3
+-- | context. It adds checkpointing to the handler via
+-- | 'wrapHandlerWithCheckpointing' and make sure the filter uses the
+-- | checkpoint for it's starting place. It also adds any offset caused
+-- | by the checkpoint via 'modifyHandlerWithCheckpoint'.
 makeFilterHandlerPair
   :: forall e.
      ( D.Default (Filter e)

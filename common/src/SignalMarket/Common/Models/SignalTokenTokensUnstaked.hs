@@ -13,9 +13,7 @@ import           SignalMarket.Common.Aeson      (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes (EthAddress, EventID, TokenID,
                                                  Value)
 
--- SignalToken
--- TokensUnstaked :: {_staker :: Address, _tokenId :: UIntN S256, _stakeAmount :: UIntN S256, _timestamp :: UIntN S256 }
-
+-- | Represents a signal token that has been removed and it's stake returned to the owner.
 data TokensUnstaked' staker tokenID stakeAmount timestamp eventID = TokensUnstaked
   { staker      :: staker
   , tokenID     :: tokenID
