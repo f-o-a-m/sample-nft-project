@@ -1,4 +1,8 @@
-module SignalMarket.Indexer.Utils where
+module SignalMarket.Indexer.Utils 
+ ( insert
+ , update
+ , makeFilterHandlerPair
+ ) where
 
 import           Control.Arrow                               (returnA)
 import           Control.Monad.Catch                         (MonadThrow)
@@ -211,7 +215,12 @@ wrapHandlerWithCheckpointing cfg (H h) = H $ \e -> do
     K.katipAddContext cp $ K.logFM K.InfoS "Closed Checkpoint"
   return eventAction
 
-
+-- | Takes a handler for an event and deploy receipt for the contract
+-- | emitting that event and constructs a filter and handler in a web3
+-- | context. It adds checkpointing to the handler via
+-- | 'wrapHandlerWithCheckpointing' and make sure the filter uses the
+-- | checkpoint for it's starting place. It also adds any offset caused
+-- | by the checkpoint via 'modifyHandlerWithCheckpoint'.
 makeFilterHandlerPair
   :: forall e.
      ( D.Default (Filter e)
