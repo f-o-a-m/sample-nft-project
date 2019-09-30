@@ -7,7 +7,7 @@ import App.Data.SaleId (SaleId)
 import App.Data.SignalId (SignalId)
 import App.Data.Token (Token)
 import Control.Error.Util (hush)
-import Data.Argonaut (class DecodeJson, decodeJson, (.?))
+import Data.Argonaut (class DecodeJson, decodeJson, (.:))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Eq (genericEq)
 import Data.Generic.Rep.Ord (genericCompare)
@@ -36,14 +36,14 @@ instance showSignal :: Show Signal where show = genericShow
 
 instance decodeJsonSignal :: DecodeJson Signal where
   decodeJson = decodeJson >=> \obj -> Signal <$> sequenceRecord
-    { id: obj .? "id"
-    , stake: obj .? "stake"
-    , owner: obj .? "owner"
-    , geohash: obj .? "geohash"
-    , radius: obj .? "radius"
+    { id: obj .: "id"
+    , stake: obj .: "stake"
+    , owner: obj .: "owner"
+    , geohash: obj .: "geohash"
+    , radius: obj .: "radius"
     , sale: pure $ hush $ sequenceRecord
-        { id: obj .? "saleId"
-        , price: obj .? "price"
+        { id: obj .: "saleId"
+        , price: obj .: "price"
         }
     }
 

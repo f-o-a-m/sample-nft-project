@@ -17,7 +17,6 @@ import Effect.Class (liftEffect)
 import Etherium.Tx as Tx
 import React.Basic (JSX)
 import React.Basic as React
-import React.Basic.DOM as HH
 import React.Basic.DOM as R
 
 type Props = { user :: User, sid :: SignalId }
@@ -65,7 +64,7 @@ signal = React.make component
     render :: Self -> JSX
     render self@{props, state} = React.fragment
       [ case state.signal of
-          Nothing -> HH.text "Loading ..."
+          Nothing -> R.text "Loading ..."
           Just signal' -> R.div_
             [ renderSignal
                 { txSend: \a b c -> pushCanceler self =<< Tx.send a b c
@@ -73,10 +72,10 @@ signal = React.make component
                 , state: signal'
                 , user: props.user
                 }
-            , R.div_ [HH.text "activity"]
+            , R.div_ [R.text "activity"]
             , R.div_ $ renderActivity <$> signal'.activity
             ]
       ]
 
-    renderActivity a = R.div_ [HH.text $ show a]
+    renderActivity a = R.div_ [R.text $ show a]
 

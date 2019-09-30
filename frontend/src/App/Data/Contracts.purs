@@ -2,8 +2,7 @@ module App.Data.Contracts where
 
 import Prelude
 
-import Data.Argonaut (class DecodeJson, decodeJson, (.?))
--- import Data.Argonaut.Decode.Combinators ((.?))
+import Data.Argonaut (class DecodeJson, decodeJson, (.:))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Eq (genericEq)
 import Data.Generic.Rep.Show (genericShow)
@@ -27,10 +26,10 @@ instance showContracts :: Show Contracts where show = genericShow
 
 instance decodeJsonContracts :: DecodeJson Contracts where
   decodeJson = decodeJson >=> \obj -> Contracts <$> sequenceRecord
-    { networkId: obj .? "networkId"
-    , foamToken: (obj .? "foamToken") >>= (_ .? "address")
-    , signalToken: (obj .? "signalToken") >>= (_ .? "address")
-    , signalMarket: (obj .? "signalMarket") >>= (_ .? "address")
+    { networkId: obj .: "networkId"
+    , foamToken: (obj .: "foamToken") >>= (_ .: "address")
+    , signalToken: (obj .: "signalToken") >>= (_ .: "address")
+    , signalMarket: (obj .: "signalMarket") >>= (_ .: "address")
     }
 
 newtype NetworkId = NetworkId String

@@ -18,7 +18,6 @@ import Effect.Class (liftEffect)
 import Etherium.Tx as Tx
 import React.Basic (JSX)
 import React.Basic as React
-import React.Basic.DOM as HH
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture_)
 

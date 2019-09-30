@@ -7,7 +7,7 @@ import App.Data.Contracts (Contracts(..), ContractsR)
 import App.Data.ProviderState (ConnectedState)
 import App.Data.SaleId (SaleId(..))
 import App.Data.SignalId (SignalId(..))
-import App.Data.Token (Token(..), tokenToBigNumber)
+import App.Data.Token (Token(..))
 import Contracts.SignalMarket as SignalMarket
 import Control.Lazy (fix)
 import Data.Either (Either(..))
@@ -17,10 +17,10 @@ import Effect.Aff (Canceler, Milliseconds(..), delay, fiberCanceler, launchAff)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Etherium.TxOpts (txOpts, txOpts')
-import Network.Ethereum.Web3 (Address, HexString, TransactionReceipt(..), TransactionStatus(..), Value, Web3, Web3Error, fromMinorUnit, runWeb3)
+import Network.Ethereum.Web3 (Address, HexString, TransactionReceipt(..), TransactionStatus(..), Value, Web3, Web3Error, runWeb3)
 import Network.Ethereum.Web3.Api (eth_getTransactionReceipt)
 import Network.Ethereum.Web3.Types (ETHER)
-import Network.Ethereum.Web3.Types.TokenUnit (MinorUnit, MinorUnitE18)
+import Network.Ethereum.Web3.Types.TokenUnit (MinorUnit)
 
 data Tx
   = UnSell SaleId
