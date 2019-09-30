@@ -39,7 +39,7 @@ type Self = React.Self Props State
 
 reloadUserBalance :: Self -> ConnectedState -> Aff Unit
 reloadUserBalance self con = fix \loop -> do
-  res <- runWeb3 con.provider $ FoamToken.balanceOf (txTo (un Contracts con.contracts).foamToken ) Latest {_owner: con.userAddress}
+  res <- runWeb3 con.provider $ FoamToken.balanceOf (txTo (un Contracts con.contracts).foamToken ) Latest {account: con.userAddress}
   case res of
     Left web3Err -> log (printWeb3Error web3Err) *> loop
     Right (Left callError) -> log (printCallError callError) *> loop

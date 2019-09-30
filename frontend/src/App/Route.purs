@@ -2,15 +2,16 @@ module App.Route where
 
 import Prelude
 
-import App.Data.SignalID (SignalID)
-import App.Data.SignalID as SignalID
+import App.Data.SignalId (SignalId, signalIdFromBigNumber, signalIdToBigNumber)
 import Control.Error.Util (note)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Routing.Duplex (RouteDuplex', as, path, root, segment)
+import Network.Ethereum.Core.BigNumber (decimal)
+import Network.Ethereum.Core.BigNumber as BN
+import Routing.Duplex (RouteDuplex', as, path, print, root, segment)
 import Routing.Duplex.Generic as G
 
-data Route = Home | Activity | Signal SignalID
+data Route = Signals | Activity | Signal SignalId
 
 derive instance genericRoute :: Generic Route _
 derive instance eqRoute :: Eq Route
@@ -19,12 +20,17 @@ instance showRoute :: Show Route where show = genericShow
 
 routeCodec :: RouteDuplex' Route
 routeCodec = root $ G.sum
-  { "Home": G.noArgs
+  { "Signals": G.noArgs
   , "Activity": path "activity" G.noArgs
   , "Signal": path "signal" (signalId segment)
   }
 
   where
 
-    signalId :: RouteDuplex' String -> RouteDuplex' SignalID
-    signalId = as SignalID.toString (SignalID.parse >>> note "Bad signalId")
+    signalId :: RouteDuplex' String -> RouteDuplex' SignalId
+    signalId = as
+      (signalIdToBigNumber >>> BN.toString decimal)
+      ((BN.parseBigNumber decimal >=> signalIdFromBigNumber) >>> note "Invalid SaleId")
+
+href :: Route -> String
+href r = "#" <> print routeCodec r

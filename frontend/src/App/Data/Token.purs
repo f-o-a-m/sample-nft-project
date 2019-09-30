@@ -23,10 +23,10 @@ instance eqToken :: Eq Token where eq = genericEq
 instance ordToken :: Ord Token where compare = genericCompare
 instance showToken :: Show Token where show = genericShow
 
-instance encodejsonToken :: EncodeJson Token where
+instance encodeJsonToken :: EncodeJson Token where
   encodeJson = encodeJson <<< tokenToBigNumber
 
-instance decodejsonToken :: DecodeJson Token where
+instance decodeJsonToken :: DecodeJson Token where
   decodeJson = decodeJson >=> \bn -> note'
     (\_ -> "Expected To get valid Token but got: " <> show bn)
       $ tokenFromBigNumber bn

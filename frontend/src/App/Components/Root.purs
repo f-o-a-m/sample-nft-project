@@ -3,10 +3,12 @@ module App.Components.Root where
 import Prelude
 
 import App.API.Routes (getContracts)
+import App.Components.Activity (activity)
 import App.Components.Header (header)
+import App.Components.Signal (signal)
+import App.Components.Signals (signals)
 import App.Data.Contracts (Contracts(..))
 import App.Data.ProviderState as ProviderState
--- (State(..), viewConnectedState)
 import App.Data.User (User(..))
 import App.Ethereum.Provider as EthProvider
 import App.Route (Route)
@@ -41,7 +43,7 @@ data Action
 root :: JSX
 root = unit # React.make component
   { initialState:
-      { route: Right Route.Home
+      { route: Right Route.Signals
       , providerState: ProviderState.Unknown
       , canceler: mempty :: Canceler
       }
@@ -57,7 +59,7 @@ root = unit # React.make component
 
     didMount self = do
       -- redirect to `/#/` if user is visiting `/`
-      whenM (String.null <$> getHash ) $ setHash "/"
+      whenM (String.null <$> getHash ) $ setHash $ Route.href Route.Signals
 
       contractsFiber <- launchAff $ getContracts
       pushCanceler self $ fiberCanceler contractsFiber
@@ -108,11 +110,20 @@ root = unit # React.make component
     render self@{state} = R.div_
       [ header { providerState: state.providerState }
       , case state.route of
-          Left err -> R.h1_ [ R.text "404" ]
-          Right (Route.Home) -> R.h1_ [ R.text "Home" ]
-          Right (Route.Activity) -> R.h1_ [ R.text "Activity" ]
-          Right (Route.Signal sid) -> R.h1_ [ R.text "Signal" ]
+        Left err -> R.h1_ [ R.text "404" ]
+        Right activeRoute ->
+          React.fragment 
+          [ R.div_ $ [ Route.Signals, Route.Activity] <#> \r -> if r == activeRoute
+              then R.span_ [ R.text $ show r]
+              else R.a
+              { href: Route.href r
+              , children: [ R.text $ show r ]
+              }
+          , case activeRoute of
+              Route.Activity -> activity {user}
+              Route.Signals -> signals {user}
+              Route.Signal sid -> signal {user, sid}
+          ]
       ]
       where
-        -- TODO pass `user` to children components
         user = maybe UserGuest UserConnected $ ProviderState.viewConnectedState state.providerState

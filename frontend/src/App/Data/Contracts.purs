@@ -11,7 +11,9 @@ import Data.Newtype (class Newtype)
 import Network.Ethereum.Core.Signatures (Address)
 import Record.Extra (sequenceRecord)
 
-newtype Contracts = Contracts
+newtype Contracts = Contracts ContractsR
+
+type ContractsR =
   { foamToken    :: Address
   , signalToken  :: Address
   , signalMarket :: Address
