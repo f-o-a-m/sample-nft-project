@@ -2,7 +2,7 @@ module App.Components.Signal where
 
 import Prelude
 
-import App.API.Routes (getSignal)
+import App.API (getSignal)
 import App.Components.Common (renderSignal)
 import App.Data.Signal (Signal)
 import App.Data.SignalActivity (SignalActivity)
@@ -51,7 +51,7 @@ signal = React.make component
   where
     willUnmount self = do
       launchAff_ $ un Canceler self.state.canceler $ error "willUnmount"
-    
+
     didMount :: Self -> Effect Unit
     didMount self = do
       signalsFiber <- launchAff $ getSignal self.props.sid >>= \(SignalDetails {signal:s, activity}) -> do
@@ -59,7 +59,7 @@ signal = React.make component
           {signal = Just { tx: Nothing, price: Nothing, signal:s, activity }}
       pushCanceler self $ fiberCanceler signalsFiber
       pure unit
-      
+
     pushCanceler self c = self.setState \s -> s {canceler = s.canceler <> c}
 
     render :: Self -> JSX
@@ -77,6 +77,6 @@ signal = React.make component
             , R.div_ $ renderActivity <$> signal'.activity
             ]
       ]
-    
+
     renderActivity a = R.div_ [HH.text $ show a]
 

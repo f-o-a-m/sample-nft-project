@@ -2,38 +2,33 @@ module App.Components.Common where
 
 import Prelude
 
-import App.API.Routes (getSignals)
+import App.Data.Collections (Cursor, LinkedCollection)
 import App.Data.ProviderState (ConnectedState)
-import App.Data.Signal (Signal(..), signalId)
-import App.Data.SignalId (SignalId)
+import App.Data.Signal (Signal(..))
 import App.Data.Token (Token(..), tokenFromBigNumber, tokenToBigNumber)
-import App.Data.User (User(..), isGuest)
+import App.Data.User (User(..))
 import App.Error (printWeb3Error)
-import App.HTML (maybeHtml, pushCanceler, whenHtml)
+import App.HTML (maybeHtml, whenHtml)
 import App.Route as Route
-import Data.Array (filter)
+import Control.MonadZero as MZ
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Newtype (un)
 import Effect (Effect)
-import Effect.Aff (Canceler(..), error, fiberCanceler, launchAff, launchAff_)
-import Effect.Class (liftEffect)
 import Etherium.Tx as Tx
 import Network.Ethereum.Core.BigNumber (divide)
-import Network.Ethereum.Web3 (Ether, formatValue, fromMinorUnit, unUIntN)
+import Network.Ethereum.Web3 (Ether, fromMinorUnit, unUIntN)
 import Network.Ethereum.Web3 (embed) as BN
 import Network.Ethereum.Web3.Types (ETHER)
 import Network.Ethereum.Web3.Types.TokenUnit (MinorUnitE18, ProxyTU(..), divider)
 import React.Basic (JSX)
 import React.Basic as React
-import React.Basic.DOM as HH
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture_, targetValue)
 import React.Basic.Events (handler)
 
 
 renderToken :: Token -> JSX
-renderToken (Token t) = 
+renderToken (Token t) =
   let num = show $ unUIntN t `divide` divider (ProxyTU :: ProxyTU Ether)
   in R.text $ num <> " ETH"
 
@@ -102,19 +97,19 @@ renderSignal {txSend, updateState, state, user} =
 parseToken :: String -> Maybe Token
 parseToken = Int.fromString >=> \num ->
   tokenFromBigNumber $ (BN.embed num) * divider (ProxyTU :: ProxyTU (MinorUnitE18 ETHER))
-    
+
 txOrElse :: Maybe Tx.Status -> JSX -> JSX
 txOrElse tx btn = React.fragment case tx of
   Nothing -> [btn]
   Just tx' -> case tx' of
-    Tx.Submitting -> 
+    Tx.Submitting ->
       [ R.text "Submitting"
       ]
-    Tx.SubmittingFailed web3Err -> 
+    Tx.SubmittingFailed web3Err ->
       [ btn
       , R.text $ "SubmittingFailed " <> printWeb3Error web3Err
       ]
-    Tx.MiningStart txHash -> 
+    Tx.MiningStart txHash ->
       [ R.text $ "MiningStart " <> show txHash
       ]
     Tx.MiningFailed transactionReceipt ->
@@ -125,3 +120,19 @@ txOrElse tx btn = React.fragment case tx of
       [ btn
       , R.text $ "MiningFinished " <> show txHash
       ]
+
+
+renderLinkedCollection
+  :: forall a
+   . LinkedCollection a
+  -> (Cursor -> Effect Unit)
+  -> (Array a -> JSX)
+  -> JSX
+renderLinkedCollection {items, next, loading} loadMore renderItems = React.fragment
+  [ renderItems items
+  , maybeHtml (MZ.guard (not loading) *> next) \cursor -> R.button
+      { onClick: capture_ $ loadMore cursor
+      , children: [ R.text "Load more" ]
+      }
+  , whenHtml loading \_ -> R.text "Loading ..."
+  ]

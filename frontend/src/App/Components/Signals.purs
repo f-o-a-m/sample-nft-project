@@ -2,8 +2,9 @@ module App.Components.Signals where
 
 import Prelude
 
-import App.API.Routes (getSignals)
-import App.Components.Common (SignalState, renderSignal)
+import App.API (getSignals)
+import App.Components.Common (SignalState, renderLinkedCollection, renderSignal)
+import App.Data.Collections (LinkedCollection, initialCursor, initialLinkedCollection, insertCollection)
 import App.Data.Signal (Signal(..), signalId)
 import App.Data.SignalId (SignalId)
 import App.Data.User (User(..), isGuest)
@@ -27,7 +28,7 @@ component = React.createComponent "Signals"
 
 type State =
   { canceler :: Canceler
-  , signals :: Maybe (Array (SignalState ()))
+  , signals :: LinkedCollection (SignalState ())
   , showOnlyByUser :: Boolean
   }
 type Self = React.Self Props State
@@ -36,7 +37,7 @@ signals :: Props -> JSX
 signals = React.make component
   { initialState:
       { canceler: mempty :: Canceler
-      , signals: Nothing
+      , signals: initialLinkedCollection
       , showOnlyByUser: false
       }
   , render
@@ -46,11 +47,14 @@ signals = React.make component
   where
     willUnmount self = do
       launchAff_ $ un Canceler self.state.canceler $ error "willUnmount"
-    
-    didMount self = do
-      signalsFiber <- launchAff $ getSignals >>= \signals' -> do
-        liftEffect $ self.setState _ {signals = Just $ signals' <#> ({ tx: Nothing, price: Nothing, signal:_ })}
+    load self cursor = do
+      liftEffect $ self.setState _ {signals{loading = true}}
+      signalsFiber <- launchAff $ getSignals cursor >>= \{items, next} -> do
+        liftEffect $ self.setState \s -> s {signals = s.signals `insertCollection` {next, items: items <#> ({ tx: Nothing, price: Nothing, signal:_ })}}
       pushCanceler self $ fiberCanceler signalsFiber
+
+    didMount self = do
+      load self initialCursor
 
     render self@{props, state} = React.fragment
       [ whenHtml (not isGuest props.user) \_ -> R.button
@@ -63,26 +67,27 @@ signals = React.make component
               ]
           }
 
-      , case state.signals of
-          Nothing -> HH.text "Loading ..."
-          Just signals' -> R.div_ $ (toFilter self signals') <#> \s -> renderSignal
-              { txSend: \a b c -> pushCanceler self =<< Tx.send a b c
-              , updateState: overSignalSt self $ signalId s.signal
-              , state: s
-              , user: props.user
-              }
+      , renderLinkedCollection
+          state.signals
+          (load self)
+          (\items -> R.div_ $ toFilter self items <#> \s -> renderSignal
+            { txSend: \a b c -> pushCanceler self =<< Tx.send a b c
+            , updateState: overSignalSt self $ signalId s.signal
+            , state: s
+            , user: props.user
+            })
       ]
-    
+
     toFilter self@{props, state} signals' = case props.user of
       UserGuest -> signals'
       UserConnected {userAddress}
         | state.showOnlyByUser -> filter (\{signal: (Signal {owner})} -> owner == userAddress) signals'
         | otherwise -> signals'
 
-    
+
     overSignalSt :: Self -> SignalId -> (SignalState () -> SignalState ()) -> Effect Unit
     overSignalSt self signalId f = self.setState \s -> s
-      { signals = s.signals <#> map \signalSt@{ signal: (Signal {id})} ->
+      { signals{ items= s.signals.items <#> \signalSt@{ signal: (Signal {id})} ->
           if signalId == id then f signalSt else signalSt
-      }
+      }}
 

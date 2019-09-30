@@ -1,4 +1,4 @@
-module App.API.Routes 
+module App.API
   ( getContracts
   , getSignals
   , getSignal
@@ -11,6 +11,7 @@ import Affjax (printResponseFormatError)
 import Affjax as AJ
 import Affjax.ResponseFormat as ResponseFormat
 import App.Data.Activity (Activity(..))
+import App.Data.Collections (Cursor, Collection)
 import App.Data.Contracts (Contracts)
 import App.Data.Radius (Radius(..))
 import App.Data.SaleId (SaleId, saleIdFromBigNumber)
@@ -25,9 +26,9 @@ import Data.DateTime (adjust)
 import Data.Either (Either(..))
 import Data.Geohash (geohashFromLngLat)
 import Data.Maybe (Maybe(..))
-import Data.Time.Duration (Days(..), Minutes(..), fromDuration)
+import Data.Time.Duration (Days(..), Milliseconds(..), Minutes(..), fromDuration)
 import Deploy.Utils (unsafeFromJust)
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, delay)
 import Effect.Exception (error)
 import Effect.Now (nowDateTime)
 import Effect.Unsafe (unsafePerformEffect)
@@ -63,22 +64,22 @@ get path = do
 foreign import apiBaseURL :: String
 
 address1 :: Address
-address1 = unsafeFromJust "Must be valid Address 000...1" 
+address1 = unsafeFromJust "Must be valid Address 000...1"
   $ mkAddress =<< mkHexString "0x5e8A927093a4465f2fFFb466f0594BfB2E04C204"
 address2 :: Address
-address2 = unsafeFromJust "Must be valid Address 000...2" 
+address2 = unsafeFromJust "Must be valid Address 000...2"
   $ mkAddress =<< mkHexString "0x0000000000000000000000000000000000000002"
 address3 :: Address
-address3 = unsafeFromJust "Must be valid Address 000...3" 
+address3 = unsafeFromJust "Must be valid Address 000...3"
   $ mkAddress =<< mkHexString "0x0000000000000000000000000000000000000003"
 address4 :: Address
-address4 = unsafeFromJust "Must be valid Address 000...4" 
+address4 = unsafeFromJust "Must be valid Address 000...4"
   $ mkAddress =<< mkHexString "0x0000000000000000000000000000000000000004"
 address5 :: Address
-address5 = unsafeFromJust "Must be valid Address 000...5" 
+address5 = unsafeFromJust "Must be valid Address 000...5"
   $ mkAddress =<< mkHexString "0x0000000000000000000000000000000000000005"
 address6 :: Address
-address6 = unsafeFromJust "Must be valid Address 000...6" 
+address6 = unsafeFromJust "Must be valid Address 000...6"
   $ mkAddress =<< mkHexString "0x0000000000000000000000000000000000000006"
 
 signalId1 :: SignalId
@@ -112,12 +113,14 @@ signal2 = Signal
   , sale: Nothing
   }
 
-getSignals :: Aff (Array Signal)
-getSignals = do
-  pure [signal1, signal2]
+getSignals :: Cursor -> Aff (Collection Signal)
+getSignals c = do
+  delay $ Milliseconds 1000.0
+  pure {items: [signal1, signal2], next: Just c}
 
 getSignal :: SignalId -> Aff SignalDetails
 getSignal sid = do
+  delay $ Milliseconds 1000.0
   pure $ SignalDetails
     { signal: signal1
     , activity:
@@ -137,28 +140,32 @@ getSignal sid = do
         ]
     }
 
-getActivity :: Aff (Array Activity)
-getActivity = do
+getActivity :: Cursor -> Aff (Collection Activity)
+getActivity c = do
+  delay $ Milliseconds 1000.0
   pure
-    [ TokenTransfer
-        { from: address3
-        , to: address3
-        , amount: zeroToken
-        , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-6.0)) (unsafePerformEffect nowDateTime)
-        }
-    , SignalListedForSale
-        { owner: address2
-        , saleID: saleId2
-        , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-3.0)) (unsafePerformEffect nowDateTime)
-        , signal: signal1
-        , price: zeroToken
-        }
-    , SignalSoled
-        { owner: address2
-        , saleID: saleId3
-        , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-2.0)) (unsafePerformEffect nowDateTime)
-        , buyer: address1
-        , signal: signal1
-        , price: zeroToken
-        }
-    ]
+    { items:
+        [ TokenTransfer
+            { from: address3
+            , to: address3
+            , amount: zeroToken
+            , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-6.0)) (unsafePerformEffect nowDateTime)
+            }
+        , SignalListedForSale
+            { owner: address2
+            , saleID: saleId2
+            , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-3.0)) (unsafePerformEffect nowDateTime)
+            , signal: signal1
+            , price: zeroToken
+            }
+        , SignalSoled
+            { owner: address2
+            , saleID: saleId3
+            , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-2.0)) (unsafePerformEffect nowDateTime)
+            , buyer: address1
+            , signal: signal1
+            , price: zeroToken
+            }
+        ]
+    , next: Nothing
+    }

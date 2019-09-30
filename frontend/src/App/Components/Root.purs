@@ -2,7 +2,7 @@ module App.Components.Root where
 
 import Prelude
 
-import App.API.Routes (getContracts)
+import App.API (getContracts)
 import App.Components.Activity (activity)
 import App.Components.Header (header)
 import App.Components.Signal (signal)
@@ -94,12 +94,12 @@ root = unit # React.make component
               liftEffect $ self.setState _ {providerState = ProviderState.Rejected ethereumProvider}
               never
             Just ethereumProviderEnabled -> do
-              joinFiber contractsFiber 
+              joinFiber contractsFiber
                 >>= (startConnectivityLoop ethereumProviderEnabled >>> liftEffect)
           pushCanceler self $ fiberCanceler fib
         Just (Right legacyProvider) -> do
           self.setState _ {providerState = ProviderState.Injected}
-          fib <- launchAff $ joinFiber contractsFiber 
+          fib <- launchAff $ joinFiber contractsFiber
             >>= (startConnectivityLoop legacyProvider >>> liftEffect)
           pushCanceler self $ fiberCanceler fib
 
@@ -112,7 +112,7 @@ root = unit # React.make component
       , case state.route of
         Left err -> R.h1_ [ R.text "404" ]
         Right activeRoute ->
-          React.fragment 
+          React.fragment
           [ R.div_ $ [ Route.Signals, Route.Activity] <#> \r -> if r == activeRoute
               then R.span_ [ R.text $ show r]
               else R.a
