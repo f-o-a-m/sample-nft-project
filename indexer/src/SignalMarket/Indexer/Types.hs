@@ -21,6 +21,7 @@ import           SignalMarket.Common.EventTypes       (EventID (..),
 import           SignalMarket.Common.Models.RawChange (RawChange)
 import           SignalMarket.Common.Models.RawChange as RC
 
+-- | Make the raw change, eventID, and eventData from the raw Web3 response.
 mkEvent
   :: W3.Change
   -> e
@@ -42,11 +43,13 @@ mkEvent W3.Change{..} e =
           }
       }
 
+-- | useful for hashing integers
 integerToBytes :: Integer -> Bytes
 integerToBytes n =
   let bytes = convertFromBase Base16 . cs @_ @ByteString . T.justifyRight 64 '0' . cs . B.toLazyText . B.hexadecimal $ n
   in either error id bytes
 
+-- | Compute the EID from the logIndex and blockHash
 deriveEID :: Integer -> HexString -> EventID
 deriveEID li bh =
   let digest :: Digest Keccak_256
