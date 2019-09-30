@@ -6,7 +6,7 @@ import           Data.Aeson.Casing (aesonDrop, camelCase)
 
 -- | Aeson options for generically deriving instances. The options
 -- | allow you to remove field prefixes and camalCase.
--- e.g. in 
+-- e.g. in
 --  data Foo = Foo
 --    { fooName :: String
 --    , fooData :: Int

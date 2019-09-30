@@ -33,7 +33,7 @@ import           Opaleye.RunQuery                     (QueryRunnerColumnDefault,
 
 --------------------------------------------------------------------------------
 -- | The basic type for any integer like data in Ethereum (e.g. block number, uint245, int8, etc.)
--- | It serializes in JSON to a string representation of a hex encoded integer, 
+-- | It serializes in JSON to a string representation of a hex encoded integer,
 -- | making it safe to return to Javascript clients.
 newtype HexInteger = HexInteger Integer deriving (Eq, Show, Ord, Num, Enum, Real, Integral)
 

@@ -1,4 +1,4 @@
-module SignalMarket.Indexer.Utils 
+module SignalMarket.Indexer.Utils
  ( insert
  , update
  , makeFilterHandlerPair
@@ -158,7 +158,7 @@ closeCheckpoint eid = queryExact $ \conn -> do
       p a = Checkpoint.eventID a .== constant eid
   runUpdateReturning conn Checkpoint.checkpointTable updater p id
 
--- | Fetch the most recent checkpoint for an event using it's name 
+-- | Fetch the most recent checkpoint for an event using it's name
 -- | as the key. This is useful to know where to start the filter for this
 -- | event. Note, if you are running this event pipeline for the first time
 -- | it will not be there.

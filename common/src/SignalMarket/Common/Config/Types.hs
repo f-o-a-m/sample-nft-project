@@ -47,7 +47,7 @@ mkContracts networkID = do
     , contractsSignalMarket = signalMarket
     }
 
--- | Matches up with the deployment information written to the 
+-- | Matches up with the deployment information written to the
 -- | chanterelle deploy artifact.
 data DeployReceipt = DeployReceipt
   { deployReceiptAddress         :: Address

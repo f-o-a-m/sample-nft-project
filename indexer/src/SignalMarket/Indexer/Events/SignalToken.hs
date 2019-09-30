@@ -22,7 +22,7 @@ import           SignalMarket.Indexer.Utils                           (insert,
 -- | the from address is the null address, then we also create a signal
 -- | in the signal table.
 
--- TODO verify / simplify this 
+-- TODO verify / simplify this
 
 signalTokenTransferH
   :: ( MonadPG m

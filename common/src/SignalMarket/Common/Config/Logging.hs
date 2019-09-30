@@ -24,7 +24,7 @@ data LogConfig = LogConfig
   }
 makeLenses ''LogConfig
 
--- | Useful for giving Katip instances if your custom 
+-- | Useful for giving Katip instances if your custom
 -- | monad stack has a 'MonadReader config'. See server or
 -- | indexer for an example of this.
 class HasLogConfig config where
