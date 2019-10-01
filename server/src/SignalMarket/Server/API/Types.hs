@@ -2,30 +2,23 @@
 
 module SignalMarket.Server.API.Types where
 
-import           Control.Error                                        (fmapL)
-import qualified Data.Aeson                                           as A
-import           Data.String.Conversions                              (cs)
-import qualified Data.Text                                            as T
-import           Data.Text.Read                                       (decimal)
-import           GHC.Generics                                         (Generic)
-import           SignalMarket.Common.Aeson                            (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes                       (ByteNValue (..),
-                                                                       EthAddress (..),
-                                                                       HexInteger (..),
-                                                                       HexString,
-                                                                       SaleID (..),
-                                                                       SaleStatus,
-                                                                       TokenID (..),
-                                                                       Value (..),
-                                                                       hexIntegerFromText,
-                                                                       parseHStatus,
-                                                                       parseHexString)
-import           SignalMarket.Common.Models.RawChange                 as RawChange
-import           SignalMarket.Common.Models.SignalTokenTokensStaked   as SignalTokenTokensStaked
-import           SignalMarket.Common.Models.SignalTokenTokensUnstaked as SignalTokenTokensUnstaked
-import           SignalMarket.Common.Models.SignalTokenTrackedToken   as SignalTokenTrackedToken
-import           SignalMarket.Common.Models.SignalTokenTransfer       as SignalTokenTransfer
-import           Web.HttpApiData                                      (FromHttpApiData (..))
+import           Control.Error                        (fmapL)
+import qualified Data.Aeson                           as A
+import           Data.String.Conversions              (cs)
+import qualified Data.Text                            as T
+import           GHC.Generics                         (Generic)
+import           SignalMarket.Common.Aeson            (defaultAesonOptions)
+import           SignalMarket.Common.EventTypes       (ByteNValue (..),
+                                                       EthAddress (..),
+                                                       HexInteger (..),
+                                                       HexString, SaleID (..),
+                                                       SaleStatus, TokenID (..),
+                                                       Value (..),
+                                                       hexIntegerFromText,
+                                                       parseHStatus,
+                                                       parseHexString)
+import           SignalMarket.Common.Models.RawChange as RawChange
+import           Web.HttpApiData                      (FromHttpApiData (..))
 
 type WithMetadataPG a = (a, RawChange.RawChangePG)
 
@@ -72,8 +65,8 @@ data APISignal = APISignal
   , creator           :: EthAddress  -- ^ original creator of the signal
   , cst               :: ByteNValue  -- ^ CST of the signal
   , geohash           :: ByteNValue  -- ^ Geohash of the signal's location
-  , radius            :: Value       -- ^ Radius of the signal
-  , stake             :: Value       -- ^ FOAM Tokens staked within in the signal
+  , radius            :: HexInteger  -- ^ Radius of the signal
+  , staked            :: Value       -- ^ FOAM Tokens staked within in the signal
   , signalSaleSummary :: Maybe SaleSummary
   } deriving Generic
 

@@ -9,6 +9,11 @@ import qualified SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedTo
 import           SignalMarket.Server.API.Types                      (Cursor (..))
 import           SignalMarket.Server.Queries.Combinators            (withCursor)
 
+import qualified SignalMarket.Common.Models.SignalTokenTransfer     as SignalTransfer
+
+signalTokenTransferQ :: O.Select SignalTransfer.TransferPG
+signalTokenTransferQ = O.selectTable SignalTransfer.transferTable
+
 trackedTokenQ :: O.Select TrackedToken.TrackedTokenPG
 trackedTokenQ = O.selectTable TrackedToken.trackedTokenTable
 

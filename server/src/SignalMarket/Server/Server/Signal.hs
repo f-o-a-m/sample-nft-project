@@ -11,13 +11,11 @@ import           Servant.Server
 --                                                                       Value,
 --                                                                       displayByteNValue,
 --                                                                       hexIntegerToText)
-import qualified SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedToken
-import           SignalMarket.Server.API                            (SignalAPI)
-import           SignalMarket.Server.API.Types                      (APISignal (..),
-                                                                     Cursor (..),
-                                                                     WithMetadata (..))
-import           SignalMarket.Server.Application                    (AppHandler)
-import           SignalMarket.Server.Queries.Combinators            (withCursor, withMetadata)
+import           SignalMarket.Server.API         (SignalAPI)
+import           SignalMarket.Server.API.Types   (APISignal (..), Cursor (..),
+                                                  WithMetadata)
+import           SignalMarket.Server.Application (AppHandler)
+--import           SignalMarket.Server.Queries.Combinators            (withCursor, withMetadata)
 
 
 signalServer :: ServerT SignalAPI AppHandler
@@ -28,7 +26,7 @@ getSignalH
   -- ^ limit
   -> Maybe Int
   -- ^ offset
-  -> AppHandler [WithMetadata TrackedToken.TrackedToken]
+  -> AppHandler [WithMetadata APISignal]
 getSignalH mlimit moffset = do
-  let mCursor = Cursor <$> limit <*> offset
+  let mCursor = Cursor <$> mlimit <*> moffset
   undefined mCursor

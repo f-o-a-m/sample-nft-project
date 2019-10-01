@@ -18,7 +18,6 @@ import           SignalMarket.Common.EventTypes                       (EthAddres
 import qualified SignalMarket.Common.Models.FoamTokenTransfer         as FoamTokenTransfer
 import qualified SignalMarket.Common.Models.SignalMarketSignalForSale as SignalMarketSignalForSale
 import qualified SignalMarket.Common.Models.SignalMarketSignalSold    as SignalMarketSignalSold
-import qualified SignalMarket.Common.Models.SignalTokenTrackedToken   as TrackedToken
 import qualified SignalMarket.Common.Models.SignalTokenTransfer       as SignalTokenTransfer
 import           SignalMarket.Server.API.Types
 import           SignalMarket.Server.Config                           (Contracts)
@@ -74,7 +73,7 @@ type GetSignals =
     "signal"
   :> QueryParam  "limit" Int
   :> QueryParam  "offset" Int
-  :> Get '[JSON] [WithMetadata TrackedToken.TrackedToken]
+  :> Get '[JSON] [WithMetadata APISignal]
 
 --------------------------------------------------------------------------------
 -- /signal/transfers

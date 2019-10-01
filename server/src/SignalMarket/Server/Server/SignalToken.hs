@@ -18,7 +18,7 @@ import           SignalMarket.Server.Application                (AppHandler)
 import           SignalMarket.Server.Queries.Combinators        (withCursor,
                                                                  withMetadata,
                                                                  withOrdering)
-import           SignalMarket.Server.Queries.SignalToken        (signalTokenTransfersQ)
+import           SignalMarket.Server.Queries.SignalToken        (signalTokenTransferQ)
 
 
 signalTokenServer :: ServerT SignalTokenAPI AppHandler
@@ -48,5 +48,5 @@ getSignalTokenTransfersH mto mfrom mtokenid mlimit moffset mord = do
       withLimitAndOffset $
         usingOrdering $
           withMetadata SignalTokenTransfer.eventID $
-            signalTokenTransfersQ >>> tokenIDFilter >>> toFilter >>> fromFilter
+            signalTokenTransferQ >>> tokenIDFilter >>> toFilter >>> fromFilter
     pure . flip map as $ \(t, rc) -> WithMetadata t rc
