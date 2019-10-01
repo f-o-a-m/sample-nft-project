@@ -67,22 +67,22 @@ data Cursor = Cursor
   }
 
 data APISignal = APISignal
-  { tokenID              :: TokenID     -- ^ NFT ID of the signal
-  , owner                :: EthAddress  -- ^ current owner of the signal
-  , creator              :: EthAddress  -- ^ original creator of the signal
-  , cst                  :: ByteNValue  -- ^ CST of the signal
-  , geohash              :: ByteNValue  -- ^ Geohash of the signal's location
-  , radius               :: Value       -- ^ Radius of the signal
-  , stake                :: Value       -- ^ FOAM Tokens staked within in the signal
-  , signalSaleSummary    :: Maybe SaleSummary
+  { tokenID           :: TokenID     -- ^ NFT ID of the signal
+  , owner             :: EthAddress  -- ^ current owner of the signal
+  , creator           :: EthAddress  -- ^ original creator of the signal
+  , cst               :: ByteNValue  -- ^ CST of the signal
+  , geohash           :: ByteNValue  -- ^ Geohash of the signal's location
+  , radius            :: Value       -- ^ Radius of the signal
+  , stake             :: Value       -- ^ FOAM Tokens staked within in the signal
+  , signalSaleSummary :: Maybe SaleSummary
   } deriving Generic
-  
+
 instance A.ToJSON APISignal where
   toJSON = A.genericToJSON (defaultAesonOptions "signal")
 
 data SaleSummary = SaleSummary
   { saleSummarySaleID :: SaleID
-  , saleSummaryPrice :: Value
+  , saleSummaryPrice  :: Value
   } deriving Generic
 
 instance A.ToJSON SaleSummary where

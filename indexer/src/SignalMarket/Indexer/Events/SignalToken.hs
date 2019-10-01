@@ -1,23 +1,25 @@
 module SignalMarket.Indexer.Events.SignalToken where
 
-import Control.Monad.Reader (MonadReader, asks)
-import           Control.Lens                                         ((^.), (.~))
-import           Control.Monad.Catch                                  (MonadThrow)
-import qualified Katip                                                as K
-import           Opaleye                                              (constant,
-                                                                       (.==))
-import           SignalMarket.Common.Class                            (MonadPG (..), MonadWeb3(..))
+import           Control.Lens                                       ((.~), (^.))
+import           Control.Monad                                      (unless)
+import           Control.Monad.Catch                                (MonadThrow)
+import           Control.Monad.Reader                               (MonadReader,
+                                                                     asks)
+import qualified Katip                                              as K
+import qualified Network.Ethereum.Account                           as W3
+import           Opaleye                                            (constant,
+                                                                     (.==))
+import           SignalMarket.Common.Class                          (MonadPG (..),
+                                                                     MonadWeb3 (..))
 import           SignalMarket.Common.Config.Types
-import           SignalMarket.Common.Contracts.SignalToken            as Contract
+import           SignalMarket.Common.Contracts.SignalToken          as Contract
 import           SignalMarket.Common.EventTypes
-import           SignalMarket.Common.Models.SignalTokenTrackedToken   as TrackedToken
-import           SignalMarket.Common.Models.SignalTokenTransfer       as Transfer
-import           SignalMarket.Indexer.Types
+import           SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedToken
+import           SignalMarket.Common.Models.SignalTokenTransfer     as Transfer
 import           SignalMarket.Indexer.Config
-import           SignalMarket.Indexer.Utils                           (insert,
-                                                                       update)
-import qualified Network.Ethereum.Account as W3
-import Control.Monad (unless)
+import           SignalMarket.Indexer.Types
+import           SignalMarket.Indexer.Utils                         (insert,
+                                                                     update)
 
 -- | insert a transfer event for signal tokens into postgres.
 -- | In the case that this represents a newly minted signal, i.e.

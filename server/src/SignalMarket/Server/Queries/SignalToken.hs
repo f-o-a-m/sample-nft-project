@@ -1,7 +1,6 @@
 module SignalMarket.Server.Queries.SignalToken where
 
-import           Control.Arrow                                      (
-                                                                     (>>>))
+import           Control.Arrow                                      ((>>>))
 import qualified Opaleye                                            as O
 import           SignalMarket.Common.EventTypes                     (ByteNValue,
                                                                      EthAddress,

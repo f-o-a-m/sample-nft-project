@@ -10,8 +10,7 @@ module SignalMarket.Server.API
 
 import           Data.Proxy
 import           Servant
-import           SignalMarket.Common.EventTypes                       (--ByteNValue,
-                                                                       EthAddress,
+import           SignalMarket.Common.EventTypes                       (EthAddress,
                                                                        SaleID,
                                                                        SaleStatus,
                                                                        TokenID,
@@ -19,8 +18,8 @@ import           SignalMarket.Common.EventTypes                       (--ByteNVa
 import qualified SignalMarket.Common.Models.FoamTokenTransfer         as FoamTokenTransfer
 import qualified SignalMarket.Common.Models.SignalMarketSignalForSale as SignalMarketSignalForSale
 import qualified SignalMarket.Common.Models.SignalMarketSignalSold    as SignalMarketSignalSold
-import qualified SignalMarket.Common.Models.SignalTokenTransfer       as SignalTokenTransfer
 import qualified SignalMarket.Common.Models.SignalTokenTrackedToken   as TrackedToken
+import qualified SignalMarket.Common.Models.SignalTokenTransfer       as SignalTokenTransfer
 import           SignalMarket.Server.API.Types
 import           SignalMarket.Server.Config                           (Contracts)
 
