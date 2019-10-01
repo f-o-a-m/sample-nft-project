@@ -32,7 +32,10 @@ import           Opaleye.RunQuery                     (QueryRunnerColumnDefault,
                                                        fieldQueryRunnerColumn)
 
 --------------------------------------------------------------------------------
-newtype HexInteger = HexInteger Integer deriving (Eq, Show, Ord)
+-- | The basic type for any integer like data in Ethereum (e.g. block number, uint245, int8, etc.)
+-- | It serializes in JSON to a string representation of a hex encoded integer,
+-- | making it safe to return to Javascript clients.
+newtype HexInteger = HexInteger Integer deriving (Eq, Show, Ord, Num, Enum, Real, Integral)
 
 hexIntegerToText :: HexInteger -> Text
 hexIntegerToText (HexInteger n) = TL.toStrict . (<>) "0x" . B.toLazyText $ B.hexadecimal n
@@ -57,12 +60,14 @@ instance IQ.QueryRunnerColumnDefault SqlNumeric HexInteger where
 instance D.Default ToFields HexInteger (Column SqlNumeric) where
   def = lmap (\(HexInteger a) -> fromInteger @Scientific a) D.def
 
+-- | Safely convert to or from a Hex integer to any size uint
 _HexInteger :: (KnownNat n, n <= 256) => Iso' (UIntN n) HexInteger
 _HexInteger = iso (HexInteger . toInteger) (\(HexInteger n) -> fromInteger n)
 
 --------------------------------------------------------------------------------
 
-newtype Value = Value HexInteger deriving (Eq, Show, A.ToJSON, A.FromJSON)
+-- | Represents some quantity of tokens
+newtype Value = Value HexInteger deriving (Eq, Ord, Show, Num, Enum, Real, Integral, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields Value (Column SqlNumeric) where
   def = lmap (\(Value a) -> a) D.def
@@ -75,7 +80,8 @@ instance IQ.QueryRunnerColumnDefault SqlNumeric Value where
 
 --------------------------------------------------------------------------------
 
-newtype SaleID = SaleID HexInteger deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
+-- | Represents the unique identifier of a sale in the marketplace contract.
+newtype SaleID = SaleID HexInteger deriving (Eq, Ord, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
 
 _SaleID :: (KnownNat n, n <= 256) => Iso' (UIntN n) SaleID
 _SaleID = iso (view $ _HexInteger . to SaleID) (view $ to (\(SaleID v) -> v) . from _HexInteger)
@@ -85,7 +91,8 @@ instance D.Default ToFields SaleID (Column SqlNumeric) where
 
 --------------------------------------------------------------------------------
 
-newtype TokenID = TokenID HexInteger deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
+-- | Represents the unique identifier of a Signal Token
+newtype TokenID = TokenID HexInteger deriving (Eq, Ord, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
 
 _TokenID :: (KnownNat n, n <= 256) => Iso' (UIntN n) TokenID
 _TokenID = iso (view $ _HexInteger . to TokenID) (view $ to (\(TokenID v) -> v) . from _HexInteger)
@@ -95,6 +102,7 @@ instance D.Default ToFields TokenID (Column SqlNumeric) where
 
 --------------------------------------------------------------------------------
 
+-- | The base type for anyting stringlike in Ethereum (including address, bytes, hashes, etc.)
 newtype HexString = HexString Text
   deriving (Eq, Read, Show, Ord)
 
@@ -110,8 +118,11 @@ parseHexString = parse . T.toLower . trim0x
     parse txt | T.all isHexDigit txt && (T.length txt `mod` 2 == 0) = Right $ HexString txt
               | otherwise            = Left $ "Failed to parse text as HexString: " <> show txt
 
+displayHexString :: HexString -> Text
+displayHexString (HexString hex) = "0x" <> hex
+
 instance A.ToJSON HexString where
-  toJSON (HexString txt) = A.String $ "0x" <> txt
+  toJSON = A.String . displayHexString
 
 instance QueryRunnerColumnDefault SqlText HexString where
   queryRunnerColumnDefault = fromRightWithError . parseHexString <$> fieldQueryRunnerColumn @Text
@@ -123,42 +134,54 @@ instance QueryRunnerColumnDefault SqlText HexString where
 instance D.Default ToFields HexString (Column SqlText) where
   def = lmap (\(HexString a) -> a) D.def
 
+-- | convert safely to or from the Web3.HexString type.
 _HexString :: Iso' Hx.HexString HexString
 _HexString = iso (HexString . Hx.toText) (\(HexString hx) -> fromString $ T.unpack hx)
 
 
 --------------------------------------------------------------------------------
-
-newtype EventID = EventID HexString deriving (Eq, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+-- | A unique identifier for an EVM log entry, hash(blockHash,logIndex)
+newtype EventID = EventID HexString deriving (Eq, Ord, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields EventID (Column SqlText) where
   def = lmap (\(EventID a) -> a) D.def
 
 --------------------------------------------------------------------------------
 
-newtype ByteNValue = ByteNValue HexString deriving (Eq, Show, IQ.QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+-- | Represents any size bytes in solidity.
+newtype ByteNValue = ByteNValue HexString deriving (Eq, Ord, Show, IQ.QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields ByteNValue (Column SqlText) where
   def = lmap (\(ByteNValue a) -> a) D.def
 
+-- | A safe conversion function to for from any size bytes
 _HexBytesN :: (KnownNat n, n <= 32) => Iso' (BytesN n) ByteNValue
 _HexBytesN = iso (ByteNValue . view _HexString . Hx.fromBytes) (\(ByteNValue bs) -> bs ^. from _HexString . to Hx.toBytes . to unsafeSizedByteArray)
 
+displayByteNValue :: ByteNValue -> Text
+displayByteNValue (ByteNValue v) = displayHexString v
 
 --------------------------------------------------------------------------------
 
-newtype EthAddress = EthAddress HexString deriving (Eq, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+-- | Represents an ethereum address
+newtype EthAddress = EthAddress HexString deriving (Eq, Ord, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
 
 instance D.Default ToFields EthAddress (Column SqlText) where
   def = lmap (\(EthAddress a) -> a) D.def
 
+-- | Safe conversion function to or from Web3.Address
 _EthAddress :: Iso' Address EthAddress
 _EthAddress = iso (EthAddress . view _HexString . toHexString)
   (\(EthAddress a) -> either error id $ fromHexString $ view (from _HexString) a)
 
+zeroAddress :: EthAddress
+zeroAddress = either (error . ("Failed to create the zero address: " ++)) id $ EthAddress <$> parseHexString "0x0000000000000000000000000000000000000000"
+
 --------------------------------------------------------------------------------
 -- the way we do enums is vendered from https://hackage.haskell.org/package/composite-opaleye-0.6.0.0/docs/Composite-Opaleye-TH.html#v:deriveOpaleyeEnum
 
+-- | Represents the sale status of a signal in the marketplace. Note that in case
+-- | of SSComplete or SSUnlisted, the sale is actually no longer in the marketplace.
 data SaleStatus = SSActive | SSComplete | SSUnlisted
 
 data SqlSaleStatus
@@ -200,7 +223,9 @@ parseHStatus "active"   = Right SSActive
 parseHStatus "complete" = Right SSComplete
 parseHStatus "unlisted" = Right SSUnlisted
 parseHStatus txt        = Left $ "Invalid status token" <> show txt
+
 --------------------------------------------------------------------------------
+
 -- vendored from https://hackage.haskell.org/package/composite-opaleye-0.6.0.0/docs/Composite-Opaleye-Util.html#v:constantColumnUsing
 constantColumnUsing
   :: Constant haskell (Column pgType)

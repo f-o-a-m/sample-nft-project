@@ -15,6 +15,8 @@ import           Control.Monad.Reader
 import           Data.Text              (Text)
 import qualified Katip                  as K
 
+-- | This is the minum amount of information required to
+-- | initiate a Katip logging instance.
 data LogConfig = LogConfig
   { _logNamespace :: K.Namespace
   , _logContext   :: K.LogContexts
@@ -22,6 +24,9 @@ data LogConfig = LogConfig
   }
 makeLenses ''LogConfig
 
+-- | Useful for giving Katip instances if your custom
+-- | monad stack has a 'MonadReader config'. See server or
+-- | indexer for an example of this.
 class HasLogConfig config where
   logConfig :: Lens' config LogConfig
 

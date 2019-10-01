@@ -22,5 +22,6 @@ instance MonadWeb3 IndexerM where
       (manager, provider) <- asks indexerCfgWeb3Manager
       liftIO $ runWeb3With provider manager action
 
+-- | run the indexer's effects down to I/O
 runIndexerM :: IndexerConfig -> (forall a. IndexerM a -> IO a)
 runIndexerM cfg = flip runReaderT cfg . unIndexerM

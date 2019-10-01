@@ -8,9 +8,7 @@ import           Opaleye                        (Field, SqlNumeric, Table,
                                                  table, tableField)
 import           SignalMarket.Common.EventTypes (SaleID)
 
--- SignalMarket
--- SignalUnlisted :: {signalId :: (UIntN (D2 :& D5 :& DOne D6))}
-
+-- | Represents a sale that was unlisted by the owner.
 data SignalUnlisted' saleID = SignalUnlisted
   { saleID :: saleID
   }

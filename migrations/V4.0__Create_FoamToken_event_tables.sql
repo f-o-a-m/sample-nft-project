@@ -1,0 +1,2 @@
+-- The steps in the 4.x series of migrations create tables that the indexer 
+-- writes events related to indexing events emitted by the FoamToken contract.

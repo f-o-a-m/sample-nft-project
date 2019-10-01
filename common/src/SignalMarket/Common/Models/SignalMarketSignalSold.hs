@@ -13,9 +13,7 @@ import           SignalMarket.Common.Aeson      (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes (EthAddress, EventID, SaleID,
                                                  TokenID, Value)
 
--- SignalMarket
--- SignalSold :: {signalId :: (UIntN (D2 :& D5 :& DOne D6)),price :: (UIntN (D2 :& D5 :& DOne D6)),owner :: Address,newOwner :: Address}
-
+-- | Represents the sale details for a particular signal sale that went through.
 data SignalSold' saleID tokenID price soldFrom soldTo eventID = SignalSold
   { saleID   :: saleID
   , tokenID  :: tokenID
@@ -31,7 +29,7 @@ type SignalSoldPG = SignalSold' (Field SqlNumeric) (Field SqlNumeric) (Field Sql
 type SignalSold = SignalSold' SaleID TokenID Value EthAddress EthAddress EventID
 
 signalSoldTable :: Table SignalSoldPG SignalSoldPG
-signalSoldTable = table "signal_sold"
+signalSoldTable = table "signal_market_signal_sold"
                         (pSignalSold SignalSold { saleID = tableField "sale_id"
                                                 , tokenID = tableField "token_id"
                                                 , price = tableField "price"

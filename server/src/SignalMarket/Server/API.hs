@@ -2,13 +2,16 @@ module SignalMarket.Server.API
  ( API
  , api
  , FoamTokenAPI
+ , SignalAPI
+ , SignalTokenAPI
  , SignalMarketAPI
  , ConfigAPI
  ) where
 
 import           Data.Proxy
 import           Servant
-import           SignalMarket.Common.EventTypes                       (EthAddress,
+import           SignalMarket.Common.EventTypes                       (ByteNValue,
+                                                                       EthAddress,
                                                                        SaleID,
                                                                        SaleStatus,
                                                                        TokenID,
@@ -16,12 +19,15 @@ import           SignalMarket.Common.EventTypes                       (EthAddres
 import qualified SignalMarket.Common.Models.FoamTokenTransfer         as FoamTokenTransfer
 import qualified SignalMarket.Common.Models.SignalMarketSignalForSale as SignalMarketSignalForSale
 import qualified SignalMarket.Common.Models.SignalMarketSignalSold    as SignalMarketSignalSold
+import qualified SignalMarket.Common.Models.SignalTokenTransfer       as SignalTokenTransfer
 import           SignalMarket.Server.API.Types
 import           SignalMarket.Server.Config                           (Contracts)
 
 type API =
        ConfigAPI
   :<|> FoamTokenAPI
+  :<|> SignalAPI
+  :<|> SignalTokenAPI
   :<|> SignalMarketAPI
 
 api :: Proxy API
@@ -56,6 +62,73 @@ type GetFoamTokenTransfers =
   :> Get '[JSON] [WithMetadata FoamTokenTransfer.Transfer]
 
 --------------------------------------------------------------------------------
+-- /signal
+--------------------------------------------------------------------------------
+
+type SignalAPI =
+     "signal"
+  :> (GetSignalByID :<|> GetSignalByCST :<|> GetSignalsByOwner :<|> GetSignalsByCreator :<|> GetSignalsByFilter)
+
+type GetSignalByID =
+      "id"
+  :> Capture "token_id" TokenID
+  :> Get '[JSON] APISignal
+
+type GetSignalByCST =
+      "cst"
+  :> Capture "cst" ByteNValue
+  :> Get '[JSON] APISignal
+
+type GetSignalsByOwner =
+    "owned-by"
+  :> Capture "address" EthAddress
+  :> QueryParam "limit" Int
+  :> QueryParam "offset" Int
+  :> Get '[JSON] [APISignal]
+
+type GetSignalsByCreator =
+    "created-by"
+  :> Capture "address" EthAddress
+  :> QueryParam "limit" Int
+  :> QueryParam "offset" Int
+  :> Get '[JSON] [APISignal]
+
+type GetSignalsByFilter =
+  "filtered"
+  :> QueryParams "created-by" EthAddress
+  :> QueryParams "owned-by" EthAddress
+  :> QueryParams "stake-equals" Value
+  :> QueryParam  "stake-less-than" Value
+  :> QueryParam  "stake-less-than-or-equals" Value
+  :> QueryParam  "stake-greater-than" Value
+  :> QueryParam  "stake-greater-than-or-equals" Value
+  :> QueryParams "radius-equals" Value
+  :> QueryParam  "radius-less-than" Value
+  :> QueryParam  "radius-less-than-or-equals" Value
+  :> QueryParam  "radius-greater-than" Value
+  :> QueryParam  "radius-greater-than-or-equals" Value
+  :> QueryParam  "limit" Int
+  :> QueryParam  "offset" Int
+  :> Get '[JSON] [APISignal]
+
+--------------------------------------------------------------------------------
+-- /signal/transfers
+--------------------------------------------------------------------------------
+
+type SignalTokenAPI = GetSignalTokenTransfers
+
+type GetSignalTokenTransfers =
+    "signal"
+  :> "transfers"
+  :> QueryParam "to" EthAddress
+  :> QueryParam "from" EthAddress
+  :> QueryParam "token_id" TokenID
+  :> QueryParam "limit" Int
+  :> QueryParam "offset" Int
+  :> QueryParam "ordering" BlockNumberOrdering
+  :> Get '[JSON] [WithMetadata SignalTokenTransfer.Transfer]
+
+--------------------------------------------------------------------------------
 -- /signal_market
 --------------------------------------------------------------------------------
 
@@ -86,3 +159,4 @@ type GetSignalMarketSignalSold =
   :> QueryParam "offset" Int
   :> QueryParam "ordering" BlockNumberOrdering
   :> Get '[JSON] [WithMetadata SignalMarketSignalSold.SignalSold]
+

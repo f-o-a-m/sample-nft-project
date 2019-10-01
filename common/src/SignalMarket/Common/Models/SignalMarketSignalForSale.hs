@@ -13,6 +13,7 @@ import           SignalMarket.Common.EventTypes (EthAddress, EventID, SaleID,
                                                  SaleStatus, SqlSaleStatus,
                                                  TokenID, Value)
 
+-- | Represents a signal that is for sale (either currently, previously, or it was removed).
 data SignalForSale' saleID tokenID price saleStatus seller eventID = SignalForSale
   { saleID     :: saleID
   , tokenID    :: tokenID
@@ -28,7 +29,7 @@ type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Fie
 type SignalForSale = SignalForSale' SaleID TokenID Value SaleStatus EthAddress EventID
 
 signalForSaleTable :: Table SignalForSalePG SignalForSalePG
-signalForSaleTable = table "signal_for_sale"
+signalForSaleTable = table "signal_market_signal_for_sale"
                            (pSignalForSale SignalForSale { saleID = tableField "sale_id"
                                                          , tokenID = tableField "token_id"
                                                          , price = tableField "price"

@@ -12,6 +12,7 @@ import qualified Database.PostgreSQL.Simple    as PG
 import qualified Katip                         as K
 import           Network.Ethereum.Api.Provider (Web3, Web3Error (..))
 
+-- Used to log SQL errors with Katip
 data SqlErrorCTX = SqlErrorCTX SqlError
 
 instance A.ToJSON SqlErrorCTX where
@@ -29,6 +30,7 @@ instance K.ToObject SqlErrorCTX
 instance K.LogItem SqlErrorCTX where
     payloadKeys _ _ = K.AllKeys
 
+-- | Our basic monad class for performing postgres queries
 class (K.Katip m, K.KatipContext m, MonadIO m) => MonadPG m where
     runDB' :: (PG.Connection  -> IO a) -> m (Either SqlError a)
     runDB :: (PG.Connection -> IO a) -> m a
@@ -47,6 +49,7 @@ data SqlQueryException = SqlQueryException deriving (Eq, Show)
 
 instance Exception SqlQueryException
 
+-- | Run a query where you expect at most 1 result.
 queryMaybe
   :: ( MonadPG m
      , MonadThrow m
@@ -63,6 +66,7 @@ queryMaybe q = do
         "Expected at most 1 result, got " <> show (length as) <> "!"
       throwM SqlQueryException
 
+-- | Run a query where you expect exactly one result.
 queryExact
   :: ( MonadPG m
      , MonadThrow m
@@ -79,6 +83,7 @@ queryExact q = do
     Just a -> pure a
 
 
+-- | Useful for logging Web3 errors via Katip.
 data Web3ErrorCTX = Web3ErrorCTX Web3Error
 
 instance A.ToJSON Web3ErrorCTX where
@@ -96,6 +101,7 @@ instance K.ToObject Web3ErrorCTX
 instance K.LogItem Web3ErrorCTX where
     payloadKeys _ _ = K.AllKeys
 
+-- | Basic monad class for running Web3 actions.
 class (K.Katip m, K.KatipContext m, MonadIO m) => MonadWeb3 m where
     runWeb3' :: Web3 a -> m (Either Web3Error a)
     runWeb3 :: Web3 a -> m a
