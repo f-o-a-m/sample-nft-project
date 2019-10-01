@@ -7,7 +7,7 @@ import           Control.Monad.Reader                               (MonadReader
                                                                      asks)
 import qualified Katip                                              as K
 import qualified Network.Ethereum.Account                           as W3
-import qualified Network.Ethereum.Api.Types as W3
+import qualified Network.Ethereum.Api.Types                         as W3
 import           Opaleye                                            (constant,
                                                                      (.==))
 import           SignalMarket.Common.Class                          (MonadPG (..),
@@ -15,8 +15,8 @@ import           SignalMarket.Common.Class                          (MonadPG (..
 import           SignalMarket.Common.Config.Types
 import qualified SignalMarket.Common.Contracts.SignalToken          as Contract
 import           SignalMarket.Common.EventTypes
+import qualified SignalMarket.Common.Models.RawChange               as RC
 import qualified SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedToken
-import qualified  SignalMarket.Common.Models.RawChange              as RC
 import qualified SignalMarket.Common.Models.SignalTokenTransfer     as Transfer
 import           SignalMarket.Indexer.Config
 import           SignalMarket.Indexer.Types
@@ -108,7 +108,7 @@ signalTokenTokensUnstakedH Event{eventData} =
       case eventData of
         Contract.TokensUnstaked{..} -> do
           let tokenID = tokensUnstakedTokenID_ ^. _TokenID
-              updateSignal s = s { TrackedToken.isBurned = constant True 
+              updateSignal s = s { TrackedToken.isBurned = constant True
                                  , TrackedToken.staked = constant (HexInteger 0)
                                  }
               isTargetSignalID s = TrackedToken.tokenID s .== constant tokenID
