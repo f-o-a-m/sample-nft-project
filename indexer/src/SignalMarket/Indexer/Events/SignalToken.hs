@@ -7,15 +7,17 @@ import           Control.Monad.Reader                               (MonadReader
                                                                      asks)
 import qualified Katip                                              as K
 import qualified Network.Ethereum.Account                           as W3
+import qualified Network.Ethereum.Api.Types as W3
 import           Opaleye                                            (constant,
                                                                      (.==))
 import           SignalMarket.Common.Class                          (MonadPG (..),
                                                                      MonadWeb3 (..))
 import           SignalMarket.Common.Config.Types
-import           SignalMarket.Common.Contracts.SignalToken          as Contract
+import qualified SignalMarket.Common.Contracts.SignalToken          as Contract
 import           SignalMarket.Common.EventTypes
-import           SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedToken
-import           SignalMarket.Common.Models.SignalTokenTransfer     as Transfer
+import qualified SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedToken
+import qualified  SignalMarket.Common.Models.RawChange              as RC
+import qualified SignalMarket.Common.Models.SignalTokenTransfer     as Transfer
 import           SignalMarket.Indexer.Config
 import           SignalMarket.Indexer.Types
 import           SignalMarket.Indexer.Utils                         (insert,
@@ -64,7 +66,7 @@ signalTokenTrackedTokenH
      )
   => Event Contract.TrackedToken
   -> m ()
-signalTokenTrackedTokenH Event{eventData, eventEventID} =
+signalTokenTrackedTokenH Event{eventData, eventEventID, eventRawEvent} =
   K.katipAddNamespace "SignalToken" $ do
     K.katipAddNamespace "TrackedToken" $ do
       case eventData of
@@ -73,13 +75,15 @@ signalTokenTrackedTokenH Event{eventData, eventEventID} =
               cst     = trackedTokenCst_ ^. _HexBytesN
               geohash = trackedTokenGeohash_ ^. _HexBytesN
               radius  = trackedTokenRadius_ ^. _HexInteger
+              HexInteger bn = RC.blockNumber eventRawEvent
+              callBlock = W3.BlockWithNumber $ W3.Quantity bn
           signalTokenAddress <- asks (deployReceiptAddress . contractsSignalToken . indexerCfgContracts)
-          (_owner, _stake) <- runWeb3 $
-            W3.withAccount () $ do
-              W3.withParam (W3.to .~ signalTokenAddress) $ do
-                owner <- Contract.ownerOf trackedTokenTokenID_
-                stake <- Contract.tokenStake trackedTokenTokenID_
-                pure (owner, stake)
+          (_owner, _stake) <- runWeb3 $ W3.withAccount () $
+              W3.withParam (W3.to .~ signalTokenAddress) $
+                W3.withParam (W3.block .~ callBlock) $ do
+                  owner <- Contract.ownerOf trackedTokenTokenID_
+                  stake <- Contract.tokenStake trackedTokenTokenID_
+                  pure (owner, stake)
           insert TrackedToken.trackedTokenTable $ TrackedToken.TrackedToken
             { TrackedToken.nftAddress = trackedTokenNftAddress_ ^. _EthAddress
             , TrackedToken.cst = cst
@@ -104,7 +108,9 @@ signalTokenTokensUnstakedH Event{eventData} =
       case eventData of
         Contract.TokensUnstaked{..} -> do
           let tokenID = tokensUnstakedTokenID_ ^. _TokenID
-              updateSignal s = s { TrackedToken.isBurned = constant True }
+              updateSignal s = s { TrackedToken.isBurned = constant True 
+                                 , TrackedToken.staked = constant (HexInteger 0)
+                                 }
               isTargetSignalID s = TrackedToken.tokenID s .== constant tokenID
           _ :: TrackedToken.TrackedToken <- update TrackedToken.trackedTokenTable updateSignal isTargetSignalID
           pure ()
