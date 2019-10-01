@@ -46,13 +46,7 @@ deriving instance FromHttpApiData ByteNValue
 instance FromHttpApiData HexInteger where
   parseQueryParam = fmapL cs . hexIntegerFromText
 
-instance FromHttpApiData Value where
-  parseQueryParam x = do
-    (val :: Integer, remainder) <- fmapL cs (decimal x)
-    if T.null remainder
-      then Right (fromIntegral val)
-      else Left "Malformed Number."
-
+deriving instance FromHttpApiData Value
 deriving instance FromHttpApiData SaleID
 deriving instance FromHttpApiData TokenID
 
@@ -80,12 +74,16 @@ data APISignal = APISignal
   , geohash              :: ByteNValue  -- ^ Geohash of the signal's location
   , radius               :: Value       -- ^ Radius of the signal
   , stake                :: Value       -- ^ FOAM Tokens staked within in the signal
-  , trackedTokenEvent    :: WithMetadata SignalTokenTrackedToken.TrackedToken             -- ^ Event which associated the token with its geodata
-  , tokensStakedEvent    :: WithMetadata SignalTokenTokensStaked.TokensStaked             -- ^ Event which associated the token with its (original) contained stake
-  , tokensUnstakedEvent  :: Maybe (WithMetadata SignalTokenTokensUnstaked.TokensUnstaked) -- ^ Event which associated the token with its lack of contained stake (if applicable)
-  , lastTransferEvent    :: WithMetadata SignalTokenTransfer.Transfer                     -- ^ Event associated with the last ownership change (`to` address is current owner)
-  , mintingTransferEvent :: WithMetadata SignalTokenTransfer.Transfer                     -- ^ Event associated with the minting of the token (`to` address is original creator)
+  , signalSaleSummary    :: Maybe SaleSummary
   } deriving Generic
-
+  
 instance A.ToJSON APISignal where
   toJSON = A.genericToJSON (defaultAesonOptions "signal")
+
+data SaleSummary = SaleSummary
+  { saleSummarySaleID :: SaleID
+  , saleSummaryPrice :: Value
+  } deriving Generic
+
+instance A.ToJSON SaleSummary where
+  toJSON = A.genericToJSON (defaultAesonOptions "saleSummary")

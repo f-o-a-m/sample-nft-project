@@ -1,27 +1,31 @@
 module SignalMarket.Server.Queries.SignalToken where
 
-import           Control.Arrow                                        ((>>>))
-import qualified Opaleye                                              as O
-import           SignalMarket.Common.EventTypes                       (EventID)
-import qualified SignalMarket.Common.Models.SignalTokenTokensStaked   as TokensStaked
-import qualified SignalMarket.Common.Models.SignalTokenTokensUnstaked as TokensUnstaked
-import qualified SignalMarket.Common.Models.SignalTokenTrackedToken   as TrackedToken
-import qualified SignalMarket.Common.Models.SignalTokenTransfer       as Transfer
+import           Control.Arrow                                      (
+                                                                     (>>>))
+import qualified Opaleye                                            as O
+import           SignalMarket.Common.EventTypes                     (ByteNValue,
+                                                                     EthAddress,
+                                                                     TokenID)
+import qualified SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedToken
+import           SignalMarket.Server.API.Types                      (Cursor (..))
+import           SignalMarket.Server.Queries.Combinators            (withCursor)
 
-signalTokenTransfersQ :: O.Select Transfer.TransferPG
-signalTokenTransfersQ = O.selectTable Transfer.transferTable
+trackedTokenQ :: O.Select TrackedToken.TrackedTokenPG
+trackedTokenQ = O.selectTable TrackedToken.trackedTokenTable
 
-signalTokenTrackedTokenQ :: O.Select TrackedToken.TrackedTokenPG
-signalTokenTrackedTokenQ = O.selectTable TrackedToken.trackedTokenTable
+trackedTokenByTokenIDQ :: TokenID -> O.Select TrackedToken.TrackedTokenPG
+trackedTokenByTokenIDQ tokenID =
+  let tokenIDFilter = O.keepWhen (\a -> TrackedToken.tokenID a O..== O.constant tokenID)
+      limitOne = withCursor (Cursor 1 0)
+   in limitOne $ trackedTokenQ >>> tokenIDFilter
 
-signalTokenTokensStakedQ :: O.Select TokensStaked.TokensStakedPG
-signalTokenTokensStakedQ = O.selectTable TokensStaked.tokensStakedTable
+trackedTokenByCSTQ :: ByteNValue -> O.Select TrackedToken.TrackedTokenPG
+trackedTokenByCSTQ cst =
+  let tokenIDFilter = O.keepWhen (\a -> TrackedToken.cst a O..== O.constant cst)
+      limitOne = withCursor (Cursor 1 0)
+   in limitOne $ trackedTokenQ >>> tokenIDFilter
 
-signalTokenTokensUnstakedQ :: O.Select TokensUnstaked.TokensUnstakedPG
-signalTokenTokensUnstakedQ = O.selectTable TokensUnstaked.tokensUnstakedTable
-
-signalTokenTokensUnstakedByEIDQ :: [EventID] -> O.Select TokensUnstaked.TokensUnstakedPG
-signalTokenTokensUnstakedByEIDQ eids =
-  let targetEIDs = map O.constant eids
-      filterByEIDs = O.keepWhen (O.in_ targetEIDs . TokensUnstaked.eventID)
-   in (signalTokenTokensUnstakedQ >>> filterByEIDs)
+trackedTokensByOwnerQ :: EthAddress -> O.Select TrackedToken.TrackedTokenPG
+trackedTokensByOwnerQ owner =
+  let ownerFilter = O.keepWhen (\a -> TrackedToken.owner a O..== O.constant owner)
+   in trackedTokenQ >>> ownerFilter

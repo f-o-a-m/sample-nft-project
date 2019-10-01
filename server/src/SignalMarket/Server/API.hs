@@ -10,7 +10,7 @@ module SignalMarket.Server.API
 
 import           Data.Proxy
 import           Servant
-import           SignalMarket.Common.EventTypes                       (ByteNValue,
+import           SignalMarket.Common.EventTypes                       (--ByteNValue,
                                                                        EthAddress,
                                                                        SaleID,
                                                                        SaleStatus,
@@ -20,6 +20,7 @@ import qualified SignalMarket.Common.Models.FoamTokenTransfer         as FoamTok
 import qualified SignalMarket.Common.Models.SignalMarketSignalForSale as SignalMarketSignalForSale
 import qualified SignalMarket.Common.Models.SignalMarketSignalSold    as SignalMarketSignalSold
 import qualified SignalMarket.Common.Models.SignalTokenTransfer       as SignalTokenTransfer
+import qualified SignalMarket.Common.Models.SignalTokenTrackedToken   as TrackedToken
 import           SignalMarket.Server.API.Types
 import           SignalMarket.Server.Config                           (Contracts)
 
@@ -66,50 +67,15 @@ type GetFoamTokenTransfers =
 --------------------------------------------------------------------------------
 
 type SignalAPI =
-     "signal"
-  :> (GetSignalByID :<|> GetSignalByCST :<|> GetSignalsByOwner :<|> GetSignalsByCreator :<|> GetSignalsByFilter)
+     "signal_token"
+  :> GetSignals
 
-type GetSignalByID =
-      "id"
-  :> Capture "token_id" TokenID
-  :> Get '[JSON] APISignal
 
-type GetSignalByCST =
-      "cst"
-  :> Capture "cst" ByteNValue
-  :> Get '[JSON] APISignal
-
-type GetSignalsByOwner =
-    "owned-by"
-  :> Capture "address" EthAddress
-  :> QueryParam "limit" Int
-  :> QueryParam "offset" Int
-  :> Get '[JSON] [APISignal]
-
-type GetSignalsByCreator =
-    "created-by"
-  :> Capture "address" EthAddress
-  :> QueryParam "limit" Int
-  :> QueryParam "offset" Int
-  :> Get '[JSON] [APISignal]
-
-type GetSignalsByFilter =
-  "filtered"
-  :> QueryParams "created-by" EthAddress
-  :> QueryParams "owned-by" EthAddress
-  :> QueryParams "stake-equals" Value
-  :> QueryParam  "stake-less-than" Value
-  :> QueryParam  "stake-less-than-or-equals" Value
-  :> QueryParam  "stake-greater-than" Value
-  :> QueryParam  "stake-greater-than-or-equals" Value
-  :> QueryParams "radius-equals" Value
-  :> QueryParam  "radius-less-than" Value
-  :> QueryParam  "radius-less-than-or-equals" Value
-  :> QueryParam  "radius-greater-than" Value
-  :> QueryParam  "radius-greater-than-or-equals" Value
+type GetSignals =
+    "signal"
   :> QueryParam  "limit" Int
   :> QueryParam  "offset" Int
-  :> Get '[JSON] [APISignal]
+  :> Get '[JSON] [WithMetadata TrackedToken.TrackedToken]
 
 --------------------------------------------------------------------------------
 -- /signal/transfers
