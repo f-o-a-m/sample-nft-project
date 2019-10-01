@@ -14,11 +14,11 @@
   ],
   "dependencies": {
     "purescript-prelude": "^4.1.1",
-    "purescript-routing": "^8.0.0",
-    "purescript-routing-duplex": "^0.2.0",
-    "purescript-react-basic": "^8.0.0",
-    "purescript-affjax": "7.0.2",
-    "purescript-chanterelle": "f-o-a-m/chanterelle#late-linking-wip"
+    "purescript-routing": "^9.0.0",
+    "purescript-routing-duplex": "^0.4.0",
+    "purescript-react-basic": "^12.0.0",
+    "purescript-affjax": "^9.0.1",
+    "purescript-chanterelle": "f-o-a-m/chanterelle#safareli-upgrade-main"
   },
   "devDependencies": {
     "purescript-spec": "^4.0.0",

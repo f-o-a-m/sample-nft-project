@@ -23,9 +23,9 @@
         "solc": "^0.5"
     },
     "devDependencies": {
-        "pulp": "^12.3.0",
-        "purescript": "^0.12.0",
         "purescript-psa": "^0.7.3",
+        "purescript": "^0.13.0",
+        "pulp": "^13.0.0",
         "erc20-tokens": "ConsenSys/Tokens#812791dfbf3c9a9f5e8370e26cda0009bde43f03",
         "bower": "^1.8.8",
         "autodll-webpack-plugin": "^0.4.2",
