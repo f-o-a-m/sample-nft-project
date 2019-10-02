@@ -4,6 +4,11 @@ import           Control.Exception
 import           Data.Monoid                          (Endo (..))
 import qualified Katip                                as K
 import           Network.Wai.Handler.Warp             (run)
+import           Network.Wai.Middleware.Cors          (cors, corsMethods,
+                                                       corsRequestHeaders,
+                                                       simpleCorsResourcePolicy,
+                                                       simpleHeaders,
+                                                       simpleMethods)
 import           Network.Wai.Middleware.Gzip          (def, gzip)
 import           Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import           SignalMarket.Common.Config.Logging   (LogConfig (..),
@@ -13,11 +18,6 @@ import           SignalMarket.Common.Config.Utils     (makeConfig,
 import           SignalMarket.Server.Config           (mkAppConfig)
 import           SignalMarket.Server.Server           (mkApplication)
 import           System.IO                            (stdout)
-import           Network.Wai.Middleware.Cors          (cors, corsMethods,
-                                                       corsRequestHeaders,
-                                                       simpleCorsResourcePolicy,
-                                                       simpleHeaders,
-                                                       simpleMethods)
 
 -- For logging setup, see
 -- https://github.com/Soostone/katip/blob/master/katip/examples/example_lens.hs
