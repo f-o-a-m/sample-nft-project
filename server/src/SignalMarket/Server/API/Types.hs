@@ -18,6 +18,8 @@ import           SignalMarket.Common.EventTypes       (ByteNValue (..),
                                                        parseHStatus,
                                                        parseHexString)
 import           SignalMarket.Common.Models.RawChange as RawChange
+import           SignalMarket.Common.Models.SignalMarketSignalSold as Sold
+import           SignalMarket.Common.Models.SignalMarketSignalForSale as ForSale
 import           Web.HttpApiData                      (FromHttpApiData (..))
 
 type WithMetadataPG a = (a, RawChange.RawChangePG)
@@ -80,3 +82,6 @@ data SaleSummary = SaleSummary
 
 instance A.ToJSON SaleSummary where
   toJSON = A.genericToJSON (defaultAesonOptions "saleSummary")
+
+data MarketHistory =
+  ListedForSale ForSale.SignalTokenForSale

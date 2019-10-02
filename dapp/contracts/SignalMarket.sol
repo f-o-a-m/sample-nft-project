@@ -22,9 +22,9 @@ contract SignalMarket is ERC721Holder {
   mapping(uint256 => Sale) public signalToSale;
   mapping(uint256 => Sale) public saleIdToSale;
 
-  event SignalForSale(uint256 saleId, uint256 indexed signalId, uint256 price, address indexed seller);
-  event SignalUnlisted(uint256 saleId);
-  event SignalSold(uint256 saleId, uint256 signalId, uint256 price, address owner, address newOwner);
+  event SignalForSale(uint256 saleId, uint256 indexed tokenId, uint256 price, address indexed seller);
+  event SignalUnlisted(uint256 saleId, uint256 tokenId);
+  event SignalSold(uint256 saleId, uint256 tokenId, uint256 price, address owner, address newOwner);
 
   constructor(address _signalToken, address _foamToken) public {
     // these are basically type conversions; they are _not_ constructors
@@ -38,7 +38,7 @@ contract SignalMarket is ERC721Holder {
     // to do this?
 
     // Check for caller ownership
-    require(signalToken.ownerOf(_tokenId) == msg.sender);
+    require(signalToken.ownerOf(_tokenId) == msg.sender, "must be owner to list for sale");
 
     // give ownership to SignalMarket
     signalToken.safeTransferFrom(msg.sender, address(this), _tokenId);
@@ -65,14 +65,14 @@ contract SignalMarket is ERC721Holder {
     Sale storage sale = saleIdToSale[_saleId];
     uint256 tokenId = sale.tokenId;
     // only the owner can do this
-    require(signalToSale[tokenId].owner == msg.sender);
+    require(signalToSale[tokenId].owner == msg.sender, "must be owner to unlist");
     // remove from index
     delete signalToSale[tokenId];
     delete saleIdToSale[_saleId];
     // give signal back (from this contract) to owner address
     signalToken.safeTransferFrom(address(this), msg.sender, tokenId);
 
-    emit SignalUnlisted(_saleId);
+    emit SignalUnlisted(_saleId, tokenId);
   }
 
   function buy(uint256 _saleId) public payable {
@@ -82,7 +82,7 @@ contract SignalMarket is ERC721Holder {
     Sale storage s = saleIdToSale[_saleId];
 
     // check payment
-    require(msg.value >= s.price);
+    require(msg.value >= s.price, "must submit sufficient payment");
 
     uint256 refund = msg.value - s.price;
     if(refund > 0)

@@ -98,8 +98,11 @@ type GetSignalTokenTransfers =
 --------------------------------------------------------------------------------
 
 type SignalMarketAPI =
-       "signal_market" :> GetSignalMarketSignalForSale
-  :<|> "signal_market" :> GetSignalMarketSignalSold
+  "signal_market"
+    :> ( GetSignalMarketSignalForSale
+    :<|> GetSignalMarketSignalSold
+    :<|> GetSignalMarketHistory
+    )
 
 type GetSignalMarketSignalForSale =
      "for_sale"
@@ -123,3 +126,6 @@ type GetSignalMarketSignalSold =
   :> QueryParam "ordering" BlockNumberOrdering
   :> Get '[JSON] [WithMetadata SignalMarketSignalSold.SignalSold]
 
+type GetSignalMarketHistory =
+     Capture "token_id" TokenID
+  :> Get '[JSON] SignalWithMarketHistory
