@@ -57,8 +57,3 @@ getSignalH mlimit moffset owners tokens = do
           , signalSaleSummary = saleSummary
           }
     in WithMetadata apiSignal rc
- --
- --  where
- --     usingFilters = userF >>> tokenF
- --     userF = maybe Cat.id (\as -> O.keepWhen $ \a -> fmap O.constant as `O.in_` TrackedToken.owner a) mUser
- --     tokenF = maybe Cat.id (\as -> O.keepWhen $ \a -> fmap O.constant as `O.in_` TrackedToken.tokenID a) mToken
