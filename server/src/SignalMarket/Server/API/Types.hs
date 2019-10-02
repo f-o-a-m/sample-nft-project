@@ -62,11 +62,11 @@ data Cursor = Cursor
 data APISignal = APISignal
   { tokenID           :: TokenID     -- ^ NFT ID of the signal
   , owner             :: EthAddress  -- ^ current owner of the signal
-  , creator           :: EthAddress  -- ^ original creator of the signal
   , cst               :: ByteNValue  -- ^ CST of the signal
   , geohash           :: ByteNValue  -- ^ Geohash of the signal's location
   , radius            :: HexInteger  -- ^ Radius of the signal
   , staked            :: Value       -- ^ FOAM Tokens staked within in the signal
+  , isBurned          :: Bool
   , signalSaleSummary :: Maybe SaleSummary
   } deriving Generic
 

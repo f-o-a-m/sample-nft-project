@@ -73,6 +73,8 @@ type GetSignals =
     "signal"
   :> QueryParam  "limit" Int
   :> QueryParam  "offset" Int
+  :> QueryParams "owner" EthAddress
+  :> QueryParams "token_id" TokenID
   :> Get '[JSON] [WithMetadata APISignal]
 
 --------------------------------------------------------------------------------
