@@ -17,6 +17,7 @@ import qualified SignalMarket.Common.Models.SignalMarketSignalSold    as SignalM
 import           SignalMarket.Server.API                              (SignalMarketAPI)
 import           SignalMarket.Server.API.Types                        (BlockNumberOrdering (..),
                                                                        Cursor (..),
+                                                                       SignalWithMarketHistoryResponse (..),
                                                                        WithMetadata (..))
 import           SignalMarket.Server.Application                      (AppHandler)
 import           SignalMarket.Server.Queries.Combinators              (withCursor,
@@ -28,6 +29,7 @@ import           SignalMarket.Server.Queries.SignalMarket             (signalMar
 signalMarketServer :: ServerT SignalMarketAPI AppHandler
 signalMarketServer = getSignalMarketSignalForSaleH
                 :<|> getSignalMarketSignalSoldH
+                :<|> getMarketHistoryH
 
 -- @TODO: write the type definition of this
 -- mkFilter
@@ -107,3 +109,8 @@ getSignalMarketSignalSoldH saleID tokenID from to mlimit moffset mord = do
           withMetadata SignalMarketSignalSold.eventID
             $ signalMarketSignalSoldQ >>> saleIdFilter >>> tokenIdFilter >>> fromFilter >>> toFilter
     pure . flip map as $ \(t, rc) -> WithMetadata t rc
+
+getMarketHistoryH
+  :: TokenID
+  -> AppHandler SignalWithMarketHistoryResponse
+getMarketHistoryH = undefined

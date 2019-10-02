@@ -3,18 +3,18 @@
 
 module SignalMarket.Common.Models.SignalMarketSignalUnlisted where
 
+import qualified Data.Aeson                     as A
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
-import           Opaleye                        (Field, SqlNumeric, SqlText, Table,
-                                                 table, tableField)
-import           SignalMarket.Common.EventTypes (SaleID, TokenID, EventID)
+import           GHC.Generics                   (Generic)
+import qualified Katip                          as K
+import           Opaleye                        (Field, SqlNumeric, SqlText,
+                                                 Table, table, tableField)
 import           SignalMarket.Common.Aeson
-import qualified Katip as K
-import qualified Data.Aeson as A
-import GHC.Generics (Generic)
+import           SignalMarket.Common.EventTypes (EventID, SaleID, TokenID)
 
 -- | Represents a sale that was unlisted by the owner.
 data SignalUnlisted' saleID tokenID eventID = SignalUnlisted
-  { saleID :: saleID
+  { saleID  :: saleID
   , tokenID :: tokenID
   , eventID :: eventID
   } deriving Generic

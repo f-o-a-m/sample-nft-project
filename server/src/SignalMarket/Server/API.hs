@@ -65,16 +65,16 @@ type GetFoamTokenTransfers =
 
 type SignalAPI =
      "signal_token"
-  :> GetSignals
+  :> GetSignalWithSale
 
 
-type GetSignals =
-    "signal"
+type GetSignalWithSale =
+    "with_sales"
   :> QueryParam  "limit" Int
   :> QueryParam  "offset" Int
   :> QueryParams "owner" EthAddress
   :> QueryParams "token_id" TokenID
-  :> Get '[JSON] [WithMetadata APISignal]
+  :> Get '[JSON] [WithMetadata SignalWithSaleResponse]
 
 --------------------------------------------------------------------------------
 -- /signal/transfers
@@ -128,4 +128,4 @@ type GetSignalMarketSignalSold =
 
 type GetSignalMarketHistory =
      Capture "token_id" TokenID
-  :> Get '[JSON] SignalWithMarketHistory
+  :> Get '[JSON] SignalWithMarketHistoryResponse

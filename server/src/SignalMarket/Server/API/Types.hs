@@ -2,25 +2,29 @@
 
 module SignalMarket.Server.API.Types where
 
-import           Control.Error                        (fmapL)
-import qualified Data.Aeson                           as A
-import           Data.String.Conversions              (cs)
-import qualified Data.Text                            as T
-import           GHC.Generics                         (Generic)
-import           SignalMarket.Common.Aeson            (defaultAesonOptions)
-import           SignalMarket.Common.EventTypes       (ByteNValue (..),
-                                                       EthAddress (..),
-                                                       HexInteger (..),
-                                                       HexString, SaleID (..),
-                                                       SaleStatus, TokenID (..),
-                                                       Value (..),
-                                                       hexIntegerFromText,
-                                                       parseHStatus,
-                                                       parseHexString)
-import           SignalMarket.Common.Models.RawChange as RawChange
-import           SignalMarket.Common.Models.SignalMarketSignalSold as Sold
-import           SignalMarket.Common.Models.SignalMarketSignalForSale as ForSale
-import           Web.HttpApiData                      (FromHttpApiData (..))
+import           Control.Error                                         (fmapL)
+import qualified Data.Aeson                                            as A
+import           Data.String.Conversions                               (cs)
+import qualified Data.Text                                             as T
+import           GHC.Generics                                          (Generic)
+import           SignalMarket.Common.Aeson                             (defaultAesonOptions)
+import           SignalMarket.Common.EventTypes                        (ByteNValue (..),
+                                                                        EthAddress (..),
+                                                                        HexInteger (..),
+                                                                        HexString,
+                                                                        SaleID (..),
+                                                                        SaleStatus,
+                                                                        TokenID (..),
+                                                                        Value (..),
+                                                                        hexIntegerFromText,
+                                                                        parseHStatus,
+                                                                        parseHexString)
+import qualified SignalMarket.Common.Models.RawChange                  as RawChange
+import qualified SignalMarket.Common.Models.SignalMarketSignalForSale  as ForSale
+import qualified SignalMarket.Common.Models.SignalMarketSignalSold     as Sold
+import qualified SignalMarket.Common.Models.SignalMarketSignalUnlisted as Unlisted
+import qualified SignalMarket.Common.Models.SignalTokenTrackedToken    as TrackedToken
+import           Web.HttpApiData                                       (FromHttpApiData (..))
 
 type WithMetadataPG a = (a, RawChange.RawChangePG)
 
@@ -61,19 +65,13 @@ data Cursor = Cursor
   , offset :: Int
   }
 
-data APISignal = APISignal
-  { tokenID           :: TokenID     -- ^ NFT ID of the signal
-  , owner             :: EthAddress  -- ^ current owner of the signal
-  , cst               :: ByteNValue  -- ^ CST of the signal
-  , geohash           :: ByteNValue  -- ^ Geohash of the signal's location
-  , radius            :: HexInteger  -- ^ Radius of the signal
-  , staked            :: Value       -- ^ FOAM Tokens staked within in the signal
-  , isBurned          :: Bool
-  , signalSaleSummary :: Maybe SaleSummary
+data SignalWithSaleResponse = SignalWithSaleSummary
+  { signalWithSaleResponseSignal :: TrackedToken.TrackedToken
+  , signalWithSaleResponseSale   :: Maybe SaleSummary
   } deriving Generic
 
-instance A.ToJSON APISignal where
-  toJSON = A.genericToJSON (defaultAesonOptions "signal")
+instance A.ToJSON SignalWithSaleResponse where
+  toJSON = A.genericToJSON (defaultAesonOptions "signalWithSaleResponse")
 
 data SaleSummary = SaleSummary
   { saleSummarySaleID :: SaleID
@@ -83,5 +81,19 @@ data SaleSummary = SaleSummary
 instance A.ToJSON SaleSummary where
   toJSON = A.genericToJSON (defaultAesonOptions "saleSummary")
 
+data SignalWithMarketHistoryResponse = SignalWithMarketHistoryResponse
+  { signalWithMarketHistoryResponseSignal  :: TrackedToken.TrackedToken
+  , signalWithMarketHistoryResponseHistory :: [MarketHistory]
+  } deriving Generic
+
+instance A.ToJSON SignalWithMarketHistoryResponse where
+  toJSON = A.genericToJSON (defaultAesonOptions "signalWithMarketHistoryResponse")
+
 data MarketHistory =
-  ListedForSale ForSale.SignalTokenForSale
+    ListedForSale ForSale.SignalForSale
+  | Sold Sold.SignalSold
+  | Unlisted Unlisted.SignalUnlisted
+  deriving Generic
+
+instance A.ToJSON MarketHistory where
+  toJSON = A.genericToJSON (defaultAesonOptions  "")

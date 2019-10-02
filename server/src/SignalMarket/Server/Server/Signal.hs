@@ -11,9 +11,9 @@ import           SignalMarket.Common.EventTypes                     (EthAddress,
 import qualified SignalMarket.Common.Models.RawChange               as RC
 import qualified SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedToken
 import           SignalMarket.Server.API                            (SignalAPI)
-import           SignalMarket.Server.API.Types                      (APISignal (..),
-                                                                     Cursor (..),
+import           SignalMarket.Server.API.Types                      (Cursor (..),
                                                                      SaleSummary (..),
+                                                                     SignalWithSaleResponse (..),
                                                                      WithMetadata (..))
 import           SignalMarket.Server.Application                    (AppHandler)
 import           SignalMarket.Server.Queries.Combinators            (withCursor, withMetadata)
@@ -31,7 +31,7 @@ getSignalH
   -- ^ offset
   -> [EthAddress]
   -> [TokenID]
-  -> AppHandler [WithMetadata APISignal]
+  -> AppHandler [WithMetadata SignalWithSaleResponse]
 getSignalH mlimit moffset owners tokens = do
   let withLimitAndOffset = maybe Cat.id withCursor (Cursor <$> mlimit <*> moffset)
       ownersF = case owners of
@@ -46,14 +46,8 @@ getSignalH mlimit moffset owners tokens = do
           trackedTokenWithSaleQ >>> ownersF >>> tokenF
   pure . flip map as $ \((t,ss), rc) ->
     let saleSummary = SaleSummary <$> fst ss <*> snd ss
-        apiSignal = APISignal
-          { tokenID = TrackedToken.tokenID t
-          , owner = TrackedToken.owner t
-          , cst = TrackedToken.cst t
-          , geohash = TrackedToken.geohash t
-          , radius = TrackedToken.radius t
-          , staked = TrackedToken.staked t
-          , isBurned = TrackedToken.isBurned t
-          , signalSaleSummary = saleSummary
+        apiSignal = SignalWithSaleSummary
+          { signalWithSaleResponseSignal = t
+          , signalWithSaleResponseSale = saleSummary
           }
     in WithMetadata apiSignal rc
