@@ -2,8 +2,7 @@ module SignalMarket.Server.Queries.SignalToken where
 
 import           Control.Arrow                                        (returnA)
 import qualified Opaleye                                              as O
-import           SignalMarket.Common.EventTypes                       (
-                                                                       SaleID,
+import           SignalMarket.Common.EventTypes                       (SaleID,
                                                                        Value)
 import qualified SignalMarket.Common.Models.SignalMarketSignalForSale as ForSale
 import qualified SignalMarket.Common.Models.SignalTokenTrackedToken   as TrackedToken
