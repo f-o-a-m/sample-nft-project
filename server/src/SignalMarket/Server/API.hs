@@ -13,8 +13,7 @@ import           Servant
 import           SignalMarket.Common.EventTypes                       (EthAddress,
                                                                        SaleID,
                                                                        SaleStatus,
-                                                                       TokenID,
-                                                                       Value)
+                                                                       TokenID)
 import qualified SignalMarket.Common.Models.FoamTokenTransfer         as FoamTokenTransfer
 import qualified SignalMarket.Common.Models.SignalMarketSignalForSale as SignalMarketSignalForSale
 import qualified SignalMarket.Common.Models.SignalMarketSignalSold    as SignalMarketSignalSold
@@ -86,9 +85,9 @@ type SignalTokenAPI = GetSignalTokenTransfers
 type GetSignalTokenTransfers =
     "signal"
   :> "transfers"
-  :> QueryParam "to" EthAddress
-  :> QueryParam "from" EthAddress
-  :> QueryParam "token_id" TokenID
+  :> QueryParams "to" EthAddress
+  :> QueryParams "from" EthAddress
+  :> QueryParams "token_id" TokenID
   :> QueryParam "limit" Int
   :> QueryParam "offset" Int
   :> QueryParam "ordering" BlockNumberOrdering
