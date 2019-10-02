@@ -10,8 +10,7 @@ import           SignalMarket.Common.Class                            (runDB)
 import           SignalMarket.Common.EventTypes                       (EthAddress,
                                                                        SaleID,
                                                                        SaleStatus,
-                                                                       TokenID,
-                                                                       Value)
+                                                                       TokenID)
 import qualified SignalMarket.Common.Models.RawChange                 as RawChange
 import qualified SignalMarket.Common.Models.SignalMarketSignalForSale as SignalMarketSignalForSale
 import qualified SignalMarket.Common.Models.SignalMarketSignalSold    as SignalMarketSignalSold
@@ -73,15 +72,13 @@ getSignalMarketSignalForSaleH saleID tokenID msaleStatus seller mlimit moffset m
     pure . flip map as $ \(t, rc) -> WithMetadata t rc
 
 getSignalMarketSignalSoldH
-  :: Maybe SaleID
+  :: [SaleID]
   -- ^ sale_id
-  -> Maybe TokenID
+  -> [TokenID]
   -- ^ token_id
-  -> Maybe Value
-  -- ^ price
-  -> Maybe EthAddress
+  -> [EthAddress]
   -- ^ sold_from address
-  -> Maybe EthAddress
+  -> [EthAddress]
   -- ^ sold_to address
   -> Maybe Int
   -- ^ limit
@@ -89,17 +86,24 @@ getSignalMarketSignalSoldH
   -- ^ offset
   -> Maybe BlockNumberOrdering
   -> AppHandler [WithMetadata SignalMarketSignalSold.SignalSold]
-getSignalMarketSignalSoldH msaleID mtokenID mprice mfrom mto mlimit moffset mord = do
+getSignalMarketSignalSoldH saleID tokenID from to mlimit moffset mord = do
     let withLimitAndOffset = maybe Cat.id withCursor (Cursor <$> mlimit <*> moffset)
-        saleIdFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalSold.saleID a O..== O.constant x)) msaleID
-        tokenIdFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalSold.tokenID a O..== O.constant x)) mtokenID
-        priceFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalSold.price a O..== O.constant x)) mprice
-        fromFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalSold.soldFrom a O..== O.constant x)) mfrom
-        toFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalSold.soldTo a O..== O.constant x)) mto
+        saleIdFilter = case saleID of
+          [] -> Cat.id
+          xs -> O.keepWhen (\a -> fmap O.constant xs `O.in_` SignalMarketSignalSold.saleID a)
+        tokenIdFilter = case tokenID of
+          [] -> Cat.id
+          xs -> O.keepWhen (\a -> fmap O.constant xs `O.in_` SignalMarketSignalSold.tokenID a)
+        fromFilter = case from of
+          [] -> Cat.id
+          xs -> O.keepWhen (\a -> fmap O.constant xs `O.in_` SignalMarketSignalSold.soldFrom a)
+        toFilter = case to of
+          [] -> Cat.id
+          xs -> O.keepWhen (\a -> fmap O.constant xs `O.in_` SignalMarketSignalSold.soldTo a)
         usingOrdering = withOrdering (fromMaybe DESC mord) (RawChange.blockNumber . snd) (RawChange.logIndex . snd)
     as <- runDB $ \conn -> O.runQuery conn $
       withLimitAndOffset $
         usingOrdering $
           withMetadata SignalMarketSignalSold.eventID
-            $ signalMarketSignalSoldQ >>> saleIdFilter >>> tokenIdFilter >>> priceFilter >>> fromFilter >>> toFilter
+            $ signalMarketSignalSoldQ >>> saleIdFilter >>> tokenIdFilter >>> fromFilter >>> toFilter
     pure . flip map as $ \(t, rc) -> WithMetadata t rc

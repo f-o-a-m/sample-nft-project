@@ -115,11 +115,10 @@ type GetSignalMarketSignalForSale =
 
 type GetSignalMarketSignalSold =
      "sold"
-  :> QueryParam "sale_id" SaleID
-  :> QueryParam "token_id" TokenID
-  :> QueryParam "price" Value -- maybe just a normal int?
-  :> QueryParam "sold_from" EthAddress
-  :> QueryParam "sold_to" EthAddress
+  :> QueryParams "sale_id" SaleID
+  :> QueryParams "token_id" TokenID
+  :> QueryParams "sold_from" EthAddress
+  :> QueryParams "sold_to" EthAddress
   :> QueryParam "limit" Int
   :> QueryParam "offset" Int
   :> QueryParam "ordering" BlockNumberOrdering
