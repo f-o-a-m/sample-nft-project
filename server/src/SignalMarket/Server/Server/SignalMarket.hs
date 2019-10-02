@@ -38,15 +38,13 @@ signalMarketServer = getSignalMarketSignalForSaleH
 -- mkFilter accessF = maybe Cat.id (\x -> O.keepWhen (\a -> accessF a O..== O.constant x))
 
 getSignalMarketSignalForSaleH
-  :: Maybe SaleID
+  :: [SaleID]
   -- ^ sale_id
-  -> Maybe TokenID
+  -> [TokenID]
   -- ^ token_id
-  -> Maybe Value
-  -- ^ price
   -> Maybe SaleStatus
   -- ^ sale_status
-  -> Maybe EthAddress
+  -> [EthAddress]
   -- ^ seller
   -> Maybe Int
   -- ^ limit
@@ -54,19 +52,24 @@ getSignalMarketSignalForSaleH
   -- ^ offset
   -> Maybe BlockNumberOrdering
   -> AppHandler [WithMetadata SignalMarketSignalForSale.SignalForSale]
-getSignalMarketSignalForSaleH msaleID mtokenID mprice msaleStatus mseller mlimit moffset mord = do
+getSignalMarketSignalForSaleH saleID tokenID msaleStatus seller mlimit moffset mord = do
     let withLimitAndOffset = maybe Cat.id withCursor (Cursor <$> mlimit <*> moffset)
-        saleIdFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalForSale.saleID a O..== O.constant x)) msaleID
-        tokenIdFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalForSale.tokenID a O..== O.constant x)) mtokenID
-        priceFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalForSale.price a O..== O.constant x)) mprice
+        saleIdFilter = case saleID of
+          [] -> Cat.id
+          xs -> O.keepWhen (\a -> fmap O.constant xs `O.in_` SignalMarketSignalForSale.saleID a)
+        tokenIdFilter = case tokenID of
+          [] -> Cat.id
+          xs -> O.keepWhen (\a -> fmap O.constant xs `O.in_` SignalMarketSignalForSale.tokenID a)
         saleStatusFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalForSale.saleStatus a O..== O.constant x)) msaleStatus
-        sellerFilter = maybe Cat.id (\x -> O.keepWhen (\a -> SignalMarketSignalForSale.seller a O..== O.constant x)) mseller
+        sellerFilter = case seller of
+          [] -> Cat.id
+          xs -> O.keepWhen (\a -> fmap O.constant xs `O.in_` SignalMarketSignalForSale.seller a)
         usingOrdering = withOrdering (fromMaybe DESC mord) (RawChange.blockNumber . snd) (RawChange.logIndex . snd)
     as <- runDB $ \conn -> O.runQuery conn $
       withLimitAndOffset $
         usingOrdering $
           withMetadata SignalMarketSignalForSale.eventID
-            $ signalMarketSignalForSaleQ >>> saleIdFilter >>> tokenIdFilter >>> priceFilter >>> saleStatusFilter >>> sellerFilter
+            $ signalMarketSignalForSaleQ >>> saleIdFilter >>> tokenIdFilter >>> saleStatusFilter >>> sellerFilter
     pure . flip map as $ \(t, rc) -> WithMetadata t rc
 
 getSignalMarketSignalSoldH

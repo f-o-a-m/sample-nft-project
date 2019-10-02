@@ -53,8 +53,8 @@ type FoamTokenAPI =
 
 type GetFoamTokenTransfers =
     "transfers"
-  :> QueryParam "to" EthAddress
-  :> QueryParam "from" EthAddress
+  :> QueryParams "to" EthAddress
+  :> QueryParams "from" EthAddress
   :> QueryParam "limit" Int
   :> QueryParam "offset" Int
   :> QueryParam "ordering" BlockNumberOrdering
@@ -104,11 +104,10 @@ type SignalMarketAPI =
 
 type GetSignalMarketSignalForSale =
      "for_sale"
-  :> QueryParam "sale_id" SaleID
-  :> QueryParam "token_id" TokenID
-  :> QueryParam "price" Value -- maybe just a normal int?
+  :> QueryParams "sale_id" SaleID
+  :> QueryParams "token_id" TokenID
   :> QueryParam "sale_status" SaleStatus
-  :> QueryParam "seller" EthAddress
+  :> QueryParams "seller" EthAddress
   :> QueryParam "limit" Int
   :> QueryParam "offset" Int
   :> QueryParam "ordering" BlockNumberOrdering
