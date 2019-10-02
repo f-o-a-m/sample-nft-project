@@ -20,10 +20,12 @@ import           SignalMarket.Common.Aeson
 import           SignalMarket.Common.Config.Utils
 import           SignalMarket.Common.EventTypes   (HexInteger)
 
+-- | A record of the contracts used in the nft-market DApp.
 data Contracts = Contracts
   { contractsFoamToken    :: DeployReceipt
   , contractsSignalToken  :: DeployReceipt
   , contractsSignalMarket :: DeployReceipt
+  , contractsNetworkId    :: String
   } deriving (Eq, Show, Generic)
 
 contractsAesonOptions :: AE.Options
@@ -44,8 +46,11 @@ mkContracts networkID = do
     { contractsFoamToken = foamToken
     , contractsSignalToken = signalToken
     , contractsSignalMarket = signalMarket
+    , contractsNetworkId = networkID
     }
 
+-- | Matches up with the deployment information written to the
+-- | chanterelle deploy artifact.
 data DeployReceipt = DeployReceipt
   { deployReceiptAddress         :: Address
   , deployReceiptBlockHash       :: HexString
@@ -68,6 +73,7 @@ parseDeployReceiptFromABI abi networkID =
        . AEL.key (cs networkID)
        . AEL._JSON
 
+-- | Read the deploy artifact for a given contract on a given network.
 getDeployReceipt :: MonadIO m => String -> String -> ExceptT String m DeployReceipt
 getDeployReceipt contractName networkID = do
     abisDir <- getEnvVarWithDefault "ABIS_DIR" "./build"
@@ -76,5 +82,6 @@ getDeployReceipt contractName networkID = do
     parseDeployReceiptFromABI abi networkID ??
       ("Couldn't parse address from ABI at " <> abiPath <> " with networkID " <> cs networkID)
 
+-- | A class used for events, primarily for logging.
 class HasEventName a where
   eventName :: Proxy a -> Text

@@ -14,7 +14,6 @@ import           SignalMarket.Common.EventTypes (ByteNValue, EthAddress,
                                                  EventID, TokenID, Value)
 
 -- Signal cache table, for easily figuring out the owner and stake of a signal
-
 data Signal' tokenID owner creator cst geohash radius amountStaked tokensStakedEID tokensUnstakedEID trackedTokenEID lastTransferEID mintingTransferEID = Signal
   { tokenID            :: tokenID
   , owner              :: owner

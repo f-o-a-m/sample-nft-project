@@ -4,6 +4,8 @@ import           Control.Error
 import           Database.PostgreSQL.Simple       (ConnectInfo (..))
 import           SignalMarket.Common.Config.Utils
 
+-- | ConnectInfo can be turned into a bonafide connection
+-- | using 'Database.PostgreSQL.Simple.connect'.
 mkPGConnectInfo :: ExceptT String IO ConnectInfo
 mkPGConnectInfo = do
     host <- getEnvVarWithDefault "PGHOST" "localhost"

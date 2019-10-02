@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "justusadam.language-haskell",
+    "eamodio.gitlens",
+    "EditorConfig.editorconfig",
+    "nwolverson.ide-purescript"
+  ]
+}

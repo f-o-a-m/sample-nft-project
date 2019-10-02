@@ -25,7 +25,6 @@ before_install:
 - nvm alias default lts/carbon
 install:
 # DEPLOY
-- npm install -g bower
 - travis_wait make install
 - travis_wait docker run -d -p 8545:8545 -e ACCOUNTS_TO_CREATE=10 foamspace/cliquebait:latest
 - sleep 10
