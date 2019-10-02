@@ -31,7 +31,7 @@ type Props =
   { providerState :: ProviderState.State
   }
 
-type State = 
+type State =
   { balance :: Maybe Token
   , loadingFiber :: Maybe (Fiber Void)
   }
@@ -48,6 +48,7 @@ reloadUserBalance self con = fix \loop -> do
 pullUserBalance :: Self -> ConnectedState -> Aff Void
 pullUserBalance self con = fix \loop -> do
   res <- runWeb3 con.provider
+    $ void
     $ event (eventFilter Proxy (un Contracts con.contracts).foamToken )
     $ \t@(FoamToken.Transfer {from, to}) -> do
       when (con.userAddress == from || con.userAddress == to) do
@@ -74,7 +75,7 @@ header = React.make component
 
     willUnmount self = do
       for_ self.state.loadingFiber $ killFiber (error "will unmount") >>> launchAff_
-    
+
     -- TODO make it look nice
     -- TODO show avatar from address
     -- TODO show proper network name
