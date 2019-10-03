@@ -4,6 +4,11 @@ import           Control.Exception
 import           Data.Monoid                          (Endo (..))
 import qualified Katip                                as K
 import           Network.Wai.Handler.Warp             (run)
+import           Network.Wai.Middleware.Cors          (cors, corsMethods,
+                                                       corsRequestHeaders,
+                                                       simpleCorsResourcePolicy,
+                                                       simpleHeaders,
+                                                       simpleMethods)
 import           Network.Wai.Middleware.Gzip          (def, gzip)
 import           Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import           SignalMarket.Common.Config.Logging   (LogConfig (..),
@@ -31,4 +36,8 @@ runServer = do
     addMiddleware = appEndo . mconcat . map Endo $
       [ logStdoutDev
       , gzip def
+      , cors (const $ Just $ simpleCorsResourcePolicy
+          { corsRequestHeaders = "Authorization" : simpleHeaders
+          , corsMethods = "DELETE" : simpleMethods
+          }) -- cors policy
       ]

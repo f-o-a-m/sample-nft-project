@@ -25,6 +25,7 @@ data Contracts = Contracts
   { contractsFoamToken    :: DeployReceipt
   , contractsSignalToken  :: DeployReceipt
   , contractsSignalMarket :: DeployReceipt
+  , contractsNetworkId    :: String
   } deriving (Eq, Show, Generic)
 
 contractsAesonOptions :: AE.Options
@@ -45,6 +46,7 @@ mkContracts networkID = do
     { contractsFoamToken = foamToken
     , contractsSignalToken = signalToken
     , contractsSignalMarket = signalMarket
+    , contractsNetworkId = networkID
     }
 
 -- | Matches up with the deployment information written to the

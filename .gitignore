@@ -8,3 +8,4 @@ package-lock.json
 stack.yaml.lock
 .stack-work
 *.dump-splices
+.psc-ide-port
