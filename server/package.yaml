@@ -21,6 +21,7 @@ dependencies:
 - base >= 4.7 && < 5
 - containers
 - common
+- conduit
 - errors
 - exceptions
 - http-api-data
@@ -40,6 +41,7 @@ dependencies:
 - wai-cors
 - warp
 - web3
+- websockets
 
 library:
   source-dirs: src
@@ -58,6 +60,10 @@ default-extensions:
   - StandaloneDeriving
   - FlexibleInstances
   - ScopedTypeVariables
+  - GADTs
+  - FlexibleContexts
+  - NamedFieldPuns
+  - TypeApplications
 
 executables:
   server-exe:
