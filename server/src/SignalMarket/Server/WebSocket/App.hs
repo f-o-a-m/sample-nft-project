@@ -22,18 +22,21 @@ import qualified Network.WebSockets                      as Socket
 import qualified Opaleye                                 as O
 import           SignalMarket.Common.Class               (MonadPG (..),
                                                           queryExact)
+import           SignalMarket.Common.Config.Logging
 import           SignalMarket.Common.EventTypes          (EventID (..),
                                                           parseHexString)
 import qualified SignalMarket.Common.Models.RawChange    as RC
 import           SignalMarket.Server.WebSocket.Types
 
 mkWebSocketApp
-  :: WebSocketEnv
+  :: PG.Connection
+  -> LogConfig
   -> WSApplet
   -> Socket.ServerApp
-mkWebSocketApp env WSApplet{clientMsgHandler, msgConduit} pendingConn = do
+mkWebSocketApp pg logCfg WSApplet{clientMsgHandler, msgConduit} pendingConn = do
   socket <- Socket.acceptRequest pendingConn
   Socket.forkPingThread socket 10
+  env <- mkWebSocketEnv pg logCfg
   _ <- async . forever $ do
     subsBS <- Socket.receiveData socket
     runWebSocketM env $ clientMsgHandler subsBS
