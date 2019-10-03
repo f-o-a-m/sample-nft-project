@@ -1,21 +1,16 @@
 module SignalMarket.Indexer.Events.SignalToken where
 
-import           Control.Lens                                       ((.~), (^.))
+import           Control.Lens                                       ((^.))
 import           Control.Monad                                      (unless)
 import           Control.Monad.Catch                                (MonadThrow)
-import           Control.Monad.Reader                               (MonadReader,
-                                                                     asks)
+import           Control.Monad.Reader                               (MonadReader)
 import qualified Katip                                              as K
-import qualified Network.Ethereum.Account                           as W3
-import qualified Network.Ethereum.Api.Types                         as W3
 import           Opaleye                                            (constant,
                                                                      (.==))
 import           SignalMarket.Common.Class                          (MonadPG (..),
                                                                      MonadWeb3 (..))
-import           SignalMarket.Common.Config.Types
 import qualified SignalMarket.Common.Contracts.SignalToken          as Contract
 import           SignalMarket.Common.EventTypes
-import qualified SignalMarket.Common.Models.RawChange               as RC
 import qualified SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedToken
 import qualified SignalMarket.Common.Models.SignalTokenTransfer     as Transfer
 import           SignalMarket.Indexer.Config
@@ -66,7 +61,7 @@ signalTokenTrackedTokenH
      )
   => Event Contract.TrackedToken
   -> m ()
-signalTokenTrackedTokenH Event{eventData, eventEventID, eventRawEvent} =
+signalTokenTrackedTokenH Event{eventData, eventEventID} =
   K.katipAddNamespace "SignalToken" $ do
     K.katipAddNamespace "TrackedToken" $ do
       case eventData of
