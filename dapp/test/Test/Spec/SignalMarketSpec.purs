@@ -32,11 +32,15 @@ import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
 import Test.Utils (TestEnv, assertStorageCall, assertWeb3, go, mkSignalAttrGen, mkUIntN, monitorUntil, unsafeFromJust)
 import Type.Proxy (Proxy(..))
 
+-- this is good
+-- not sure if we actually use anythiong more than the address
+-- do we need the deplly hash etc? no. he we just need the hash
+-- so then let's make it like contracts
 type SignalMarketTestCfg r =
-  ( foamToken :: DeployReceipt NoArgs
-  , signalToken :: DeployReceipt SignalToken
-  , tokenFaucet :: Address
-  , signalMarket :: DeployReceipt SignalMarket | r
+  ( foamToken :: Address
+  , signalToken :: Address
+  , signalMarket :: Address
+  | r
   )
 
 spec
@@ -64,14 +68,14 @@ spec' testCfg env@{ logger, signalAttrGen } = do
                  mkAddress =<< mkHexString "0x0000000000000000000000000000000000000000"
       { provider
       , accounts
-      , foamToken: { deployAddress: foamToken }
-      , signalToken: { deployAddress: signalToken }
-      , signalMarket: { deployAddress: signalMarket }
-      , tokenFaucet
+      , foamToken
+      , signalToken
+      , signalMarket
       } = testCfg
       -- set up 2 accounts
       account1 = unsafePartial $ fromJust $ accounts !! 1
       account2 = unsafePartial $ fromJust $ accounts !! 2
+      tokenFaucet = unsafePartial $ fromJust $ accounts !! 0
   beforeAll_ (faucetTokens env { foamToken, tokenFaucet, provider, account1, account2 }) $ do
     describe "preliminary set up" $ parallel do
       it "can run the faucet" \_ -> do
