@@ -1,10 +1,10 @@
 module SignalMarket.Server.Queries.SignalMarket where
 
-import           Control.Arrow                                         (returnA)
-import qualified Opaleye                                               as O
+import           Control.Arrow                                        (returnA)
+import qualified Opaleye                                              as O
 import           SignalMarket.Common.EventTypes
-import qualified SignalMarket.Common.Models.SignalMarketSignalForSale  as ForSale
-import qualified SignalMarket.Common.Models.SignalMarketSignalSold     as Sold
+import qualified SignalMarket.Common.Models.SignalMarketSignalForSale as ForSale
+import qualified SignalMarket.Common.Models.SignalMarketSignalSold    as Sold
 
 signalMarketSignalForSaleQ :: O.Select ForSale.SignalForSalePG
 signalMarketSignalForSaleQ = O.selectTable ForSale.signalForSaleTable
