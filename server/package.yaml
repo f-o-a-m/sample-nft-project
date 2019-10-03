@@ -45,6 +45,7 @@ library:
   source-dirs: src
 
 default-extensions:
+  - Arrows
   - LambdaCase
   - OverloadedStrings
   - GeneralizedNewtypeDeriving
