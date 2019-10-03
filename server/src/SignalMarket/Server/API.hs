@@ -10,12 +10,10 @@ module SignalMarket.Server.API
 
 import           Data.Proxy
 import           Servant
-import           SignalMarket.Common.EventTypes                       (ByteNValue,
-                                                                       EthAddress,
+import           SignalMarket.Common.EventTypes                       (EthAddress,
                                                                        SaleID,
                                                                        SaleStatus,
-                                                                       TokenID,
-                                                                       Value)
+                                                                       TokenID)
 import qualified SignalMarket.Common.Models.FoamTokenTransfer         as FoamTokenTransfer
 import qualified SignalMarket.Common.Models.SignalMarketSignalForSale as SignalMarketSignalForSale
 import qualified SignalMarket.Common.Models.SignalMarketSignalSold    as SignalMarketSignalSold
@@ -54,8 +52,8 @@ type FoamTokenAPI =
 
 type GetFoamTokenTransfers =
     "transfers"
-  :> QueryParam "to" EthAddress
-  :> QueryParam "from" EthAddress
+  :> QueryParams "to" EthAddress
+  :> QueryParams "from" EthAddress
   :> QueryParam "limit" Int
   :> QueryParam "offset" Int
   :> QueryParam "ordering" BlockNumberOrdering
@@ -66,50 +64,17 @@ type GetFoamTokenTransfers =
 --------------------------------------------------------------------------------
 
 type SignalAPI =
-     "signal"
-  :> (GetSignalByID :<|> GetSignalByCST :<|> GetSignalsByOwner :<|> GetSignalsByCreator :<|> GetSignalsByFilter)
+     "signal_token"
+  :> GetSignalWithSale
 
-type GetSignalByID =
-      "id"
-  :> Capture "token_id" TokenID
-  :> Get '[JSON] APISignal
 
-type GetSignalByCST =
-      "cst"
-  :> Capture "cst" ByteNValue
-  :> Get '[JSON] APISignal
-
-type GetSignalsByOwner =
-    "owned-by"
-  :> Capture "address" EthAddress
-  :> QueryParam "limit" Int
-  :> QueryParam "offset" Int
-  :> Get '[JSON] [APISignal]
-
-type GetSignalsByCreator =
-    "created-by"
-  :> Capture "address" EthAddress
-  :> QueryParam "limit" Int
-  :> QueryParam "offset" Int
-  :> Get '[JSON] [APISignal]
-
-type GetSignalsByFilter =
-  "filtered"
-  :> QueryParams "created-by" EthAddress
-  :> QueryParams "owned-by" EthAddress
-  :> QueryParams "stake-equals" Value
-  :> QueryParam  "stake-less-than" Value
-  :> QueryParam  "stake-less-than-or-equals" Value
-  :> QueryParam  "stake-greater-than" Value
-  :> QueryParam  "stake-greater-than-or-equals" Value
-  :> QueryParams "radius-equals" Value
-  :> QueryParam  "radius-less-than" Value
-  :> QueryParam  "radius-less-than-or-equals" Value
-  :> QueryParam  "radius-greater-than" Value
-  :> QueryParam  "radius-greater-than-or-equals" Value
+type GetSignalWithSale =
+    "with_sales"
   :> QueryParam  "limit" Int
   :> QueryParam  "offset" Int
-  :> Get '[JSON] [APISignal]
+  :> QueryParams "owner" EthAddress
+  :> QueryParams "token_id" TokenID
+  :> Get '[JSON] SignalWithSaleResponse
 
 --------------------------------------------------------------------------------
 -- /signal/transfers
@@ -120,9 +85,9 @@ type SignalTokenAPI = GetSignalTokenTransfers
 type GetSignalTokenTransfers =
     "signal"
   :> "transfers"
-  :> QueryParam "to" EthAddress
-  :> QueryParam "from" EthAddress
-  :> QueryParam "token_id" TokenID
+  :> QueryParams "to" EthAddress
+  :> QueryParams "from" EthAddress
+  :> QueryParams "token_id" TokenID
   :> QueryParam "limit" Int
   :> QueryParam "offset" Int
   :> QueryParam "ordering" BlockNumberOrdering
@@ -133,16 +98,18 @@ type GetSignalTokenTransfers =
 --------------------------------------------------------------------------------
 
 type SignalMarketAPI =
-       "signal_market" :> GetSignalMarketSignalForSale
-  :<|> "signal_market" :> GetSignalMarketSignalSold
+  "signal_market"
+    :> ( GetSignalMarketSignalForSale
+    :<|> GetSignalMarketSignalSold
+    :<|> GetSignalMarketHistory
+    )
 
 type GetSignalMarketSignalForSale =
      "for_sale"
-  :> QueryParam "sale_id" SaleID
-  :> QueryParam "token_id" TokenID
-  :> QueryParam "price" Value -- maybe just a normal int?
+  :> QueryParams "sale_id" SaleID
+  :> QueryParams "token_id" TokenID
   :> QueryParam "sale_status" SaleStatus
-  :> QueryParam "seller" EthAddress
+  :> QueryParams "seller" EthAddress
   :> QueryParam "limit" Int
   :> QueryParam "offset" Int
   :> QueryParam "ordering" BlockNumberOrdering
@@ -150,13 +117,15 @@ type GetSignalMarketSignalForSale =
 
 type GetSignalMarketSignalSold =
      "sold"
-  :> QueryParam "sale_id" SaleID
-  :> QueryParam "token_id" TokenID
-  :> QueryParam "price" Value -- maybe just a normal int?
-  :> QueryParam "sold_from" EthAddress
-  :> QueryParam "sold_to" EthAddress
+  :> QueryParams "sale_id" SaleID
+  :> QueryParams "token_id" TokenID
+  :> QueryParams "sold_from" EthAddress
+  :> QueryParams "sold_to" EthAddress
   :> QueryParam "limit" Int
   :> QueryParam "offset" Int
   :> QueryParam "ordering" BlockNumberOrdering
   :> Get '[JSON] [WithMetadata SignalMarketSignalSold.SignalSold]
 
+type GetSignalMarketHistory =
+     Capture "token_id" TokenID
+  :> Get '[JSON] SignalWithMarketHistoryResponse

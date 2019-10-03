@@ -89,10 +89,11 @@ module.exports = function(/*env*/) {
     plugins: commonPlugins.concat([
       new HtmlWebpackPlugin({
         inject: true,
-        title: "FOAM Signal",
+        title: "FOAM NFT Marketplace",
         chunks: ["index"],
         template: "./frontend/src/index.html",
         filename: "index.html",
+        favicon: "./frontend/src/favicon.ico"
       }),
       new webpack.DefinePlugin({
         "process.env.API_BASE_URL": JSON.stringify(process.env.API_BASE_URL),

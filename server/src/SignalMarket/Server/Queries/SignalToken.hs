@@ -1,27 +1,32 @@
 module SignalMarket.Server.Queries.SignalToken where
 
-import           Control.Arrow                                        ((>>>))
+import           Control.Arrow                                        (returnA)
 import qualified Opaleye                                              as O
-import           SignalMarket.Common.EventTypes                       (EventID)
-import qualified SignalMarket.Common.Models.SignalTokenTokensStaked   as TokensStaked
-import qualified SignalMarket.Common.Models.SignalTokenTokensUnstaked as TokensUnstaked
+import           SignalMarket.Common.EventTypes                       (SaleID,
+                                                                       Value)
+import qualified SignalMarket.Common.Models.SignalMarketSignalForSale as ForSale
 import qualified SignalMarket.Common.Models.SignalTokenTrackedToken   as TrackedToken
-import qualified SignalMarket.Common.Models.SignalTokenTransfer       as Transfer
+import qualified SignalMarket.Common.Models.SignalTokenTransfer       as SignalTransfer
+import qualified SignalMarket.Server.Queries.SignalMarket             as SignalMarketQ
 
-signalTokenTransfersQ :: O.Select Transfer.TransferPG
-signalTokenTransfersQ = O.selectTable Transfer.transferTable
+signalTokenTransferQ :: O.Select SignalTransfer.TransferPG
+signalTokenTransferQ = O.selectTable SignalTransfer.transferTable
 
-signalTokenTrackedTokenQ :: O.Select TrackedToken.TrackedTokenPG
-signalTokenTrackedTokenQ = O.selectTable TrackedToken.trackedTokenTable
+type MaybeSaleSummaryPG =
+   ( O.Column (O.Nullable O.SqlNumeric) -- saleID
+   , O.Column (O.Nullable O.SqlNumeric) -- price
+   )
+type MaybeSaleSummary = (Maybe SaleID, Maybe Value)
 
-signalTokenTokensStakedQ :: O.Select TokensStaked.TokensStakedPG
-signalTokenTokensStakedQ = O.selectTable TokensStaked.tokensStakedTable
+trackedTokenWithSaleQ :: O.Select (TrackedToken.TrackedTokenPG, MaybeSaleSummaryPG)
+trackedTokenWithSaleQ =
+   let joiner tt sale = (tt , (O.toNullable $ ForSale.saleID sale, O.toNullable $ ForSale.price sale))
+       joinerL tt = (tt, (O.null, O.null))
+       selector tt sale = TrackedToken.tokenID tt O..== ForSale.tokenID sale
+   in proc () -> do
+        (t, s) <- O.leftJoinF joiner joinerL selector (O.selectTable TrackedToken.trackedTokenTable) SignalMarketQ.activeSales -< ()
+        O.restrict -< TrackedToken.isBurned t O..== O.constant False
+        returnA -< (t,s)
 
-signalTokenTokensUnstakedQ :: O.Select TokensUnstaked.TokensUnstakedPG
-signalTokenTokensUnstakedQ = O.selectTable TokensUnstaked.tokensUnstakedTable
-
-signalTokenTokensUnstakedByEIDQ :: [EventID] -> O.Select TokensUnstaked.TokensUnstakedPG
-signalTokenTokensUnstakedByEIDQ eids =
-  let targetEIDs = map O.constant eids
-      filterByEIDs = O.keepWhen (O.in_ targetEIDs . TokensUnstaked.eventID)
-   in (signalTokenTokensUnstakedQ >>> filterByEIDs)
+trackedTokenQ :: O.Select TrackedToken.TrackedTokenPG
+trackedTokenQ = O.selectTable TrackedToken.trackedTokenTable

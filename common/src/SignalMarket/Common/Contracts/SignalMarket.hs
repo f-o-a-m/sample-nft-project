@@ -12,3 +12,6 @@ instance HasEventName SignalForSale where
 
 instance HasEventName SignalSold where
   eventName _ = "SignalMarketSignalSold"
+
+instance HasEventName SignalUnlisted where
+  eventName _ = "SignalMarketSignalUnlisted"
