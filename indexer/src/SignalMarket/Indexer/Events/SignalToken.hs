@@ -75,23 +75,16 @@ signalTokenTrackedTokenH Event{eventData, eventEventID, eventRawEvent} =
               cst     = trackedTokenCst_ ^. _HexBytesN
               geohash = trackedTokenGeohash_ ^. _HexBytesN
               radius  = trackedTokenRadius_ ^. _HexInteger
-              HexInteger bn = RC.blockNumber eventRawEvent
-              callBlock = W3.BlockWithNumber $ W3.Quantity bn
-          signalTokenAddress <- asks (deployReceiptAddress . contractsSignalToken . indexerCfgContracts)
-          (_owner, _stake) <- runWeb3 $ W3.withAccount () $
-              W3.withParam (W3.to .~ signalTokenAddress) $
-                W3.withParam (W3.block .~ callBlock) $ do
-                  owner <- Contract.ownerOf trackedTokenTokenID_
-                  stake <- Contract.tokenStake trackedTokenTokenID_
-                  pure (owner, stake)
+              stake = trackedTokenStake_ ^. _Value
+              owner = trackedTokenOwner_ ^. _EthAddress
           insert TrackedToken.trackedTokenTable $ TrackedToken.TrackedToken
             { TrackedToken.nftAddress = trackedTokenNftAddress_ ^. _EthAddress
             , TrackedToken.cst = cst
             , TrackedToken.geohash = geohash
             , TrackedToken.radius = radius
             , TrackedToken.tokenID = tokenID
-            , TrackedToken.owner = _owner ^. _EthAddress
-            , TrackedToken.staked = _stake ^. _Value
+            , TrackedToken.owner = owner
+            , TrackedToken.staked = stake
             , TrackedToken.isBurned = False
             , TrackedToken.eventID = eventEventID :: EventID
             }
