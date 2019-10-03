@@ -1,9 +1,9 @@
 "use strict";
 
-exports.readCanceler = function(instance) {
-  return instance.__canceler__;
+exports.readCanceler = function(key, instance) {
+  return instance["__canceler__" + key];
 };
 
-exports.setCanceler = function(canceler, instance) {
-  instance.__canceler__ = canceler;
+exports.setCanceler = function(key, canceler, instance) {
+  instance["__canceler__" + key] = canceler;
 };

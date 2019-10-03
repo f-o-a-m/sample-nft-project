@@ -23,7 +23,7 @@ contract SignalMarket is ERC721Holder {
   mapping(uint256 => Sale) public saleIdToSale;
 
   event SignalForSale(uint256 saleId, uint256 indexed tokenId, uint256 price, address indexed seller);
-  event SignalUnlisted(uint256 saleId, uint256 tokenId);
+  event SignalUnlisted(uint256 saleId, uint256 tokenId, address indexed owner);
   event SignalSold(uint256 saleId, uint256 tokenId, uint256 price, address owner, address newOwner);
 
   constructor(address _signalToken, address _foamToken) public {
@@ -72,7 +72,7 @@ contract SignalMarket is ERC721Holder {
     // give signal back (from this contract) to owner address
     signalToken.safeTransferFrom(address(this), msg.sender, tokenId);
 
-    emit SignalUnlisted(_saleId, tokenId);
+    emit SignalUnlisted(_saleId, tokenId, msg.sender);
   }
 
   function buy(uint256 _saleId) public payable {

@@ -13,6 +13,7 @@ import Network.Ethereum.Core.Signatures (Address)
 
 data SignalActivity
   = ListedForSale (ListedForSaleR ())
+  | UnlistedFromSale (UnlistedFromSaleR ())
   | Soled (SoledR ())
 
 derive instance genericSignalActivity :: Generic SignalActivity _
@@ -23,15 +24,22 @@ instance showSignalId :: Show SignalActivity where show = genericShow
 
 type ListedForSaleR r =
   { owner :: Address
-  , saleID :: SaleId
+  , saleId :: SaleId
   , timestamp :: DateTime
   , price :: Token
   | r
   }
 
+type UnlistedFromSaleR r =
+  { owner :: Address
+  , saleId :: SaleId
+  , timestamp :: DateTime
+  | r
+  }
+
 type SoledR r =
   { owner :: Address
-  , saleID :: SaleId
+  , saleId :: SaleId
   , timestamp :: DateTime
   , buyer :: Address
   , price :: Token

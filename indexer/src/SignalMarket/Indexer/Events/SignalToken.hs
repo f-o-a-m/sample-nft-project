@@ -1,21 +1,16 @@
 module SignalMarket.Indexer.Events.SignalToken where
 
-import           Control.Lens                                       ((.~), (^.))
+import           Control.Lens                                       ((^.))
 import           Control.Monad                                      (unless)
 import           Control.Monad.Catch                                (MonadThrow)
-import           Control.Monad.Reader                               (MonadReader,
-                                                                     asks)
+import           Control.Monad.Reader                               (MonadReader)
 import qualified Katip                                              as K
-import qualified Network.Ethereum.Account                           as W3
-import qualified Network.Ethereum.Api.Types                         as W3
 import           Opaleye                                            (constant,
                                                                      (.==))
 import           SignalMarket.Common.Class                          (MonadPG (..),
                                                                      MonadWeb3 (..))
-import           SignalMarket.Common.Config.Types
 import qualified SignalMarket.Common.Contracts.SignalToken          as Contract
 import           SignalMarket.Common.EventTypes
-import qualified SignalMarket.Common.Models.RawChange               as RC
 import qualified SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedToken
 import qualified SignalMarket.Common.Models.SignalTokenTransfer     as Transfer
 import           SignalMarket.Indexer.Config
@@ -66,7 +61,7 @@ signalTokenTrackedTokenH
      )
   => Event Contract.TrackedToken
   -> m ()
-signalTokenTrackedTokenH Event{eventData, eventEventID, eventRawEvent} =
+signalTokenTrackedTokenH Event{eventData, eventEventID} =
   K.katipAddNamespace "SignalToken" $ do
     K.katipAddNamespace "TrackedToken" $ do
       case eventData of
@@ -75,23 +70,16 @@ signalTokenTrackedTokenH Event{eventData, eventEventID, eventRawEvent} =
               cst     = trackedTokenCst_ ^. _HexBytesN
               geohash = trackedTokenGeohash_ ^. _HexBytesN
               radius  = trackedTokenRadius_ ^. _HexInteger
-              HexInteger bn = RC.blockNumber eventRawEvent
-              callBlock = W3.BlockWithNumber $ W3.Quantity bn
-          signalTokenAddress <- asks (deployReceiptAddress . contractsSignalToken . indexerCfgContracts)
-          (_owner, _stake) <- runWeb3 $ W3.withAccount () $
-              W3.withParam (W3.to .~ signalTokenAddress) $
-                W3.withParam (W3.block .~ callBlock) $ do
-                  owner <- Contract.ownerOf trackedTokenTokenID_
-                  stake <- Contract.tokenStake trackedTokenTokenID_
-                  pure (owner, stake)
+              stake = trackedTokenStake_ ^. _Value
+              owner = trackedTokenOwner_ ^. _EthAddress
           insert TrackedToken.trackedTokenTable $ TrackedToken.TrackedToken
             { TrackedToken.nftAddress = trackedTokenNftAddress_ ^. _EthAddress
             , TrackedToken.cst = cst
             , TrackedToken.geohash = geohash
             , TrackedToken.radius = radius
             , TrackedToken.tokenID = tokenID
-            , TrackedToken.owner = _owner ^. _EthAddress
-            , TrackedToken.staked = _stake ^. _Value
+            , TrackedToken.owner = owner
+            , TrackedToken.staked = stake
             , TrackedToken.isBurned = False
             , TrackedToken.eventID = eventEventID :: EventID
             }

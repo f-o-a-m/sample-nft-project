@@ -46,10 +46,10 @@ avatar = React.make component
       void $ appendChild (Element.toNode img) node
 
 
-addressToIconSeed :: Address -> Jazzicon.Seed
-addressToIconSeed address =
-  -- The seed calculation is ported from:
-  -- https://github.com/MetaMask/metamask-extension/blob/v4.8.0/ui/lib/icon-factory.js#L60-L63
-  case integerFromStringAs hexadecimal $ Str.take 8 $ unHex $ unAddress address of
-    Nothing -> unsafeCrashWith $ "Failed to determine avatar seed for address: " <> show address
-    Just seed -> Jazzicon.Seed seed
+    addressToIconSeed :: Address -> Jazzicon.Seed
+    addressToIconSeed address =
+      -- The seed calculation is ported from:
+      -- https://github.com/MetaMask/metamask-extension/blob/v4.8.0/ui/lib/icon-factory.js#L60-L63
+      case integerFromStringAs hexadecimal $ Str.take 8 $ unHex $ unAddress address of
+        Nothing -> unsafeCrashWith $ "Failed to determine avatar seed for address: " <> show address
+        Just seed -> Jazzicon.Seed seed

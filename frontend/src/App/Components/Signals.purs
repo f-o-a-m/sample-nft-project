@@ -5,15 +5,19 @@ import Prelude
 import App.API (getSignals)
 import App.Components.Common (SignalState, renderLinkedCollection, renderSignal)
 import App.Data.Collections (LinkedCollection, initialCursor, initialLinkedCollection, insertCollection)
+import App.Data.Event (Event, eventToSignal, eventToSignalUpdate)
 import App.Data.Signal (Signal(..), signalId)
 import App.Data.SignalId (SignalId)
 import App.Data.User (User(..), isGuest)
 import App.HTML (whenHtml)
 import App.HTML.Canceler (pushCanceler, runCancelers)
+import Control.Monad.Rec.Class (forever)
 import Data.Array (filter)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Effect (Effect)
 import Effect.Aff (fiberCanceler, launchAff)
+import Effect.Aff.Bus (BusR)
+import Effect.Aff.Bus as Bus
 import Effect.Class (liftEffect)
 import Etherium.Tx as Tx
 import React.Basic (JSX)
@@ -21,7 +25,10 @@ import React.Basic as React
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture_)
 
-type Props = { user :: User }
+type Props =
+  { events :: BusR Event
+  , user :: User
+  }
 component :: React.Component Props
 component = React.createComponent "Signals"
 
@@ -29,6 +36,7 @@ type State =
   { signals :: LinkedCollection (SignalState ())
   , showOnlyByUser :: Boolean
   }
+
 type Self = React.Self Props State
 
 signals :: Props -> JSX
@@ -42,17 +50,33 @@ signals = React.make component
   , willUnmount
   }
   where
+    willUnmount :: Self -> Effect Unit
     willUnmount self = runCancelers self
+
+    injSignal = { tx: Nothing, price: Nothing, signal:_ }
 
     load self cursor = do
       liftEffect $ self.setState _ {signals{loading = true}}
       signalsFiber <- launchAff $ getSignals cursor >>= \{items, next} -> do
-        liftEffect $ self.setState \s -> s {signals = s.signals `insertCollection` {next, items: items <#> ({ tx: Nothing, price: Nothing, signal:_ })}}
+        liftEffect $ self.setState \s -> s {signals = s.signals `insertCollection` {next, items: items <#> injSignal}}
       pushCanceler self $ fiberCanceler signalsFiber
 
+    didMount :: Self -> Effect Unit
     didMount self = do
       load self initialCursor
+      liveFib <- launchAff $ forever $ Bus.read self.props.events >>= \event -> liftEffect $ self.setState \state ->
+        let newSignal = eventToSignal event
+        in state
+          { signals
+              { items = maybe [] (pure <<< injSignal) newSignal <> state.signals.items <#> \signalState -> signalState
+                  {signal = fromMaybe signalState.signal $ eventToSignalUpdate event signalState.signal}
+              , next = state.signals.next <#> \n -> n{offset = maybe 0 (const 1) newSignal + n.offset}
+              }
+          }
 
+      pushCanceler self $ fiberCanceler liveFib
+
+    render :: Self -> JSX
     render self@{props, state} = React.fragment
       [ whenHtml (not isGuest props.user) \_ -> R.button
           { onClick: capture_ do

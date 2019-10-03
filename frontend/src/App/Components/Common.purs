@@ -75,7 +75,12 @@ renderBaseSignal addLink (Signal s) = classy R.div "SignalContent"
       ]
   ]
 
-type SignalState r = {signal :: Signal, tx :: Maybe Tx.Status, price :: Maybe String | r }
+type SignalState r =
+  { signal :: Signal
+  , tx :: Maybe Tx.Status
+  , price :: Maybe String
+  | r
+  }
 
 renderSignal :: forall r.
   { state :: SignalState r

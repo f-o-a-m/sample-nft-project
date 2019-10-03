@@ -8,20 +8,27 @@ import Data.Newtype (un)
 import Data.Nullable (Nullable, toMaybe, toNullable)
 import Effect (Effect)
 import Effect.Aff (Canceler(..), error, launchAff_)
-import Effect.Uncurried (EffectFn1, EffectFn2, runEffectFn1, runEffectFn2)
+import Effect.Uncurried (EffectFn2, EffectFn3, runEffectFn2, runEffectFn3)
 import React.Basic (ReactComponentInstance)
 import React.Basic as React
 
-foreign import readCanceler :: forall p s. EffectFn1 (ReactComponentInstance p s) (Nullable Canceler)
-foreign import setCanceler :: forall p s. EffectFn2 (Nullable Canceler) (ReactComponentInstance p s) Unit
+foreign import readCanceler :: forall p s. EffectFn2 String (ReactComponentInstance p s) (Nullable Canceler)
+foreign import setCanceler :: forall p s. EffectFn3 String (Nullable Canceler) (ReactComponentInstance p s) Unit
+
 
 runCancelers :: forall p s . React.Self p s -> Effect Unit
-runCancelers {instance_} = do
-  canceler <- runEffectFn1 readCanceler instance_ <#> toMaybe >>> fromMaybe mempty
+runCancelers = runCancelers' "__default__"
+
+runCancelers' :: forall p s . String -> React.Self p s -> Effect Unit
+runCancelers' key {instance_} = do
+  canceler <- runEffectFn2 readCanceler key instance_ <#> toMaybe >>> fromMaybe mempty
   launchAff_ $ un Canceler canceler $ error "runCancelers"
-  runEffectFn2 setCanceler (toNullable $ Nothing) instance_
+  runEffectFn3 setCanceler key (toNullable $ Nothing) instance_
 
 pushCanceler :: forall p s . React.Self p s -> Canceler -> Effect Unit
-pushCanceler {instance_} c = do
-  canceler <- runEffectFn1 readCanceler instance_ <#> toMaybe >>> fromMaybe mempty
-  runEffectFn2 setCanceler (toNullable $ Just $ canceler <> c) instance_
+pushCanceler = pushCanceler' "__default__"
+
+pushCanceler' :: forall p s . String -> React.Self p s -> Canceler -> Effect Unit
+pushCanceler' key {instance_} c = do
+  canceler <- runEffectFn2 readCanceler key instance_ <#> toMaybe >>> fromMaybe mempty
+  runEffectFn3 setCanceler key (toNullable $ Just $ canceler <> c) instance_

@@ -17,6 +17,7 @@ import Data.Either (Either(..), either)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (un)
+import Effect (Effect)
 import Effect.Aff (fiberCanceler, launchAff)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
@@ -35,6 +36,12 @@ type Props =
 component :: React.Component Props
 component = React.createComponent "Header"
 
+type State =
+  { balance :: Maybe Token
+  }
+
+type Self = React.Self Props State
+
 header :: Props -> JSX
 header = React.make component
   { initialState: { balance: Nothing }
@@ -43,18 +50,20 @@ header = React.make component
   , didUpdate
   }
   where
+    willUnmount :: Self -> Effect Unit
     willUnmount self = runCancelers self
 
+    didUpdate :: Self -> { prevProps :: Props, prevState :: State } -> Effect Unit
     didUpdate self {prevProps} = do
       let providerStateWasChanged = not ProviderState.partialEq self.props.providerState prevProps.providerState
       when (providerStateWasChanged) $ do
         self.setState _ {balance = Nothing}
         for_ (ProviderState.viewConnectedState self.props.providerState) \con -> do
           runCancelers self
-          fib <- launchAff $ pullUserBalance self con
+          fib <- launchAff $ pollUserBalance self con
           pushCanceler self $ fiberCanceler fib
 
-    pullUserBalance self con = do
+    pollUserBalance self con = do
       reloadUserBalance
       fix \loop -> do
         res <- runWeb3 con.provider
@@ -74,6 +83,7 @@ header = React.make component
             Right (Left callError) -> log (printCallError callError) *> loop
             Right (Right balance) -> liftEffect $ self.setState _ {balance = Just $ Token balance}
 
+    render :: Self -> JSX
     render self@{state, props} = classy R.div "Header"
       [ R.div_ case props.providerState of
           ProviderState.Unknown ->

@@ -3,7 +3,7 @@ module App.Data.Activity where
 import Prelude
 
 import App.Data.Signal (Signal(..))
-import App.Data.SignalActivity (ListedForSaleR, SoledR)
+import App.Data.SignalActivity (ListedForSaleR, SoledR, UnlistedFromSaleR)
 import App.Data.Token (Token)
 import Data.DateTime (DateTime)
 import Data.Generic.Rep (class Generic)
@@ -21,6 +21,7 @@ data Activity
     , timestamp :: DateTime
     }
   | SignalListedForSale (ListedForSaleR (signal :: Signal))
+  | SignalUnlistedFromSale (UnlistedFromSaleR (signal :: Signal))
   | SignalSoled (SoledR (signal :: Signal))
 
 
@@ -34,4 +35,5 @@ getUserAddresses :: Activity -> Array Address
 getUserAddresses = case _ of
   TokenTransfer a -> [a.from, a.to]
   SignalListedForSale a -> [a.owner, (un Signal a.signal).owner]
+  SignalUnlistedFromSale a -> [a.owner, (un Signal a.signal).owner]
   SignalSoled a -> [a.owner, a.buyer, (un Signal a.signal).owner]

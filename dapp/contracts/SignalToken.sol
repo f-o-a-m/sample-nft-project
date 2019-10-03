@@ -23,7 +23,7 @@ contract SignalToken is StakeToken, CSTRegistry {
     bytes32 cst = computeCST(address(this), tokenID);
     cstToID[cst] = tokenID;
 
-    emit TrackedToken(cst, address(this), tokenID, geohash, radius);
+    emit TrackedToken(cst, address(this), tokenID, owner, stake, geohash, radius);
 
     return tokenID;
   }
