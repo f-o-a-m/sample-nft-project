@@ -15,15 +15,15 @@ const validateToken = (token) => {
 
 const setPgSettings = async (req) => {
   try {
-    // const token = pullBearerTokenFromHeaders(req.headers)
-    // validateToken(token)
+    const token = pullBearerTokenFromHeaders(req.headers)
+    validateToken(token)
     return {
-      role: 'postgres',
+      role: 'graphql_api_user',
     }
   } catch (err) {
     console.log('No Authentication: ', err.message)
     return {
-      role: 'invalid_role',
+      role: 'anonymous_user',
     }
   }
 }
