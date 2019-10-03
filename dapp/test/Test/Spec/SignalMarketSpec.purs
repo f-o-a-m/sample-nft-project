@@ -1,4 +1,4 @@
-module Test.SignalMarketSpec (spec) where
+module Test.Spec.SignalMarketSpec (spec) where
 
 import Prelude
 

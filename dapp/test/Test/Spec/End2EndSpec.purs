@@ -1,4 +1,4 @@
-module Test.End2EndSpec where
+module Test.Spec.End2EndSpec where
 
 import Prelude
 
@@ -19,7 +19,7 @@ import Servant.API as API
 import Servant.Client (ClientEnv(..), ErrorDescription)
 import Servant.Client.Error (errorDescription)
 import Test.Actions (faucetTokens)
-import Test.End2EndConfig (Contracts(..), End2EndConfig)
+import Test.E2E.End2EndConfig (Contracts(..), End2EndConfig)
 import Test.MarketClient (ClientM, foamTokenTransfers, runClientM)
 import Test.Spec (SpecT, beforeAll_, describe, it, parallel)
 import Test.Spec.Assertions (shouldEqual)

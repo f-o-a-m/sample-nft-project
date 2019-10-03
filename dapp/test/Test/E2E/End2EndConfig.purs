@@ -1,4 +1,4 @@
-module Test.End2EndConfig where
+module Test.E2E.End2EndConfig where
 
 import Prelude
 
