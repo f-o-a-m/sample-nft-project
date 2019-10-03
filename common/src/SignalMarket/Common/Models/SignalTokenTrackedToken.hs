@@ -7,26 +7,32 @@ import qualified Data.Aeson                     as A
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
 import           GHC.Generics                   (Generic)
 import qualified Katip                          as K
-import           Opaleye                        (Field, SqlNumeric, SqlText,
-                                                 Table, table, tableField)
+import           Opaleye                        (Field, SqlBool, SqlNumeric,
+                                                 SqlText, Table, table,
+                                                 tableField)
 import           SignalMarket.Common.Aeson      (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes (ByteNValue, EthAddress,
-                                                 EventID, TokenID, Value)
+                                                 EventID, HexInteger, TokenID,
+                                                 Value)
 
 -- represents a signal token with the data about the signal
-data TrackedToken' nftAddress cst geohash radius tokenID eventID = TrackedToken
+data TrackedToken' nftAddress cst geohash radius tokenID owner staked burned eventID = TrackedToken
   { nftAddress :: nftAddress
   , cst        :: cst
   , geohash    :: geohash
   , radius     :: radius
   , tokenID    :: tokenID
+  , owner      :: owner
+  , staked     :: staked
+  , isBurned   :: burned
   , eventID    :: eventID
   } deriving Generic
 
 $(makeAdaptorAndInstance "pTrackedToken" ''TrackedToken')
 
-type TrackedTokenPG = TrackedToken' (Field SqlText) (Field SqlText) (Field SqlText) (Field SqlNumeric) (Field SqlNumeric) (Field SqlText)
-type TrackedToken = TrackedToken' EthAddress ByteNValue ByteNValue Value TokenID EventID
+type TrackedTokenPG =
+  TrackedToken' (Field SqlText) (Field SqlText) (Field SqlText) (Field SqlNumeric) (Field SqlNumeric) (Field SqlText) (Field SqlNumeric) (Field SqlBool) (Field SqlText)
+type TrackedToken = TrackedToken' EthAddress ByteNValue ByteNValue HexInteger TokenID EthAddress Value Bool EventID
 
 trackedTokenTable :: Table TrackedTokenPG TrackedTokenPG
 trackedTokenTable = table "signal_token_tracked_token"
@@ -35,6 +41,9 @@ trackedTokenTable = table "signal_token_tracked_token"
                                                        , geohash = tableField "geohash"
                                                        , radius = tableField "radius"
                                                        , tokenID = tableField "token_id"
+                                                       , owner = tableField "owner"
+                                                       , staked = tableField "staked"
+                                                       , isBurned = tableField "is_burned"
                                                        , eventID = tableField "event_id"
                                                        }
                            )

@@ -24,9 +24,9 @@ foamTokenServer :: ServerT FoamTokenAPI AppHandler
 foamTokenServer = getFoamTokenTransfersH
 
 getFoamTokenTransfersH
-  :: Maybe EthAddress
+  :: [EthAddress]
   -- ^ to address
-  -> Maybe EthAddress
+  -> [EthAddress]
   -- ^ from address
   -> Maybe Int
   -- ^ limit
@@ -34,10 +34,14 @@ getFoamTokenTransfersH
   -- ^ offset
   -> Maybe BlockNumberOrdering
   -> AppHandler [WithMetadata FoamTokenTransfer.Transfer]
-getFoamTokenTransfersH mto mfrom mlimit moffset mord = do
+getFoamTokenTransfersH to from mlimit moffset mord = do
     let withLimitAndOffset = maybe Cat.id withCursor (Cursor <$> mlimit <*> moffset)
-        toFilter = maybe Cat.id (\to -> O.keepWhen (\a -> FoamTokenTransfer.to a O..== O.constant to)) mto
-        fromFilter = maybe Cat.id (\from -> O.keepWhen (\a -> FoamTokenTransfer.from a O..== O.constant from)) mfrom
+        toFilter = case to of
+          [] -> Cat.id
+          as -> O.keepWhen (\a -> fmap O.constant as `O.in_` FoamTokenTransfer.to a)
+        fromFilter = case from of
+          [] -> Cat.id
+          as -> O.keepWhen (\a -> fmap O.constant as `O.in_` FoamTokenTransfer.from a)
         usingOrdering = withOrdering (fromMaybe DESC mord) (RawChange.blockNumber . snd) (RawChange.logIndex . snd)
     as <- runDB $ \conn -> O.runQuery conn $
       withLimitAndOffset $

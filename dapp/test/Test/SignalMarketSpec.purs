@@ -145,7 +145,7 @@ spec' testCfg env@{ logger, signalAttrGen } = do
           liftAff do
             sfs.seller `shouldEqual` account1
             sfs.price `shouldEqual` _price
-            sfs.signalId `shouldEqual` _tokenId
+            sfs.tokenId `shouldEqual` _tokenId
 
       let originalPrice = mkUIntN s256 1
       before (do
@@ -168,7 +168,7 @@ spec' testCfg env@{ logger, signalAttrGen } = do
           logger $ "BUY: Signal purchased " <> show sold
           -- check sale details and transfer of ownership
           liftAff do
-            purchase.signalId `shouldEqual` signal.signalId
+            purchase.tokenId `shouldEqual` signal.tokenId
             purchase.price `shouldEqual` originalPrice
             purchase.owner `shouldEqual` account1
             purchase.newOwner `shouldEqual` account2
@@ -193,7 +193,7 @@ spec' testCfg env@{ logger, signalAttrGen } = do
           liftAff $ nfs.saleId `shouldEqual` _saleId
           -- attempting to buy an unlist signal, should result in an error
           -- @NOTE: `safeSignalToSale` is used here in place of the normal FFI to avoid defaulting behavior
-          let signalsForSale = safeSignalToSale (txOpts # _to ?~ signalMarket) Latest s.signalId
+          let signalsForSale = safeSignalToSale (txOpts # _to ?~ signalMarket) Latest s.tokenId
           tx <- assertWeb3 provider signalsForSale
           tx `shouldSatisfy` isLeft
 

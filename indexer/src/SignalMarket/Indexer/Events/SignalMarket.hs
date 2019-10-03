@@ -1,20 +1,21 @@
 module SignalMarket.Indexer.Events.SignalMarket where
 
-import           Control.Lens                                         ((^.))
-import           Control.Monad.Catch                                  (MonadThrow)
-import qualified Katip                                                as K
-import           Opaleye                                              (Column,
-                                                                       SqlBool,
-                                                                       constant,
-                                                                       (.==))
-import           SignalMarket.Common.Class                            (MonadPG (..))
-import           SignalMarket.Common.Contracts.SignalMarket           as Contract
+import           Control.Lens                                          ((^.))
+import           Control.Monad.Catch                                   (MonadThrow)
+import qualified Katip                                                 as K
+import           Opaleye                                               (Column,
+                                                                        SqlBool,
+                                                                        constant,
+                                                                        (.==))
+import           SignalMarket.Common.Class                             (MonadPG (..))
+import           SignalMarket.Common.Contracts.SignalMarket            as Contract
 import           SignalMarket.Common.EventTypes
-import           SignalMarket.Common.Models.SignalMarketSignalForSale as ForSale
-import           SignalMarket.Common.Models.SignalMarketSignalSold    as Sold
+import           SignalMarket.Common.Models.SignalMarketSignalForSale  as ForSale
+import           SignalMarket.Common.Models.SignalMarketSignalSold     as Sold
+import           SignalMarket.Common.Models.SignalMarketSignalUnlisted as Unlisted
 import           SignalMarket.Indexer.Types
-import           SignalMarket.Indexer.Utils                           (insert,
-                                                                       update)
+import           SignalMarket.Indexer.Utils                            (insert,
+                                                                        update)
 
 -- | insert a new sale on the marketplace into postgres
 signalMarketSignalForSaleH
@@ -28,7 +29,7 @@ signalMarketSignalForSaleH Event{eventEventID, eventData} =
         Contract.SignalForSale{..} ->
           insert ForSale.signalForSaleTable $ ForSale.SignalForSale
             { ForSale.saleID = signalForSaleSaleId_ ^. _SaleID
-            , ForSale.tokenID = signalForSaleSignalId_ ^. _TokenID
+            , ForSale.tokenID = signalForSaleTokenId_ ^. _TokenID
             , ForSale.price = signalForSalePrice_ ^. _Value
             , ForSale.saleStatus = SSActive
             , ForSale.seller = signalForSaleSeller_ ^. _EthAddress
@@ -52,7 +53,7 @@ signalMarketSignalSoldH Event{eventEventID, eventData} =
           -- insert sold event into sold table
           insert Sold.signalSoldTable $ Sold.SignalSold
             { Sold.saleID = signalSoldSaleId_ ^. _SaleID
-            , Sold.tokenID = signalSoldSignalId_ ^. _TokenID
+            , Sold.tokenID = signalSoldTokenId_ ^. _TokenID
             , Sold.price = signalSoldPrice_ ^. _Value
             , Sold.soldFrom = signalSoldOwner_ ^. _EthAddress
             , Sold.soldTo = signalSoldNewOwner_ ^. _EthAddress
@@ -63,5 +64,33 @@ signalMarketSignalSoldH Event{eventEventID, eventData} =
               updateSaleStatus a = a { ForSale.saleStatus = constant SSComplete }
               isActiveTokenID :: ForSale.SignalForSalePG -> Column SqlBool
               isActiveTokenID a = ForSale.saleID a .== constant (signalSoldSaleId_ ^. _SaleID)
+          _ :: ForSale.SignalForSale <- update ForSale.signalForSaleTable updateSaleStatus isActiveTokenID
+          pure ()
+
+-- | insert the details of the unlisted sale into postres, update the
+-- | status of the sale to 'unlisted'.
+-- | TODO: use transactions here.
+signalMarketSignalUnlistedH
+  :: ( MonadPG m
+     , MonadThrow m
+     )
+  => Event Contract.SignalUnlisted
+  -> m ()
+signalMarketSignalUnlistedH Event{eventEventID, eventData} =
+  K.katipAddNamespace "SignalMarket" $ do
+    K.katipAddNamespace "SignalUnlisted" $ do
+      case eventData of
+        Contract.SignalUnlisted{..} -> do
+          -- insert sold event into sold table
+          insert Unlisted.signalUnlistedTable $ Unlisted.SignalUnlisted
+            { Unlisted.saleID = signalUnlistedSaleId_ ^. _SaleID
+            , Unlisted.tokenID = signalUnlistedTokenId_ ^. _TokenID
+            , Unlisted.eventID = eventEventID
+            }
+          -- update complete sale status into for sale table
+          let updateSaleStatus :: ForSale.SignalForSalePG -> ForSale.SignalForSalePG
+              updateSaleStatus a = a { ForSale.saleStatus = constant SSUnlisted }
+              isActiveTokenID :: ForSale.SignalForSalePG -> Column SqlBool
+              isActiveTokenID a = ForSale.saleID a .== constant (signalUnlistedSaleId_ ^. _SaleID)
           _ :: ForSale.SignalForSale <- update ForSale.signalForSaleTable updateSaleStatus isActiveTokenID
           pure ()

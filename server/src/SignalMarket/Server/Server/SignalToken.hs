@@ -18,18 +18,18 @@ import           SignalMarket.Server.Application                (AppHandler)
 import           SignalMarket.Server.Queries.Combinators        (withCursor,
                                                                  withMetadata,
                                                                  withOrdering)
-import           SignalMarket.Server.Queries.SignalToken        (signalTokenTransfersQ)
+import           SignalMarket.Server.Queries.SignalToken        (signalTokenTransferQ)
 
 
 signalTokenServer :: ServerT SignalTokenAPI AppHandler
 signalTokenServer = getSignalTokenTransfersH
 
 getSignalTokenTransfersH
-  :: Maybe EthAddress
+  :: [EthAddress]
   -- ^ to address
-  -> Maybe EthAddress
+  -> [EthAddress]
   -- ^ from address
-  -> Maybe TokenID
+  -> [TokenID]
   -- ^ token ID
   -> Maybe Int
   -- ^ limit
@@ -38,15 +38,21 @@ getSignalTokenTransfersH
   -> Maybe BlockNumberOrdering
   -- ^ sort by newest/oldest
   -> AppHandler [WithMetadata SignalTokenTransfer.Transfer]
-getSignalTokenTransfersH mto mfrom mtokenid mlimit moffset mord = do
+getSignalTokenTransfersH to from tokenID mlimit moffset mord = do
     let withLimitAndOffset = maybe Cat.id withCursor (Cursor <$> mlimit <*> moffset)
-        toFilter = maybe Cat.id (\to -> O.keepWhen (\a -> SignalTokenTransfer.to a O..== O.constant to)) mto
-        fromFilter = maybe Cat.id (\from -> O.keepWhen (\a -> SignalTokenTransfer.from a O..== O.constant from)) mfrom
-        tokenIDFilter = maybe Cat.id (\tokenID -> O.keepWhen (\a -> SignalTokenTransfer.tokenID a O..== O.constant tokenID)) mtokenid
+        tokenIdFilter = case tokenID of
+          [] -> Cat.id
+          xs -> O.keepWhen (\a -> fmap O.constant xs `O.in_` SignalTokenTransfer.tokenID a)
+        fromFilter = case from of
+          [] -> Cat.id
+          xs -> O.keepWhen (\a -> fmap O.constant xs `O.in_` SignalTokenTransfer.from a)
+        toFilter = case to of
+          [] -> Cat.id
+          xs -> O.keepWhen (\a -> fmap O.constant xs `O.in_` SignalTokenTransfer.to a)
         usingOrdering = withOrdering (fromMaybe DESC mord) (RawChange.blockNumber . snd) (RawChange.logIndex . snd)
     as <- runDB $ \conn -> O.runQuery conn $
       withLimitAndOffset $
         usingOrdering $
           withMetadata SignalTokenTransfer.eventID $
-            signalTokenTransfersQ >>> tokenIDFilter >>> toFilter >>> fromFilter
+            signalTokenTransferQ >>> tokenIdFilter >>> toFilter >>> fromFilter
     pure . flip map as $ \(t, rc) -> WithMetadata t rc

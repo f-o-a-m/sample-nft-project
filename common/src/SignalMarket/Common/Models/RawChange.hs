@@ -20,7 +20,7 @@ data RawChange' li txh bh bn addr eid = RawChange
   , blockNumber     :: bn
   , address         :: addr
   , eventID         :: eid
-  } deriving Generic
+  } deriving (Eq, Generic)
 
 
 $(makeAdaptorAndInstance "pRawChange" ''RawChange')

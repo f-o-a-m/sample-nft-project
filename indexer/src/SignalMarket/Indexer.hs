@@ -44,27 +44,24 @@ monitor = do
   -- Signal Token events
   (stTransferF, stTransferH) <- makeFilterHandlerPair signalTokenReceipt SignalToken.signalTokenTransferH
   (stTrackedTokenF, stTrackedTokenH) <- makeFilterHandlerPair signalTokenReceipt SignalToken.signalTokenTrackedTokenH
-  (stTokensStakedF, stTokensStakedH) <- makeFilterHandlerPair signalTokenReceipt SignalToken.signalTokenTokensStakedH
-  (stTokensUnstakedF, stTokensUnstakedH) <- makeFilterHandlerPair signalTokenReceipt SignalToken.signalTokenTokensUnstakedH
   -- Signal Market events
   (smSignalForSaleF, smSignalForSaleH) <- makeFilterHandlerPair signalMarketReceipt SignalMarket.signalMarketSignalForSaleH
   (smSignalSoldF, smSignalSoldH) <- makeFilterHandlerPair signalMarketReceipt SignalMarket.signalMarketSignalSoldH
+  (smSignalUnlistedF, smSignalUnlistedH) <- makeFilterHandlerPair signalMarketReceipt SignalMarket.signalMarketSignalUnlistedH
   let
     filters = ftTransferF
            :? stTransferF
            :? stTrackedTokenF
-           :? stTokensStakedF
-           :? stTokensUnstakedF
            :? smSignalForSaleF
            :? smSignalSoldF
+           :? smSignalUnlistedF
            :? NilFilters
     handlers = ftTransferH
             :& stTransferH
             :& stTrackedTokenH
-            :& stTokensStakedH
-            :& stTokensUnstakedH
             :& smSignalForSaleH
             :& smSignalSoldH
+            :& smSignalUnlistedH
             :& RNil
   runWeb3 $ multiEventManyNoFilter' filters window handlers
   K.logFM K.InfoS "Terminating Indexer ..."
