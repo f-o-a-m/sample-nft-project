@@ -14,7 +14,6 @@ import Debug.Trace (traceM)
 import Test.Spec.End2EndSpec as E2E
 import Test.E2E.End2EndConfig as E2EConfig
 
--- @TODO: make the options for deploy config env vars
 main :: Effect Unit
 main = void <<< launchAff $ do
   let specConfig = defaultConfig {timeout = Just (Milliseconds $ 120.0 * 1000.0)}
