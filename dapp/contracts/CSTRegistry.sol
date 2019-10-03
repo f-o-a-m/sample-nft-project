@@ -10,7 +10,7 @@ contract CSTRegistry {
 
   function isTracked(bytes32 cst) public view returns (bool);
 
-  event TrackedToken(bytes32 cst, address indexed nftAddress, uint256 tokenID, bytes32 geohash, uint256 radius);
+  event TrackedToken(bytes32 cst, address indexed nftAddress, uint256 tokenID, address owner, uint256 stake, bytes32 geohash, uint256 radius);
 
 /*
   function trackToken(IERC721 nftContract, uint256 tokenID, bytes32 geohash, uint256 radius) public returns (bytes32) {
