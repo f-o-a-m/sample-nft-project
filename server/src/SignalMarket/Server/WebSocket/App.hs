@@ -1,20 +1,24 @@
 module SignalMarket.Server.WebSocket.App where
 
 import           Control.Arrow                           (returnA)
+import           Control.Concurrent.Async                (async)
 import           Control.Monad                           (forever)
 import           Control.Monad.Catch                     (MonadThrow)
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader                    (MonadReader (..))
 import           Control.Monad.Trans                     (lift)
+import qualified Data.Aeson                              as A
 import           Data.Conduit
 import           Data.Conduit.List                       (sourceList)
 import           Data.IORef
 import qualified Data.List                               as L
 import           Data.String                             (fromString)
 import           Data.String.Conversions                 (cs)
+import           Data.Text                               (Text)
 import qualified Database.PostgreSQL.Simple              as PG
 import qualified Database.PostgreSQL.Simple.Notification as PG
 import qualified Katip                                   as K
+import qualified Network.WebSockets                      as Socket
 import qualified Opaleye                                 as O
 import           SignalMarket.Common.Class               (MonadPG (..),
                                                           queryExact)
@@ -23,19 +27,45 @@ import           SignalMarket.Common.EventTypes          (EventID (..),
 import qualified SignalMarket.Common.Models.RawChange    as RC
 import           SignalMarket.Server.WebSocket.Types
 
+mkWebSocketApp
+  :: WebSocketEnv
+  -> WSApplet
+  -> Socket.ServerApp
+mkWebSocketApp env WSApplet{clientMsgHandler, msgConduit} pendingConn = do
+  socket <- Socket.acceptRequest pendingConn
+  Socket.forkPingThread socket 10
+  _ <- async . forever $ do
+    subsBS <- Socket.receiveData socket
+    runWebSocketM env $ clientMsgHandler subsBS
+  runConduit
+    (transPipe (runWebSocketM env) msgConduit .| socketSink socket)
+  where
+    socketSink
+      :: Socket.Connection
+      -> ConduitT WebSocketMsg Void IO ()
+    socketSink socket = awaitForever $ \msg ->
+      let payload = cs @_ @Text . A.encode $ msg
+      in lift $ Socket.sendTextData socket payload
+
+
 defaultWSApplet :: WSApplet
 defaultWSApplet =
-  let clientH = \case
-        Update subsUpdate ->
-          case mkSubscriptionKey subsUpdate of
-            Nothing -> pure ()
-            Just s -> do
-              WebSocketEnv{subscriptionRef} <- ask
-              liftIO $ modifyIORef subscriptionRef (s : )
-        Cancel subsID -> do
-          WebSocketEnv{subscriptionRef} <- ask
-          let p (_subsID, _, _) = subsID /= _subsID
-          liftIO $ modifyIORef subscriptionRef $ filter p
+  let clientH subsBS = case A.eitherDecode $ cs subsBS of
+        Left err ->
+          K.logFM K.ErrorS (fromString $ "Failed to decode subscription message! " <> err)
+        Right msg -> case msg of
+          Update subsUpdate ->
+            case mkSubscriptionKey subsUpdate of
+              Nothing -> K.logFM K.ErrorS "Failed to make subscription key from update!"
+              Just s@(SubscriptionID sid,_,_) -> do
+                K.logFM K.DebugS (fromString $ "Received subscription update with SubscriptionID " <> sid)
+                WebSocketEnv{subscriptionRef} <- ask
+                liftIO $ modifyIORef subscriptionRef (s : )
+          Cancel subsID@(SubscriptionID sid) -> do
+            K.logFM K.DebugS (fromString $ "Cancelling SubscriptionID " <> sid)
+            WebSocketEnv{subscriptionRef} <- ask
+            let p (_subsID, _, _) = subsID /= _subsID
+            liftIO $ modifyIORef subscriptionRef $ filter p
       msgC = listenerC .| rawChangeC .| subscriptionC
   in WSApplet
        { clientMsgHandler = clientH
@@ -44,7 +74,7 @@ defaultWSApplet =
 
 listenerC
   :: MonadPG m
-  => ConduitT Void EventID m ()
+  => ConduitT () EventID m ()
 listenerC = do
   _ <- lift $ runDB $ \conn -> PG.execute_ conn "LISTEN raw_change_channel"
   forever $ do

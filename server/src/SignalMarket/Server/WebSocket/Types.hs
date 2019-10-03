@@ -8,6 +8,7 @@ import           Control.Monad.Reader                 (MonadReader (..),
                                                        ReaderT, asks,
                                                        runReaderT)
 import qualified Data.Aeson                           as A
+import           Data.ByteString                      (ByteString)
 import           Data.Conduit
 import           Data.IORef
 import qualified Database.PostgreSQL.Simple           as PG
@@ -18,7 +19,7 @@ import           SignalMarket.Common.Config.Logging
 import           SignalMarket.Common.EventTypes       (EthAddress, HexString)
 import qualified SignalMarket.Common.Models.RawChange as RC
 
-newtype SubscriptionID  = SubscriptionID String deriving (Eq, Ord, A.FromJSON)
+newtype SubscriptionID  = SubscriptionID String deriving (Eq, Ord, A.FromJSON, A.ToJSON)
 
 data Filter = Filter
   { filterAddress :: Maybe [EthAddress]
@@ -48,8 +49,8 @@ data WebSocketMsg = WebSocketMsg
   , webSocketMsgContents       :: RC.RawChange
   } deriving Generic
 
-instance A.FromJSON WebSocketMsg where
-  parseJSON = A.genericParseJSON (defaultAesonOptions "webSocketMsg")
+instance A.ToJSON WebSocketMsg where
+  toJSON = A.genericToJSON (defaultAesonOptions "webSocketMsg")
 
 mkSubscriptionKey
   :: Subscription
@@ -67,6 +68,14 @@ data WebSocketEnv = WebSocketEnv
   , subscriptionRef :: IORef [SubscriptionKey]
   , logEnv          :: LogConfig
   }
+
+mkWebSocketEnv
+  :: PG.Connection
+  -> LogConfig
+  -> IO WebSocketEnv
+mkWebSocketEnv pg le = do
+  subs <- newIORef []
+  pure $ WebSocketEnv pg subs le
 
 instance HasLogConfig WebSocketEnv where
   logConfig = lens g s
@@ -87,6 +96,6 @@ instance MonadPG WebSocketM where
       liftIO . try $ action connection
 
 data WSApplet = WSApplet
-  { clientMsgHandler :: UpdateSubscriptionMsg -> WebSocketM ()
-  , msgConduit       :: ConduitT Void WebSocketMsg WebSocketM ()
+  { clientMsgHandler :: ByteString -> WebSocketM ()
+  , msgConduit       :: ConduitT () WebSocketMsg WebSocketM ()
   }
