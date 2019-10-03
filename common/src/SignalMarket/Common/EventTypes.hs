@@ -132,7 +132,7 @@ instance QueryRunnerColumnDefault SqlText HexString where
         Right res -> res
 
 instance D.Default ToFields HexString (Column SqlText) where
-  def = lmap displayHexString D.def
+  def = lmap (\(HexString a) -> a) D.def
 
 -- | convert safely to or from the Web3.HexString type.
 _HexString :: Iso' Hx.HexString HexString
