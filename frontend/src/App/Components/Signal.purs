@@ -3,16 +3,18 @@ module App.Components.Signal where
 import Prelude
 
 import App.API (getSignal)
-import App.Components.Common (renderSignal)
+import App.Components.Avatar (avatar)
+import App.Components.Common (renderDateTime, renderSignal, renderToken)
 import App.Data.Signal (Signal)
-import App.Data.SignalActivity (SignalActivity)
+import App.Data.SignalActivity (SignalActivity(..))
 import App.Data.SignalDetails (SignalDetails(..))
 import App.Data.SignalId (SignalId)
 import App.Data.User (User)
+import App.HTML (classy)
+import App.HTML.Canceler (pushCanceler, runCancelers)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (un)
 import Effect (Effect)
-import Effect.Aff (Canceler(..), error, fiberCanceler, launchAff, launchAff_)
+import Effect.Aff (fiberCanceler, launchAff)
 import Effect.Class (liftEffect)
 import Etherium.Tx as Tx
 import React.Basic (JSX)
@@ -24,8 +26,7 @@ component :: React.Component Props
 component = React.createComponent "Signal"
 
 type State =
-  { canceler :: Canceler
-  , signal :: Maybe SignalState
+  { signal :: Maybe SignalState
   }
 
 type SignalState =
@@ -40,16 +41,14 @@ type Self = React.Self Props State
 signal :: Props -> JSX
 signal = React.make component
   { initialState:
-      { canceler: mempty :: Canceler
-      , signal: Nothing
+      { signal: Nothing
       }
   , render
   , didMount
   , willUnmount
   }
   where
-    willUnmount self = do
-      launchAff_ $ un Canceler self.state.canceler $ error "willUnmount"
+    willUnmount self = runCancelers self
 
     didMount :: Self -> Effect Unit
     didMount self = do
@@ -58,8 +57,6 @@ signal = React.make component
           {signal = Just { tx: Nothing, price: Nothing, signal:s, activity }}
       pushCanceler self $ fiberCanceler signalsFiber
       pure unit
-
-    pushCanceler self c = self.setState \s -> s {canceler = s.canceler <> c}
 
     render :: Self -> JSX
     render self@{props, state} = React.fragment
@@ -71,11 +68,32 @@ signal = React.make component
                 , updateState: \f -> self.setState \s -> s { signal = f <$> s.signal }
                 , state: signal'
                 , user: props.user
+                , addLink: false
+                , details: classy R.div "SignalActivity"
+                    [ R.div_ [R.text "Activity:"]
+                    , classy R.ul "Activity" $ renderActivity <$> signal'.activity
+                    ]
                 }
-            , R.div_ [R.text "activity"]
-            , R.div_ $ renderActivity <$> signal'.activity
+
             ]
       ]
 
-    renderActivity a = R.div_ [R.text $ show a]
-
+    renderActivity = case _ of
+      ListedForSale a -> R.li_
+        [ R.text "Listed for sale by "
+        , avatar a.owner
+        , R.text " at "
+        , R.text $ renderDateTime a.timestamp
+        , R.text " for "
+        , renderToken a.price
+        ]
+      Soled a -> R.li_
+        [ R.text "Soled to "
+        , avatar a.buyer
+        , R.text " by "
+        , avatar a.owner
+        , R.text " at "
+        , R.text $ renderDateTime a.timestamp
+        , R.text " for "
+        , renderToken a.price
+        ]

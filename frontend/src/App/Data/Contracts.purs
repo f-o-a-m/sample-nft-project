@@ -40,3 +40,10 @@ instance eqNetworkId :: Eq NetworkId where eq = genericEq
 instance showNetworkId :: Show NetworkId where show = genericShow
 instance decodeJsonNetworkId :: DecodeJson NetworkId where
   decodeJson json = NetworkId <$> decodeJson json
+
+networkName :: NetworkId -> String
+networkName (NetworkId n) = case n of
+  "1"      -> "Main Ethereum Network"
+  "4"      -> "Rinkeby Testnet"
+  "420123" -> "Cliquebait Dreamnet"
+  _        -> "Unsupported Network: " <> show n

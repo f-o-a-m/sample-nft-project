@@ -8,12 +8,12 @@ import App.Data.Collections (LinkedCollection, initialCursor, initialLinkedColle
 import App.Data.Signal (Signal(..), signalId)
 import App.Data.SignalId (SignalId)
 import App.Data.User (User(..), isGuest)
-import App.HTML (pushCanceler, whenHtml)
+import App.HTML (whenHtml)
+import App.HTML.Canceler (pushCanceler, runCancelers)
 import Data.Array (filter)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (un)
 import Effect (Effect)
-import Effect.Aff (Canceler(..), error, fiberCanceler, launchAff, launchAff_)
+import Effect.Aff (fiberCanceler, launchAff)
 import Effect.Class (liftEffect)
 import Etherium.Tx as Tx
 import React.Basic (JSX)
@@ -26,8 +26,7 @@ component :: React.Component Props
 component = React.createComponent "Signals"
 
 type State =
-  { canceler :: Canceler
-  , signals :: LinkedCollection (SignalState ())
+  { signals :: LinkedCollection (SignalState ())
   , showOnlyByUser :: Boolean
   }
 type Self = React.Self Props State
@@ -35,8 +34,7 @@ type Self = React.Self Props State
 signals :: Props -> JSX
 signals = React.make component
   { initialState:
-      { canceler: mempty :: Canceler
-      , signals: initialLinkedCollection
+      { signals: initialLinkedCollection
       , showOnlyByUser: false
       }
   , render
@@ -44,8 +42,8 @@ signals = React.make component
   , willUnmount
   }
   where
-    willUnmount self = do
-      launchAff_ $ un Canceler self.state.canceler $ error "willUnmount"
+    willUnmount self = runCancelers self
+
     load self cursor = do
       liftEffect $ self.setState _ {signals{loading = true}}
       signalsFiber <- launchAff $ getSignals cursor >>= \{items, next} -> do
@@ -59,6 +57,7 @@ signals = React.make component
       [ whenHtml (not isGuest props.user) \_ -> R.button
           { onClick: capture_ do
               self.setState _ {showOnlyByUser = not state.showOnlyByUser}
+          , className: "Content-control"
           , children:
               [ R.text if state.showOnlyByUser
                   then "Show All"
@@ -74,6 +73,8 @@ signals = React.make component
             , updateState: overSignalSt self $ signalId s.signal
             , state: s
             , user: props.user
+            , details: mempty
+            , addLink: true
             })
       ]
 

@@ -11,6 +11,8 @@ import App.Data.Contracts (Contracts(..))
 import App.Data.ProviderState as ProviderState
 import App.Data.User (User(..))
 import App.Ethereum.Provider as EthProvider
+import App.HTML (classy)
+import App.HTML.Canceler (pushCanceler, runCancelers)
 import App.Route (Route)
 import App.Route as Route
 import Control.Alt ((<|>))
@@ -18,11 +20,10 @@ import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Rec.Class (forever)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), maybe)
-import Data.Newtype (un)
 import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple (Tuple(..))
-import Effect.Aff (Canceler(..), effectCanceler, error, fiberCanceler, joinFiber, launchAff, launchAff_, never)
+import Effect.Aff (effectCanceler, fiberCanceler, joinFiber, launchAff, never)
 import Effect.Aff.BRef as BRef
 import Effect.Class (liftEffect)
 import React.Basic (JSX)
@@ -45,17 +46,13 @@ root = unit # React.make component
   { initialState:
       { route: Right Route.Signals
       , providerState: ProviderState.Unknown
-      , canceler: mempty :: Canceler
       }
   , render
   , didMount
   , willUnmount
   }
   where
-    willUnmount self = do
-      launchAff_ $ un Canceler self.state.canceler $ error "willUnmount"
-
-    pushCanceler self c = self.setState \s -> s {canceler = s.canceler <> c}
+    willUnmount self = runCancelers self
 
     didMount self = do
       -- redirect to `/#/` if user is visiting `/`
@@ -109,21 +106,23 @@ root = unit # React.make component
 
     render self@{state} = R.div_
       [ header { providerState: state.providerState }
-      , case state.route of
-        Left err -> R.h1_ [ R.text "404" ]
-        Right activeRoute ->
-          React.fragment
-          [ R.div_ $ [ Route.Signals, Route.Activity] <#> \r -> if r == activeRoute
-              then R.span_ [ R.text $ show r]
-              else R.a
-              { href: Route.href r
-              , children: [ R.text $ show r ]
-              }
-          , case activeRoute of
-              Route.Activity -> activity {user}
-              Route.Signals -> signals {user}
-              Route.Signal sid -> signal {user, sid}
-          ]
+      , navigation state.route
+      , classy R.div "Content" $ pure case state.route of
+        Left err -> classy R.h1 "Content-404" [ R.text "404" ]
+        Right (Route.Activity) -> activity {user}
+        Right (Route.Signals) -> signals {user}
+        Right (Route.Signal sid) -> signal {user, sid}
       ]
       where
+        navigation activeRoute = classy R.div "Navigation" $
+          [ Route.Signals, Route.Activity] <#> \r -> if Right r == activeRoute
+            then R.span
+              { children: [ R.text $ show r ]
+              , className: "Navigation-item Navigation-item--active"
+              }
+            else R.a
+              { href: Route.href r
+              , children: [ R.text $ show r ]
+              , className: "Navigation-item"
+              }
         user = maybe UserGuest UserConnected $ ProviderState.viewConnectedState state.providerState

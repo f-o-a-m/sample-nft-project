@@ -88,6 +88,9 @@ signalId1 = unsafeFromJust "SignalId of 1" $ signalIdFromBigNumber $ BN.embed 1
 signalId2 :: SignalId
 signalId2 = unsafeFromJust "SignalId of 2" $ signalIdFromBigNumber $ BN.embed 2
 
+signalId3 :: SignalId
+signalId3 = unsafeFromJust "SignalId of 3" $ signalIdFromBigNumber $ BN.embed 3
+
 saleId2 :: SaleId
 saleId2 = unsafeFromJust "SaleId of 2" $ saleIdFromBigNumber $ BN.embed 2
 saleId3 :: SaleId
@@ -113,10 +116,20 @@ signal2 = Signal
   , sale: Nothing
   }
 
+signal3 :: Signal
+signal3 = Signal
+  { id: signalId3
+  , stake: zeroToken
+  , owner: address1
+  , geohash: geohashFromLngLat 10 {lng: 19.0, lat:22.0}
+  , radius: Radius 100.0
+  , sale: Nothing
+  }
+
 getSignals :: Cursor -> Aff (Collection Signal)
 getSignals c = do
   delay $ Milliseconds 1000.0
-  pure {items: [signal1, signal2], next: Just c}
+  pure {items: [signal1, signal2, signal3], next: Just c}
 
 getSignal :: SignalId -> Aff SignalDetails
 getSignal sid = do
@@ -167,5 +180,5 @@ getActivity c = do
             , price: zeroToken
             }
         ]
-    , next: Nothing
+    , next: Just c
     }

@@ -2,16 +2,22 @@ module App.Components.Common where
 
 import Prelude
 
+import App.Components.Avatar (avatar)
 import App.Data.Collections (Cursor, LinkedCollection)
 import App.Data.ProviderState (ConnectedState)
+import App.Data.Radius (Radius(..))
 import App.Data.Signal (Signal(..))
 import App.Data.Token (Token(..), tokenFromBigNumber, tokenToBigNumber)
 import App.Data.User (User(..))
 import App.Error (printWeb3Error)
-import App.HTML (maybeHtml, whenHtml)
+import App.HTML (classy, maybeHtml, whenHtml)
 import App.Route as Route
 import Control.MonadZero as MZ
+import Data.DateTime (DateTime)
+import Data.Formatter.DateTime as DF
+import Data.Geohash (Geohash, geohashToLngLat)
 import Data.Int as Int
+import Data.List (List(..),(:))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect (Effect)
 import Etherium.Tx as Tx
@@ -26,21 +32,47 @@ import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture_, targetValue)
 import React.Basic.Events (handler)
 
+fullDateFormat :: DF.Formatter
+fullDateFormat
+  = DF.MonthFull
+  : DF.Placeholder " "
+  : DF.DayOfMonth
+  : DF.Placeholder ", "
+  : DF.YearFull
+  : Nil
+
+renderDateTime :: DateTime -> String
+renderDateTime = DF.format fullDateFormat
 
 renderToken :: Token -> JSX
 renderToken (Token t) =
   let num = show $ unUIntN t `divide` divider (ProxyTU :: ProxyTU Ether)
   in R.text $ num <> " ETH"
 
-renderBaseSignal :: Signal -> JSX
-renderBaseSignal (Signal s) = React.fragment
-  [ R.div_ $ pure $ R.a
-      { href: Route.href $ Route.Signal s.id
-      , children: [ R.text $ show s.geohash ]
-      }
-  , R.div_ [R.text "stake: ", renderToken s.stake]
-  , R.div_ [R.text $ "radius: " <> show s.radius]
-  , R.div_ [R.text $ "owner: " <> show s.owner]
+renderRadius :: Radius -> JSX
+renderRadius (Radius n) = R.text $ show n <> " km"
+
+renderGeoHash :: Geohash -> String
+renderGeoHash = geohashToLngLat >>> \{lat, lng} -> show lat <> ", " <> show lng
+
+renderBaseSignal :: Boolean -> Signal -> JSX
+renderBaseSignal addLink (Signal s) = classy R.div "SignalContent"
+  [ classy R.div "SignalContent-Left"
+      [ if addLink
+          then R.a
+            { href: Route.href $ Route.Signal s.id
+            , children: [ R.text $ renderGeoHash s.geohash ]
+            }
+          else  R.text $ renderGeoHash s.geohash
+      , R.br {}
+      , renderToken s.stake
+      , R.text ", "
+      , renderRadius s.radius
+      ]
+  , classy R.div "SignalContent-Right"
+      [ R.text " owner "
+      , avatar s.owner
+      ]
   ]
 
 type SignalState r = {signal :: Signal, tx :: Maybe Tx.Status, price :: Maybe String | r }
@@ -50,12 +82,14 @@ renderSignal :: forall r.
   , txSend :: Tx.Tx -> ConnectedState -> (Tx.Status -> Effect Unit) -> Effect Unit
   , updateState :: (SignalState r -> SignalState r) -> Effect Unit
   , user :: User
+  , addLink :: Boolean
+  , details :: JSX
   }
   -> JSX
-renderSignal {txSend, updateState, state, user} =
+renderSignal {txSend, addLink, updateState, state, user, details} =
   let (Signal s) = state.signal
-  in R.div_
-    [ renderBaseSignal state.signal
+  in classy R.div "Signal"
+    [ renderBaseSignal addLink state.signal
     , case user of
         UserGuest -> maybeHtml s.sale \{price} ->
           R.div_ [R.text $ "ON SALE FOR ", renderToken price]
@@ -92,6 +126,7 @@ renderSignal {txSend, updateState, state, user} =
                   (\newTxSt -> updateState _ {tx = Just newTxSt})
               , children: [ R.text "Buy" ]
               }
+    , details
     ]
 
 parseToken :: String -> Maybe Token
@@ -99,26 +134,31 @@ parseToken = Int.fromString >=> \num ->
   tokenFromBigNumber $ (BN.embed num) * divider (ProxyTU :: ProxyTU (MinorUnitE18 ETHER))
 
 txOrElse :: Maybe Tx.Status -> JSX -> JSX
-txOrElse tx btn = React.fragment case tx of
+txOrElse tx btn = classy R.div "Transaction" case tx of
   Nothing -> [btn]
   Just tx' -> case tx' of
     Tx.Submitting ->
-      [ R.text "Submitting"
+      [ classy R.div "Transaction-status"
+          [R.text "Submitting ..."]
       ]
     Tx.SubmittingFailed web3Err ->
       [ btn
-      , R.text $ "SubmittingFailed " <> printWeb3Error web3Err
+      , classy R.div "Transaction-status Transaction-status--error"
+          [R.text $ "SubmittingFailed " <> printWeb3Error web3Err]
       ]
     Tx.MiningStart txHash ->
-      [ R.text $ "MiningStart " <> show txHash
+      [ classy R.div "Transaction-status"
+          [R.text $ "MiningStart " <> show txHash]
       ]
     Tx.MiningFailed transactionReceipt ->
       [ btn
-      , R.text $ "MiningFailed " <> show transactionReceipt
+      , classy R.div "Transaction-status Transaction-status--error"
+          [R.text $ "MiningFailed " <> show transactionReceipt]
       ]
     Tx.MiningFinished txHash ->
       [ btn
-      , R.text $ "MiningFinished " <> show txHash
+      , classy R.div "Transaction-status"
+          [R.text $ "MiningFinished " <> show txHash]
       ]
 
 
@@ -130,9 +170,11 @@ renderLinkedCollection
   -> JSX
 renderLinkedCollection {items, next, loading} loadMore renderItems = React.fragment
   [ renderItems items
-  , maybeHtml (MZ.guard (not loading) *> next) \cursor -> R.button
-      { onClick: capture_ $ loadMore cursor
-      , children: [ R.text "Load more" ]
-      }
-  , whenHtml loading \_ -> R.text "Loading ..."
+  , classy R.div "LoadingMore"
+      [ maybeHtml (MZ.guard (not loading) *> next) \cursor -> R.button
+          { onClick: capture_ $ loadMore cursor
+          , children: [ R.text "Load more" ]
+          }
+      , whenHtml loading \_ -> R.text "Loading ..."
+      ]
   ]
