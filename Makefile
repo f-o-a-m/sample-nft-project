@@ -17,12 +17,15 @@ SERVER_BASE_HOST ?= localhost
 SERVER_BASE_URL ?= //$(SERVER_BASE_HOST)
 API_BASE_URL ?= $(SERVER_BASE_URL):$(SERVER_PORT)/
 
-PG_BASE_DATABASE ?= postgres 
+PG_BASE_DATABASE ?= postgres
 PGDATABASE ?= signal_market
-PGHOST ?= localhost
+PGHOST ?= postgis
 PGPORT ?= 5432
 PGPASSWORD ?= password
 PGUSER ?= postgres
+
+PSQL ?= docker-compose run postgis
+FLYWAY ?= docker-compose run flyway
 
 # end export
 # please keep that, it helps with autogenerating env wrappers
@@ -43,13 +46,13 @@ install: ## Runs npm and bower install
 # postgres
 ############
 migrate: ## Run the flyway migration suite to setup postgis
-	PGDATABASE=$(PG_BASE_DATABASE) psql -tc "SELECT 1 FROM pg_database WHERE datname = '$(PGDATABASE)'" | grep -q 1 || \
-	PGDATABASE=$(PG_BASE_DATABASE) psql -c "CREATE DATABASE $(PGDATABASE);"
+	PGDATABASE=$(PG_BASE_DATABASE) $(PSQL) -tc "SELECT 1 FROM pg_database WHERE datname = '$(PGDATABASE)'" | grep -q 1 || \
+	PGDATABASE=$(PG_BASE_DATABASE) $(PSQL) -c "CREATE DATABASE $(PGDATABASE);"
 	# the -jarDirs is temporary fix for https://github.com/NixOS/nixpkgs/issues/59687
-	flyway -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE) -locations=filesystem:migrations -baselineOnMigrate=true migrate
+	$(FLYWAY) -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE) -locations=filesystem:migrations -baselineOnMigrate=true migrate
 
 show-migrations: ## Describe the migrations in the current database
-	flyway -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE) -locations=filesystem:core/migrations/tcr -baselineOnMigrate=true info
+	$(FLYWAY) -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE) -locations=filesystem:core/migrations/tcr -baselineOnMigrate=true info
 
 ####################
 # DAPP       #
@@ -118,7 +121,6 @@ frontend-start-https: ## Same as `frontend-start`, but running with `https`
 
 frontend-build: ## Builds css html and js assets.
 	webpack
-
 
 build-purs-strict: ## Build whole purescript src and test file in strict mode
 	pulp build --jobs 8 --src-path frontend/src -I dapp/src -- --strict
