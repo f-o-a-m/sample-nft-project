@@ -23,5 +23,5 @@ CREATE TABLE "raw_change"
     END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER deployedContract_table_trigger AFTER INSERT ON "raw_change"
+CREATE TRIGGER raw_change_table_trigger AFTER INSERT ON "raw_change"
   FOR EACH ROW EXECUTE PROCEDURE notify_trigger();
