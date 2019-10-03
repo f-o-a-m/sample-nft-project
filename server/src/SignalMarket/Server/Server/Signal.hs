@@ -13,7 +13,8 @@ import qualified SignalMarket.Common.Models.SignalTokenTrackedToken as TrackedTo
 import           SignalMarket.Server.API                            (SignalAPI)
 import           SignalMarket.Server.API.Types                      (Cursor (..),
                                                                      SaleSummary (..),
-                                                                     SignalWithSaleResponse (..),
+                                                                     SignalWithSaleResponse,
+                                                                     SignalWithSaleSummary (..),
                                                                      WithMetadata (..))
 import           SignalMarket.Server.Application                    (AppHandler)
 import           SignalMarket.Server.Queries.Combinators            (withCursor, withMetadata)
@@ -31,7 +32,7 @@ getSignalH
   -- ^ offset
   -> [EthAddress]
   -> [TokenID]
-  -> AppHandler [WithMetadata SignalWithSaleResponse]
+  -> AppHandler SignalWithSaleResponse
 getSignalH mlimit moffset owners tokens = do
   let withLimitAndOffset = maybe Cat.id withCursor (Cursor <$> mlimit <*> moffset)
       ownersF = case owners of

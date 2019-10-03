@@ -74,7 +74,7 @@ type GetSignalWithSale =
   :> QueryParam  "offset" Int
   :> QueryParams "owner" EthAddress
   :> QueryParams "token_id" TokenID
-  :> Get '[JSON] [WithMetadata SignalWithSaleResponse]
+  :> Get '[JSON] SignalWithSaleResponse
 
 --------------------------------------------------------------------------------
 -- /signal/transfers

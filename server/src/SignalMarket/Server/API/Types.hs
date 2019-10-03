@@ -65,13 +65,15 @@ data Cursor = Cursor
   , offset :: Int
   }
 
-data SignalWithSaleResponse = SignalWithSaleSummary
+type SignalWithSaleResponse = [WithMetadata SignalWithSaleSummary]
+
+data SignalWithSaleSummary = SignalWithSaleSummary
   { signalWithSaleResponseSignal :: TrackedToken.TrackedToken
   , signalWithSaleResponseSale   :: Maybe SaleSummary
   } deriving Generic
 
-instance A.ToJSON SignalWithSaleResponse where
-  toJSON = A.genericToJSON (defaultAesonOptions "signalWithSaleResponse")
+instance A.ToJSON SignalWithSaleSummary where
+  toJSON = A.genericToJSON (defaultAesonOptions "signalWithSaleSummary")
 
 data SaleSummary = SaleSummary
   { saleSummarySaleID :: SaleID
@@ -82,8 +84,8 @@ instance A.ToJSON SaleSummary where
   toJSON = A.genericToJSON (defaultAesonOptions "saleSummary")
 
 data SignalWithMarketHistoryResponse = SignalWithMarketHistoryResponse
-  { signalWithMarketHistoryResponseSignal  :: TrackedToken.TrackedToken
-  , signalWithMarketHistoryResponseHistory :: [MarketHistory]
+  { signalWithMarketHistoryResponseSignal  :: WithMetadata TrackedToken.TrackedToken
+  , signalWithMarketHistoryResponseHistory :: [WithMetadata MarketHistory]
   } deriving Generic
 
 instance A.ToJSON SignalWithMarketHistoryResponse where
