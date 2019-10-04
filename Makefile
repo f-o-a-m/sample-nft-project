@@ -20,7 +20,7 @@ API_BASE_URL ?= $(SERVER_BASE_URL):$(SERVER_PORT)/
 PG_BASE_DATABASE ?= postgres
 PGDATABASE ?= signal_market
 PGHOST ?= postgis
-PGPORT ?= 5432
+PGPORT ?= 5555
 PGPASSWORD ?= password
 PGUSER ?= postgres
 
