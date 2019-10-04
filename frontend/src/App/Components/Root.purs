@@ -27,7 +27,7 @@ import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Rec.Class (forever)
 import Control.Parallel (parSequence_)
 import Data.Either (Either(..), either)
-import Data.Foldable (for_)
+import Data.Foldable (for_, traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
@@ -110,27 +110,31 @@ root = React.make component
             , provider
             }
           pushCanceler self $ fiberCanceler connectivityFiber
-          initialConnectivityState <- BRef.read connectivityBRef
-          liftEffect $ setProviderState $ ProviderState.Enabled initialConnectivityState (EthProvider.toWeb3Provider provider) contracts
-          providerUpdateFiber <- launchAff $ forever $ BRef.readOnUpdate connectivityBRef >>= \s ->
-            liftEffect $ setProviderState $ ProviderState.Enabled s (EthProvider.toWeb3Provider provider) contracts
+          let
+            storeConnectivityChange = traverse_ \s ->
+              setProviderState $ ProviderState.Enabled s (EthProvider.toWeb3Provider provider) contracts
+          BRef.read connectivityBRef >>= storeConnectivityChange
+          providerUpdateFiber <- launchAff $ forever $ BRef.readOnUpdate connectivityBRef
+            >>= storeConnectivityChange
+            >>> liftEffect
           pushCanceler self $ fiberCanceler providerUpdateFiber
 
       case providerMb of
         Nothing -> do
-          self.setState _ {providerState = ProviderState.NotInjected}
+          setProviderState $ ProviderState.NotInjected
         Just (Left ethereumProvider) -> do
-          self.setState _ {providerState = ProviderState.Injected}
+          setProviderState $ ProviderState.Injected {loading: false}
           fib <- launchAff $ EthProvider.enable ethereumProvider >>= case _ of
             Nothing -> do
-              liftEffect $ self.setState _ {providerState = ProviderState.Rejected ethereumProvider}
+              liftEffect $ setProviderState $ ProviderState.Rejected ethereumProvider
               never
             Just ethereumProviderEnabled -> do
+              liftEffect $ setProviderState $ ProviderState.Injected {loading: true}
               joinFiber contractsFiber
                 >>= (startConnectivityLoop ethereumProviderEnabled >>> liftEffect)
           pushCanceler self $ fiberCanceler fib
         Just (Right legacyProvider) -> do
-          self.setState _ {providerState = ProviderState.Injected}
+          setProviderState $ ProviderState.Injected {loading: true}
           fib <- launchAff $ joinFiber contractsFiber
             >>= (startConnectivityLoop legacyProvider >>> liftEffect)
           pushCanceler self $ fiberCanceler fib

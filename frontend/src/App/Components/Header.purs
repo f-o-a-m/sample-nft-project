@@ -90,12 +90,12 @@ header = React.make component
             []
           ProviderState.NotInjected ->
             [R.text "Web3 provider is not injected!"]
-          ProviderState.Injected ->
+          ProviderState.Injected {loading: false}->
             [R.text "Web3 Connect Request was send."]
+          ProviderState.Injected {loading: true}->
+            [R.text "Loading network configuration"]
           ProviderState.Rejected _ ->
             [R.text "Web3 Connect Request was declined"]
-          ProviderState.Enabled Provider.Loading _ _ ->
-            [R.text "Loading user info"]
           ProviderState.Enabled (Provider.Connected {userAddress}) _ _ ->
             [ R.text "Hi "
             , avatar userAddress

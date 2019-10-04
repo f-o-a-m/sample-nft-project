@@ -11,7 +11,7 @@ import Network.Ethereum.Web3 (Address, Provider)
 data State
   = Unknown
   | NotInjected
-  | Injected
+  | Injected { loading :: Boolean }
   | Rejected (Provider' Unknown)
   | Enabled Connectivity Provider Contracts
 
@@ -29,8 +29,8 @@ partialEq a b = case a, b of
   Unknown, _ -> false
   NotInjected, NotInjected -> true
   NotInjected, _ -> false
-  Injected, Injected -> true
-  Injected, _ -> false
+  Injected c, Injected c' -> c' == c
+  Injected _, _ -> false
   Rejected _, Rejected _ -> true
   Rejected _, _ -> false
   Enabled c _ _, Enabled c' _ _ -> c' == c
