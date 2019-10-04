@@ -78,15 +78,15 @@ spec' cfg env@{ logger, signalAttrGen } = do
 
   beforeAll_ (faucetTokens env { foamToken, tokenFaucet, provider, account1, account2 }) $ do
     describe "indexer/server interaction" $ parallel do
-      it "can track foam token transfers" do
-        transfers <- liftAff $ assertClientM $ foamTokenTransfers $ API.QueryParams
-          { from: Nothing
-          , to: Nothing
-          , offset: Nothing
-          , ordering: Nothing
-          , limit: Nothing
-          }
-        length transfers `shouldEqual` 0
+      -- it "can track foam token transfers" do
+      --   transfers <- liftAff $ assertClientM $ foamTokenTransfers $ API.QueryParams
+      --     { from: Nothing
+      --     , to: Nothing
+      --     , offset: Nothing
+      --     , ordering: Nothing
+      --     , limit: Nothing
+      --     }
+      --   length transfers `shouldEqual` 0
       it "can track signal token creation" do
         pure unit
       it "can track signals for sale" do
