@@ -32,19 +32,18 @@ before_install:
 - nvm use lts/carbon
 - nvm alias default lts/carbon
 install:
-# DEPLOY
-- docker-compose up -d
-- travis_wait make install
-- sleep 10
-- make compile-contracts
-- travis_wait make deploy-contracts
-# - make test-dapp
-- PGPORT=5432 make migrate
 # BUILD
+- travis_wait make install
 - travis_wait 30 stack --skip-ghc-check setup
 - travis_wait 30 stack --skip-ghc-check build
 - travis_wait 30 stack --skip-ghc-check install hlint
-- travis_wait 30 stack --skip-ghc-check install stylish-haskell
+- travis_wait 30 stack --skip-ghc-check install stylish-haskell sleep 10
+- make compile-contracts
+# DEPLOY
+- docker-compose up -d
+- travis_wait make deploy-contracts
+# - make test-dapp
+- PGPORT=5432 make migrate
 script:
 - PGHOST=localhost make run-indexer &
 - PGHOST=localhost make run-server &
