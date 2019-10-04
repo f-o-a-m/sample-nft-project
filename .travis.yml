@@ -14,6 +14,12 @@ cache:
   - $HOME/.cabal/packages
 services:
   - docker
+before_script:
+  # Disable services enabled by default
+  # http://docs.travis-ci.com/user/database-setup/#MySQL
+  - sudo /etc/init.d/mysql stop
+  - sudo /etc/init.d/postgresql stop
+
 before_install:
 # Download and unpack the stack executable
 - mkdir -p ~/.local/bin
