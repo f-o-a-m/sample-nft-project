@@ -39,7 +39,7 @@ install:
 - make compile-contracts
 - travis_wait make deploy-contracts
 # - make test-dapp
-- PGHOST=localhost make migrate
+- PGPORT=5432 make migrate
 # BUILD
 - travis_wait 30 stack --skip-ghc-check setup
 - travis_wait 30 stack --skip-ghc-check build
