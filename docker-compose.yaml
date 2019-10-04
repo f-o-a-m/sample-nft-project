@@ -3,7 +3,7 @@ services:
   postgis:
     image: mdillon/postgis:10-alpine
     ports:
-    - 5432:5555
+    - 5555:5432
   cliquebait:
     image: foamspace/cliquebait:latest
     environment:
