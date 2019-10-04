@@ -4,7 +4,7 @@ import Prelude
 
 import App.Data.Signal (Signal(..))
 import App.Data.SignalActivity (ListedForSaleR, SoledR, UnlistedFromSaleR)
-import App.Data.Token (Token)
+import App.Data.Token (FOAM, Token)
 import Data.DateTime (DateTime)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Eq (genericEq)
@@ -17,7 +17,7 @@ data Activity
   = TokenTransfer
     { from :: Address
     , to :: Address
-    , amount :: Token
+    , amount :: Token FOAM
     , timestamp :: DateTime
     }
   | SignalListedForSale (ListedForSaleR (signal :: Signal))

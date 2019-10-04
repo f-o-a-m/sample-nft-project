@@ -6,24 +6,36 @@ import App.Components.Avatar (avatar)
 import App.Components.Common (renderToken)
 import App.Data.Contracts (Contracts(..), networkName)
 import App.Data.ProviderState as ProviderState
-import App.Data.Token (Token(..))
+import App.Data.Token (FOAM, Token(..), tokenFromBigNumber)
 import App.Error (printCallError, printWeb3Error)
 import App.Ethereum.Provider as Provider
 import App.HTML (classy, maybeHtml)
 import App.HTML.Canceler (pushCanceler, runCancelers)
 import Contracts.FoamToken as FoamToken
+import Contracts.SignalToken as SignalToken
 import Control.Lazy (fix)
 import Data.Either (Either(..), either)
 import Data.Foldable (for_)
+import Data.Geohash (geohashFromLngLat, geohashToBS32)
+import Data.Int (round)
+import Data.List.NonEmpty as NonEmptyList
 import Data.Maybe (Maybe(..))
 import Data.Newtype (un)
+import Debug.Trace (traceM)
+import Deploy.Utils (unsafeFromJust)
 import Effect (Effect)
-import Effect.Aff (fiberCanceler, launchAff)
+import Effect.Aff (Milliseconds(..), delay, fiberCanceler, launchAff)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
-import Etherium.TxOpts (txTo)
-import Network.Ethereum.Web3 (ChainCursor(..), EventAction(..), event, eventFilter, runWeb3)
+import Effect.Random (randomRange)
+import Etherium.Tx as Tx
+import Etherium.TxOpts (txOpts, txTo)
+import Network.Ethereum.Web3 (ChainCursor(..), Ether, EventAction(..), Value, event, eventFilter, mkValue, runWeb3, toMinorUnit, uIntNFromBigNumber)
+import Network.Ethereum.Web3 as BN
+import Network.Ethereum.Web3.Api as Web3
+import Network.Ethereum.Web3.Solidity.Sizes (s256)
+import Network.Ethereum.Web3.Types (ETHER)
 import React.Basic (JSX)
 import React.Basic as React
 import React.Basic.DOM as R
@@ -37,7 +49,7 @@ component :: React.Component Props
 component = React.createComponent "Header"
 
 type State =
-  { balance :: Maybe Token
+  { balance :: Maybe {foam :: Token FOAM, eth :: Token ETHER}
   }
 
 type Self = React.Self Props State
@@ -65,6 +77,25 @@ header = React.make component
 
     pollUserBalance self con = do
       reloadUserBalance
+      void $ liftEffect do
+        lng <- randomRange 2.0 20.0
+        lat <- randomRange 2.0 20.0
+        radius <- map round $ randomRange 1.0 25.0
+        stake' <- map round $ randomRange 1.0 4.0
+        let stake = unsafeFromJust "invalid stake" $ uIntNFromBigNumber s256 $ toMinorUnit (mkValue (BN.embed stake') :: Value Ether)
+        Tx.send' (\from {foamToken,signalToken} -> NonEmptyList.cons
+          (FoamToken.approve (txOpts {from, to: foamToken}) { spender: signalToken, value: stake})
+          (NonEmptyList.singleton $ SignalToken.mintSignal
+            (txOpts {from, to: signalToken})
+            { owner: from
+            , geohash: geohashToBS32 $ geohashFromLngLat 5 {lng, lat}
+            , radius: unsafeFromJust "invalid radius" $ uIntNFromBigNumber s256 $ BN.embed radius
+            , stake
+            })
+          )
+          con
+          traceM
+
       fix \loop -> do
         res <- runWeb3 con.provider
           $ void
@@ -77,11 +108,22 @@ header = React.make component
         loop
       where
         reloadUserBalance = fix \loop -> do
-          res <- runWeb3 con.provider $ FoamToken.balanceOf (txTo (un Contracts con.contracts).foamToken ) Latest {account: con.userAddress}
+          res <- runWeb3 con.provider do
+            foamBalance <- fix \retry -> FoamToken.balanceOf (txTo (un Contracts con.contracts).foamToken ) Latest {account: con.userAddress} >>= case _ of
+              Left callError ->do
+                log (printCallError callError)
+                liftAff $ delay (Milliseconds 3000.0)
+                retry
+              Right res -> pure res
+            ethBalance <- Web3.eth_getBalance con.userAddress Latest
+            pure
+              { foam: Token foamBalance
+              , eth: unsafeFromJust "eth_getBalance returned invalid result" $ tokenFromBigNumber ethBalance
+              }
+
           case res of
-            Left web3Err -> log (printWeb3Error web3Err) *> loop
-            Right (Left callError) -> log (printCallError callError) *> loop
-            Right (Right balance) -> liftEffect $ self.setState _ {balance = Just $ Token balance}
+            Left web3Err -> log (printWeb3Error web3Err) *> delay (Milliseconds 100.0) *> loop
+            Right balance -> liftEffect $ self.setState _ {balance = Just balance}
 
     render :: Self -> JSX
     render self@{state, props} = classy R.div "Header"
@@ -103,7 +145,7 @@ header = React.make component
             , R.br {}
             , case state.balance of
                 Nothing -> R.text "Loading balance"
-                Just b -> R.text "Your balance is " <> renderToken b
+                Just {foam, eth} -> R.text "Your balance is " <> renderToken foam <> R.text " and " <> renderToken eth
             ]
           ProviderState.Enabled (Provider.NotConnected {userAddress}) _ (Contracts {networkId}) ->
             [ maybeHtml userAddress \ua -> R.text "Hey " <> avatar ua <> R.text " "

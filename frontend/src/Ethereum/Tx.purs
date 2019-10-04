@@ -21,15 +21,14 @@ import Effect.Aff (Canceler, Milliseconds(..), delay, fiberCanceler, launchAff)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Etherium.TxOpts (txOpts, txOpts')
-import Network.Ethereum.Web3 (Address, HexString, TransactionReceipt(..), TransactionStatus(..), Value, Web3, Web3Error, runWeb3)
+import Network.Ethereum.Web3 (Address, HexString, TransactionReceipt(..), TransactionStatus(..), Web3, Web3Error, fromMinorUnit, runWeb3, unUIntN)
 import Network.Ethereum.Web3.Api (eth_getTransactionReceipt)
 import Network.Ethereum.Web3.Types (ETHER)
-import Network.Ethereum.Web3.Types.TokenUnit (MinorUnit)
 
 data Tx
   = UnSell SaleId
-  | Sell SignalId Token
-  | Buy SaleId (Value (MinorUnit ETHER))
+  | Sell SignalId (Token ETHER)
+  | Buy SaleId (Token ETHER)
 
 type Progress =
   { current :: Status
@@ -55,8 +54,8 @@ send (Sell (SignalId _tokenId) (Token _price)) = send' \userAddress {signalMarke
   NonEmptyList.cons
     (SignalToken.approve (txOpts {from: userAddress, to: signalToken}) {to: signalMarket, tokenId: _tokenId})
     (NonEmptyList.singleton $ SignalMarket.forSale (txOpts {from: userAddress, to: signalMarket}) { _tokenId, _price })
-send (Buy (SaleId _saleId) price) = send' \userAddress {signalMarket, foamToken} ->
-  NonEmptyList.singleton $ SignalMarket.buy (txOpts' {from: userAddress, to: signalMarket, value: price}) { _saleId }
+send (Buy (SaleId _saleId) (Token price)) = send' \userAddress {signalMarket, foamToken} ->
+  NonEmptyList.singleton $ SignalMarket.buy (txOpts' {from: userAddress, to: signalMarket, value: fromMinorUnit $ unUIntN price}) { _saleId }
 
 send'
   :: (Address -> ContractsR -> NonEmptyList (Web3 HexString))

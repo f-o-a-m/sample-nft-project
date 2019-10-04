@@ -7,7 +7,7 @@ import App.Data.Collections (Cursor, LinkedCollection)
 import App.Data.ProviderState (ConnectedState)
 import App.Data.Radius (Radius(..))
 import App.Data.Signal (Signal(..))
-import App.Data.Token (Token(..), tokenFromBigNumber, tokenToBigNumber)
+import App.Data.Token (class TokenName, Token(..), tokenFromBigNumber, tokenName)
 import App.Data.User (User(..))
 import App.Error (printWeb3Error)
 import App.HTML (classy, maybeHtml, whenHtml)
@@ -23,7 +23,7 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Effect (Effect)
 import Etherium.Tx as Tx
 import Network.Ethereum.Core.BigNumber (divide)
-import Network.Ethereum.Web3 (Ether, fromMinorUnit, unUIntN)
+import Network.Ethereum.Web3 (unUIntN)
 import Network.Ethereum.Web3 (embed) as BN
 import Network.Ethereum.Web3.Types (ETHER)
 import Network.Ethereum.Web3.Types.TokenUnit (MinorUnitE18, ProxyTU(..), divider)
@@ -32,6 +32,7 @@ import React.Basic as React
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture_, targetValue)
 import React.Basic.Events (handler)
+import Type.Proxy (Proxy(..))
 
 fullDateFormat :: DF.Formatter
 fullDateFormat
@@ -45,10 +46,10 @@ fullDateFormat
 renderDateTime :: DateTime -> String
 renderDateTime = DF.format fullDateFormat
 
-renderToken :: Token -> JSX
+renderToken :: forall t. TokenName (Token t) => (Token t) -> JSX
 renderToken (Token t) =
-  let num = show $ unUIntN t `divide` divider (ProxyTU :: ProxyTU Ether)
-  in R.text $ num <> " FOAM"
+  let num = show $ unUIntN t `divide` divider (ProxyTU :: ProxyTU (MinorUnitE18 t))
+  in R.text $ num <> " " <> tokenName (Proxy:: Proxy (Token t))
 
 renderRadius :: Radius -> JSX
 renderRadius (Radius n) = R.text $ show n <> " km"
@@ -119,9 +120,7 @@ renderSignal {txSend, addLink, updateState, state, user, details} =
                       }
                     Just priceNum -> R.button
                       { onClick: capture_ $ txSend
-                          (Tx.Sell s.id
-                            priceNum
-                          )
+                          (Tx.Sell s.id priceNum)
                           con
                           (\newTxSt -> updateState _ {tx = Just newTxSt})
                       , children: [ R.text "Sell" ]
@@ -129,15 +128,15 @@ renderSignal {txSend, addLink, updateState, state, user, details} =
                 ]
           | otherwise -> maybeHtml s.sale \{id, price} -> txOrElse state.tx $ R.button
               { onClick: capture_ $ txSend
-                  (Tx.Buy id $ fromMinorUnit $ tokenToBigNumber price)
+                  (Tx.Buy id price)
                   con
                   (\newTxSt -> updateState _ {tx = Just newTxSt})
-              , children: [ R.text "Buy" ]
+              , children: [ R.text "Buy just for ", renderToken price ]
               }
     , details
     ]
 
-parseToken :: String -> Maybe Token
+parseToken :: forall t. String -> Maybe (Token t)
 parseToken = Int.fromString >=> \num ->
   tokenFromBigNumber $ (BN.embed num) * divider (ProxyTU :: ProxyTU (MinorUnitE18 ETHER))
 

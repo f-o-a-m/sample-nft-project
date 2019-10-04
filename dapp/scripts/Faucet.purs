@@ -35,8 +35,8 @@ main = void <<< launchAff $ do
   provider <- liftEffect $ httpProvider "http://localhost:8545"
   from <- liftAff $ expectWeb3 "eth_getAccounts" provider getPrimaryAccount
   let receiver = mkAddress' faucetAddrEnv
-      value = unsafeFromJust "invalid value" $ uIntNFromBigNumber s256 $ toMinorUnit (mkValue (embed (fromMaybe 20 (fromString valueEnv))) :: Value Ether)
-  let ethVal = mkValue (embed 1) :: Value Ether
+      value = unsafeFromJust "invalid value" $ uIntNFromBigNumber s256 $ toMinorUnit (mkValue (embed (fromMaybe 200 (fromString valueEnv))) :: Value Ether)
+  let ethVal = mkValue (embed 100) :: Value Ether
   tx <- liftAff $ runWeb3 provider do
     txE <- eth_sendTransaction (defaultTransactionOptions # _to ?~ receiver # _from ?~ from # _value ?~ convert ethVal)
     -- fromFoamBalance <- FoamToken.balanceOf (defaultTransactionOptions # _to ?~ foamToken) Latest {account: from}

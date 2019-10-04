@@ -10,6 +10,7 @@ import Data.Generic.Rep.Eq (genericEq)
 import Data.Generic.Rep.Ord (genericCompare)
 import Data.Generic.Rep.Show (genericShow)
 import Network.Ethereum.Core.Signatures (Address)
+import Network.Ethereum.Web3.Types (ETHER)
 
 data SignalActivity
   = ListedForSale (ListedForSaleR ())
@@ -26,7 +27,7 @@ type ListedForSaleR r =
   { owner :: Address
   , saleId :: SaleId
   , timestamp :: DateTime
-  , price :: Token
+  , price :: Token ETHER
   | r
   }
 
@@ -42,6 +43,6 @@ type SoledR r =
   , saleId :: SaleId
   , timestamp :: DateTime
   , buyer :: Address
-  , price :: Token
+  , price :: Token ETHER
   | r
   }

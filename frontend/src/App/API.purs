@@ -83,18 +83,18 @@ address6 = unsafeFromJust "Must be valid Address 000...6"
   $ mkAddress =<< mkHexString "0x0000000000000000000000000000000000000006"
 
 signalId1 :: SignalId
-signalId1 = unsafeFromJust "SignalId of 1" $ signalIdFromBigNumber $ BN.embed 1
+signalId1 = unsafeFromJust "SignalId of 1" $ signalIdFromBigNumber $ BN.embed 101
 
 signalId2 :: SignalId
-signalId2 = unsafeFromJust "SignalId of 2" $ signalIdFromBigNumber $ BN.embed 2
+signalId2 = unsafeFromJust "SignalId of 2" $ signalIdFromBigNumber $ BN.embed 102
 
 signalId3 :: SignalId
-signalId3 = unsafeFromJust "SignalId of 3" $ signalIdFromBigNumber $ BN.embed 3
+signalId3 = unsafeFromJust "SignalId of 3" $ signalIdFromBigNumber $ BN.embed 103
 
 saleId2 :: SaleId
-saleId2 = unsafeFromJust "SaleId of 2" $ saleIdFromBigNumber $ BN.embed 2
+saleId2 = unsafeFromJust "SaleId of 2" $ saleIdFromBigNumber $ BN.embed 102
 saleId3 :: SaleId
-saleId3 = unsafeFromJust "SaleId of 3" $ saleIdFromBigNumber $ BN.embed 3
+saleId3 = unsafeFromJust "SaleId of 3" $ saleIdFromBigNumber $ BN.embed 103
 
 signal1 :: Signal
 signal1 = Signal
