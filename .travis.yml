@@ -33,8 +33,8 @@ before_install:
 - nvm alias default lts/carbon
 install:
 # DEPLOY
-- travis_wait make install
 - docker-compose up -d
+- travis_wait make install
 - sleep 10
 - make compile-contracts
 - travis_wait make deploy-contracts
