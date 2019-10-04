@@ -7,6 +7,7 @@ CREATE TABLE "signal_token_tracked_token"
     "radius" numeric NOT NULL,
     "token_id" numeric NOT NULL,
     "owner" text NOT NULL,
+    "staked" boolean NOT NULL,
     "is_burned" boolean NOT NULL,
     "event_id" text NOT NULL PRIMARY KEY REFERENCES "raw_change"("event_id")
   );
