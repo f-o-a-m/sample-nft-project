@@ -12,6 +12,8 @@ cache:
   - $HOME/.stack
   - $HOME/.cabsnap
   - $HOME/.cabal/packages
+env:
+  - PGPORT=5555
 services:
   - docker
 before_script:
@@ -44,8 +46,8 @@ install:
 - travis_wait 30 stack --skip-ghc-check install hlint
 - travis_wait 30 stack --skip-ghc-check install stylish-haskell
 script:
-- make run-indexer &
-- make run-server &
+- PGHOST=localhost make run-indexer &
+- PGHOST=localhost make run-server &
 - make test-e2e
 - make hlint
 # When branch is `master` we run `haskell-stylish` and fail if git working directory becomes dirty
