@@ -7,7 +7,7 @@ import Prelude
 
 import App.API (getContracts)
 import App.Data.Contracts (Contracts(..))
-import Chanterelle.Internal.Utils (getPrimaryAccount)
+import Chanterelle.Internal.Utils (getPrimaryAccount, pollTransactionReceipt)
 import Contracts.FoamToken as FoamToken
 import Data.Either (Either(..))
 import Data.Int (fromString)
@@ -19,7 +19,7 @@ import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
 import Effect.Exception (throw)
-import Network.Ethereum.Web3 (Address, Provider, Value, Web3, _from, _to, _value, convert, defaultTransactionOptions, embed, formatValue, httpProvider, mkAddress, mkHexString, mkValue, runWeb3, uIntNFromBigNumber)
+import Network.Ethereum.Web3 (Address, Provider, Value, Web3, _from, _to, _value, convert, defaultTransactionOptions, embed, formatValue, httpProvider, mkAddress, mkHexString, mkValue, runWeb3, toMinorUnit, uIntNFromBigNumber)
 import Network.Ethereum.Web3.Api (eth_sendTransaction)
 import Network.Ethereum.Web3.Solidity.Sizes (s256)
 import Network.Ethereum.Web3.Types.EtherUnit (Ether)
@@ -35,10 +35,14 @@ main = void <<< launchAff $ do
   provider <- liftEffect $ httpProvider "http://localhost:8545"
   from <- liftAff $ expectWeb3 "eth_getAccounts" provider getPrimaryAccount
   let receiver = mkAddress' faucetAddrEnv
-      value = unsafeFromJust "invalid value" $ uIntNFromBigNumber s256 $ embed $ fromMaybe 100 (fromString valueEnv)
-  let ethVal = mkValue (embed 10) :: Value Ether
+      value = unsafeFromJust "invalid value" $ uIntNFromBigNumber s256 $ toMinorUnit (mkValue (embed (fromMaybe 20 (fromString valueEnv))) :: Value Ether)
+  let ethVal = mkValue (embed 1) :: Value Ether
   tx <- liftAff $ runWeb3 provider do
     txE <- eth_sendTransaction (defaultTransactionOptions # _to ?~ receiver # _from ?~ from # _value ?~ convert ethVal)
+    -- fromFoamBalance <- FoamToken.balanceOf (defaultTransactionOptions # _to ?~ foamToken) Latest {account: from}
+    -- fromEthBalance <- eth_getBalance from Latest
+    -- log $ show fromFoamBalance
+    -- log $ show fromEthBalance
     txF <- FoamToken.transfer
       (defaultTransactionOptions # _to ?~ foamToken # _from ?~ from)
       { recipient: receiver
@@ -56,6 +60,9 @@ main = void <<< launchAff $ do
       log $ "Tx: " <> show tx'.txE
       log $ "Sent " <> show value <> " FOAM to address " <> show receiver
       log $ "Tx: " <> show tx'.txF
+      log $ "pollTransactionReceipt"
+      txR <- pollTransactionReceipt tx'.txF provider
+      log $ show txR
 
 
 
