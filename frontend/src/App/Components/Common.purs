@@ -13,11 +13,12 @@ import App.Error (printWeb3Error)
 import App.HTML (classy, maybeHtml, whenHtml)
 import App.Route as Route
 import Control.MonadZero as MZ
+import Data.Array (length)
 import Data.DateTime (DateTime)
 import Data.Formatter.DateTime as DF
-import Data.Geohash (Geohash, geohashToLngLat)
+import Data.Geohash (Geohash)
 import Data.Int as Int
-import Data.List (List(..),(:))
+import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect (Effect)
 import Etherium.Tx as Tx
@@ -47,13 +48,15 @@ renderDateTime = DF.format fullDateFormat
 renderToken :: Token -> JSX
 renderToken (Token t) =
   let num = show $ unUIntN t `divide` divider (ProxyTU :: ProxyTU Ether)
-  in R.text $ num <> " ETH"
+  in R.text $ num <> " FOAM"
 
 renderRadius :: Radius -> JSX
 renderRadius (Radius n) = R.text $ show n <> " km"
 
 renderGeoHash :: Geohash -> String
-renderGeoHash = geohashToLngLat >>> \{lat, lng} -> show lat <> ", " <> show lng
+renderGeoHash = show
+-- TODO: this results in error when: signal is minted in the app, then it's reconstructed form event and rendered
+-- geohashToLngLat >>> \{lat, lng} -> show lat <> ", " <> show lng
 
 renderBaseSignal :: Boolean -> Signal -> JSX
 renderBaseSignal addLink (Signal s) = classy R.div "SignalContent"
@@ -77,14 +80,14 @@ renderBaseSignal addLink (Signal s) = classy R.div "SignalContent"
 
 type SignalState r =
   { signal :: Signal
-  , tx :: Maybe Tx.Status
+  , tx :: Maybe Tx.Progress
   , price :: Maybe String
   | r
   }
 
 renderSignal :: forall r.
   { state :: SignalState r
-  , txSend :: Tx.Tx -> ConnectedState -> (Tx.Status -> Effect Unit) -> Effect Unit
+  , txSend :: Tx.Tx -> ConnectedState -> (Tx.Progress -> Effect Unit) -> Effect Unit
   , updateState :: (SignalState r -> SignalState r) -> Effect Unit
   , user :: User
   , addLink :: Boolean
@@ -138,33 +141,35 @@ parseToken :: String -> Maybe Token
 parseToken = Int.fromString >=> \num ->
   tokenFromBigNumber $ (BN.embed num) * divider (ProxyTU :: ProxyTU (MinorUnitE18 ETHER))
 
-txOrElse :: Maybe Tx.Status -> JSX -> JSX
+txOrElse :: Maybe Tx.Progress -> JSX -> JSX
 txOrElse tx btn = classy R.div "Transaction" case tx of
   Nothing -> [btn]
-  Just tx' -> case tx' of
-    Tx.Submitting ->
-      [ classy R.div "Transaction-status"
-          [R.text "Submitting ..."]
-      ]
-    Tx.SubmittingFailed web3Err ->
-      [ btn
-      , classy R.div "Transaction-status Transaction-status--error"
-          [R.text $ "SubmittingFailed " <> printWeb3Error web3Err]
-      ]
-    Tx.MiningStart txHash ->
-      [ classy R.div "Transaction-status"
-          [R.text $ "MiningStart " <> show txHash]
-      ]
-    Tx.MiningFailed transactionReceipt ->
-      [ btn
-      , classy R.div "Transaction-status Transaction-status--error"
-          [R.text $ "MiningFailed " <> show transactionReceipt]
-      ]
-    Tx.MiningFinished txHash ->
-      [ btn
-      , classy R.div "Transaction-status"
-          [R.text $ "MiningFinished " <> show txHash]
-      ]
+  Just { finished, total, current } ->
+    let progress = (show (length finished + 1) <> "/" <> show total)
+    in case current of
+      Tx.Submitting ->
+        [ classy R.div "Transaction-status"
+            [R.text $ progress <> " Submitting ..."]
+        ]
+      Tx.SubmittingFailed web3Err ->
+        [ btn
+        , classy R.div "Transaction-status Transaction-status--error"
+            [R.text $ progress <> " SubmittingFailed " <> printWeb3Error web3Err]
+        ]
+      Tx.MiningStart txHash ->
+        [ classy R.div "Transaction-status"
+            [R.text $ progress <> " MiningStart " <> show txHash]
+        ]
+      Tx.MiningFailed transactionReceipt ->
+        [ btn
+        , classy R.div "Transaction-status Transaction-status--error"
+            [R.text $ progress <> " MiningFailed " <> show transactionReceipt]
+        ]
+      Tx.MiningFinished txHash ->
+        [ btn
+        , classy R.div "Transaction-status"
+            [R.text $ progress <> " MiningFinished " <> show txHash]
+        ]
 
 
 renderLinkedCollection

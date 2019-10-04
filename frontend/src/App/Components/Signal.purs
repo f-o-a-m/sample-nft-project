@@ -39,7 +39,7 @@ type State = Maybe SignalState
 type SignalState =
   { signal :: Signal
   , activity :: Array SignalActivity
-  , tx :: Maybe Tx.Status
+  , tx :: Maybe Tx.Progress
   , price :: Maybe String
   }
 
