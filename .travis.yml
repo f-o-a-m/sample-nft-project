@@ -28,6 +28,7 @@ install:
 - travis_wait make install
 - travis_wait docker run -d -p 8545:8545 -e ACCOUNTS_TO_CREATE=10 foamspace/cliquebait:latest
 - sleep 10
+- make build-purs-strict
 - make compile-contracts
 - make test-dapp
 - travis_wait make deploy-contracts

@@ -19,6 +19,7 @@
     "purescript-react-basic": "^12.0.0",
     "purescript-affjax": "^9.0.1",
     "purescript-chanterelle": "^4.0.0",
+    "purescript-web3": "^2.0.1",
     "purescript-formatters": "^4.0.1"
   },
   "devDependencies": {
