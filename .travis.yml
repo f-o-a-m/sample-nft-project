@@ -38,8 +38,8 @@ install:
 - sleep 10
 - make compile-contracts
 - travis_wait make deploy-contracts
-- make test-dapp
-- make migrate
+# - make test-dapp
+- PGHOST=localhost make migrate
 # BUILD
 - travis_wait 30 stack --skip-ghc-check setup
 - travis_wait 30 stack --skip-ghc-check build
