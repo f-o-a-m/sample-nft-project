@@ -6,6 +6,7 @@ module SignalMarket.Server.API
  , SignalTokenAPI
  , SignalMarketAPI
  , ConfigAPI
+ , WebSocketAPI
  ) where
 
 import           Data.Proxy
@@ -27,6 +28,7 @@ type API =
   :<|> SignalAPI
   :<|> SignalTokenAPI
   :<|> SignalMarketAPI
+  :<|> WebSocketAPI
 
 api :: Proxy API
 api = Proxy
@@ -129,3 +131,7 @@ type GetSignalMarketSignalSold =
 type GetSignalMarketHistory =
      Capture "token_id" TokenID
   :> Get '[JSON] SignalWithMarketHistoryResponse
+
+--------------------------------------------------------------------------------
+type WebSocketAPI = "ws" :> Raw
+--------------------------------------------------------------------------------

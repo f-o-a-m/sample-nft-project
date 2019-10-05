@@ -18,14 +18,18 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - aeson
 - aeson-casing
+- async
 - base >= 4.7 && < 5
+- bytestring
 - containers
 - common
+- conduit
 - errors
 - exceptions
 - http-api-data
 - http-client
 - http-client-tls
+- http-types
 - katip
 - lens
 - mtl
@@ -38,8 +42,10 @@ dependencies:
 - wai
 - wai-extra
 - wai-cors
+- wai-websockets
 - warp
 - web3
+- websockets
 
 library:
   source-dirs: src
@@ -58,6 +64,10 @@ default-extensions:
   - StandaloneDeriving
   - FlexibleInstances
   - ScopedTypeVariables
+  - GADTs
+  - FlexibleContexts
+  - NamedFieldPuns
+  - TypeApplications
 
 executables:
   server-exe:

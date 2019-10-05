@@ -12,6 +12,7 @@ import           SignalMarket.Server.Server.FoamToken    (foamTokenServer)
 import           SignalMarket.Server.Server.Signal       (signalServer)
 import           SignalMarket.Server.Server.SignalMarket (signalMarketServer)
 import           SignalMarket.Server.Server.SignalToken  (signalTokenServer)
+import           SignalMarket.Server.WebSocket           (wsServer)
 --------------------------------------------------------------------------------
 
 server :: AppConfig -> Server API
@@ -21,6 +22,7 @@ server cfg = hoistServerWithContext api (Proxy :: Proxy '[]) (runAppHandler cfg)
   :<|> signalServer
   :<|> signalTokenServer
   :<|> signalMarketServer
+  :<|> wsServer cfg
 
 
 mkApplication :: AppConfig -> Application

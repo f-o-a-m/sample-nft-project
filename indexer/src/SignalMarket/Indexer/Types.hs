@@ -35,10 +35,14 @@ mkEvent W3.Change{..} e =
       , eventData = e
       , eventRawEvent = RawChange
           { RC.logIndex = HexInteger li
+          , RC.transactionIndex = HexInteger . unQuantity . fromJust $ changeLogIndex
           , RC.transactionHash = fromJust changeTransactionHash ^. _HexString
+          , RC.removed = False
           , RC.blockHash = bh  ^. _HexString
           , RC.blockNumber = HexInteger . unQuantity . fromJust $ changeBlockNumber
           , RC.address = changeAddress ^. _EthAddress
+          , RC._data = changeData ^. _HexString
+          , RC.topics = map (view _HexString) changeTopics
           , RC.eventID = eid
           }
       }
