@@ -46,8 +46,8 @@ install: ## Runs npm and bower install
 # postgres
 ############
 migrate: ## Run the flyway migration suite to setup postgis
-	PGDATABASE=$(PG_BASE_DATABASE) $(PSQL) -h $(PGHOST) -p $(PGPORT) -U $(PGUSER) -tc "SELECT 1 FROM pg_database WHERE datname = '$(PGDATABASE)'" | grep -q 1 || \
-	PGDATABASE=$(PG_BASE_DATABASE) $(PSQL) -h $(PGHOST) -p $(PGPORT) -U $(PGUSER) -c "CREATE DATABASE $(PGDATABASE);"
+	PGDATABASE=$(PG_BASE_DATABASE) $(PSQL) -h $(PGHOST) -p 5432 -U $(PGUSER) -tc "SELECT 1 FROM pg_database WHERE datname = '$(PGDATABASE)'" | grep -q 1 || \
+	PGDATABASE=$(PG_BASE_DATABASE) $(PSQL) -h $(PGHOST) -p 5432 -U $(PGUSER) -c "CREATE DATABASE $(PGDATABASE);"
 	# the -jarDirs is temporary fix for https://github.com/NixOS/nixpkgs/issues/59687
 	$(FLYWAY) -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):5432/$(PGDATABASE) -locations=filesystem:/flyway/sql/migrations -baselineOnMigrate=true migrate
 
