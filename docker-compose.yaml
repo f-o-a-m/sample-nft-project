@@ -1,9 +1,9 @@
 version: "3"
 services:
   postgis:
-    image: mdillon/postgis:10
+    image: mdillon/postgis:10-alpine
     ports:
-    - 5432:5432
+    - 5555:5432
   cliquebait:
     image: foamspace/cliquebait:latest
     environment:
@@ -11,3 +11,9 @@ services:
     command: /cliquebait/run.bash --nodiscover --maxpeers=0 --gcmode=archive --targetgaslimit=0x8000000
     ports:
     - 8545:8545
+  flyway:
+    image: flyway/flyway:latest-alpine
+    depends_on:
+      - postgis
+    volumes:
+      - ./migrations:/flyway/sql/migrations

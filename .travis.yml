@@ -12,8 +12,16 @@ cache:
   - $HOME/.stack
   - $HOME/.cabsnap
   - $HOME/.cabal/packages
+env:
+  - PGPORT=5555
 services:
   - docker
+before_script:
+  # Disable services enabled by default
+  # http://docs.travis-ci.com/user/database-setup/#MySQL
+  - sudo /etc/init.d/mysql stop
+  - sudo /etc/init.d/postgresql stop
+
 before_install:
 # Download and unpack the stack executable
 - mkdir -p ~/.local/bin
@@ -25,18 +33,22 @@ before_install:
 - nvm alias default lts/carbon
 install:
 # DEPLOY
+- docker-compose up -d
 - travis_wait make install
-- travis_wait docker run -d -p 8545:8545 -e ACCOUNTS_TO_CREATE=10 foamspace/cliquebait:latest
 - sleep 10
 - make compile-contracts
-- make test-dapp
 - travis_wait make deploy-contracts
+# - make test-dapp
+- PGPORT=5432 make migrate
 # BUILD
 - travis_wait 30 stack --skip-ghc-check setup
 - travis_wait 30 stack --skip-ghc-check build
 - travis_wait 30 stack --skip-ghc-check install hlint
 - travis_wait 30 stack --skip-ghc-check install stylish-haskell
 script:
+- PGHOST=localhost make run-indexer &
+- PGHOST=localhost make run-server &
+- make test-e2e
 - make hlint
 # When branch is `master` we run `haskell-stylish` and fail if git working directory becomes dirty
 - if [ "$TRAVIS_BRANCH" == "master" ]; then make stylish && git diff-index --quiet HEAD; fi

@@ -62,6 +62,7 @@ makeSignalMarketConfig { _signalToken, _foamToken } =
   , unvalidatedArgs: pure { _signalToken, _foamToken }
   }
 
+-- like what is this
 type DeployResults =
   ( simpleStorage :: DeployReceipt NoArgs
   , foamToken :: DeployReceipt NoArgs

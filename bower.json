@@ -18,7 +18,8 @@
     "purescript-routing-duplex": "^0.4.0",
     "purescript-react-basic": "^12.0.0",
     "purescript-affjax": "^9.0.1",
-    "purescript-chanterelle": "^4.0.0"
+    "purescript-chanterelle": "^4.0.0",
+    "purescript-servant": "f-o-a-m/purescript-servant#v1.0.0"
   },
   "devDependencies": {
     "purescript-spec": "^4.0.0",

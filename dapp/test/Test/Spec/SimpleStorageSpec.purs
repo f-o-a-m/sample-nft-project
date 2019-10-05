@@ -1,4 +1,4 @@
-module Test.SimpleStorageSpec (spec) where
+module Test.Spec.SimpleStorageSpec (spec) where
 
 import Prelude
 

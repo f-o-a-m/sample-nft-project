@@ -17,12 +17,15 @@ SERVER_BASE_HOST ?= localhost
 SERVER_BASE_URL ?= //$(SERVER_BASE_HOST)
 API_BASE_URL ?= $(SERVER_BASE_URL):$(SERVER_PORT)/
 
-PG_BASE_DATABASE ?= postgres 
+PG_BASE_DATABASE ?= postgres
 PGDATABASE ?= signal_market
-PGHOST ?= localhost
-PGPORT ?= 5432
+PGHOST ?= postgis
+PGPORT ?= 5555
 PGPASSWORD ?= password
 PGUSER ?= postgres
+
+PSQL ?= docker-compose run postgis psql
+FLYWAY ?= docker-compose run flyway
 
 # end export
 # please keep that, it helps with autogenerating env wrappers
@@ -43,13 +46,13 @@ install: ## Runs npm and bower install
 # postgres
 ############
 migrate: ## Run the flyway migration suite to setup postgis
-	PGDATABASE=$(PG_BASE_DATABASE) psql -tc "SELECT 1 FROM pg_database WHERE datname = '$(PGDATABASE)'" | grep -q 1 || \
-	PGDATABASE=$(PG_BASE_DATABASE) psql -c "CREATE DATABASE $(PGDATABASE);"
+	PGDATABASE=$(PG_BASE_DATABASE) $(PSQL) -h $(PGHOST) -p $(PGPORT) -U $(PGUSER) -tc "SELECT 1 FROM pg_database WHERE datname = '$(PGDATABASE)'" | grep -q 1 || \
+	PGDATABASE=$(PG_BASE_DATABASE) $(PSQL) -h $(PGHOST) -p $(PGPORT) -U $(PGUSER) -c "CREATE DATABASE $(PGDATABASE);"
 	# the -jarDirs is temporary fix for https://github.com/NixOS/nixpkgs/issues/59687
-	flyway -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE) -locations=filesystem:migrations -baselineOnMigrate=true migrate
+	$(FLYWAY) -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE) -locations=filesystem:/flyway/sql/migrations -baselineOnMigrate=true migrate
 
 show-migrations: ## Describe the migrations in the current database
-	flyway -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE) -locations=filesystem:core/migrations/tcr -baselineOnMigrate=true info
+	$(FLYWAY) -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE) -locations=filesystem:/flyway/sql/migrations -baselineOnMigrate=true info
 
 ####################
 # DAPP       #
@@ -64,8 +67,11 @@ build-dapp: ## Build the deploy script
 deploy-contracts: build-dapp ## Deploy contracts in dapp project
 	chanterelle deploy ./output/Deploy.Main/index.js
 
-test-dapp: ## Run the dapp test suite
-	pulp test --src-path dapp/src --test-path dapp/test -m Test.Main
+test-dapp: ## Run the dapp unit test suite
+	pulp test --src-path dapp/src --test-path dapp/test -m Test.Unit.Main
+
+test-e2e: ## Run the dapp unit test suite
+	pulp test --src-path dapp/src --test-path dapp/test -m Test.E2E.Main
 
 clean-dapp: ## Clean up DApp related build artifacts
 	rm -f build/**/*.json
@@ -118,7 +124,6 @@ frontend-start-https: ## Same as `frontend-start`, but running with `https`
 
 frontend-build: ## Builds css html and js assets.
 	webpack
-
 
 build-purs-strict: ## Build whole purescript src and test file in strict mode
 	pulp build --jobs 8 --src-path frontend/src -I dapp/src -- --strict
