@@ -4,6 +4,9 @@ module SignalMarket.Indexer.Utils
  , makeFilterHandlerPair
  ) where
 
+import SignalMarket.Common.Orphans ()
+import Control.Monad.Catch (catch, throwM)
+import Database.PostgreSQL.Simple (begin,rollback,commit)
 import           Control.Arrow                               (returnA)
 import           Control.Monad.Catch                         (MonadThrow)
 import           Control.Monad.IO.Class                      (liftIO)
@@ -244,9 +247,26 @@ makeFilterHandlerPair deployReceipt h = do
       filterWithCheckpoint :: Filter e -> Filter e
       filterWithCheckpoint = maybe id (\cp f -> f {filterFromBlock = mkFromBlock $ Checkpoint.blockNumber cp}) mCheckpoint
 
-      handler = handlerWithCheckpoint . wrapHandlerWithCheckpointing indexerCfg $ makeHandler indexerCfg h
+      handler = wrapHandlerInTransaction indexerCfg
+              . handlerWithCheckpoint
+              . wrapHandlerWithCheckpointing indexerCfg
+              $ makeHandler indexerCfg h
       fltr = filterWithCheckpoint $ makeFilter (Proxy :: Proxy e) deployReceipt
   pure (fltr, handler)
+
+wrapHandlerInTransaction
+  :: IndexerConfig
+  -> Handler (ReaderT Change Web3 EventAction) e
+  -> Handler (ReaderT Change Web3 EventAction) e
+wrapHandlerInTransaction cfg (H h) = H $ \e -> do
+  liftIO $ runIndexerM cfg $ runDB begin
+  res <- h e `catch`
+    (\(err :: SqlQueryException) -> liftIO $ runIndexerM cfg $ do
+      runDB rollback
+      throwM err
+    )
+  liftIO $ runIndexerM cfg $ runDB commit
+  pure res
 
 mkFromBlock :: HexInteger -> DefaultBlock
 mkFromBlock (HexInteger n) = BlockWithNumber $ fromInteger n

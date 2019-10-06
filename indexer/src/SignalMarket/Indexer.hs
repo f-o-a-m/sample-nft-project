@@ -23,7 +23,7 @@ import           System.IO                                   (stdout)
 runIndexer :: IO ()
 runIndexer = do
   logCfg <- mkLogConfig "indexer"
-  handleScribe <- K.mkHandleScribe K.ColorIfTerminal stdout (K.permitItem K.DebugS) K.V2
+  handleScribe <- K.mkHandleScribe (K.ColorLog True) stdout (K.permitItem K.DebugS) K.V2
   let mkLogEnv = K.registerScribe "stdout" handleScribe K.defaultScribeSettings (_logEnv logCfg)
   bracket mkLogEnv K.closeScribes $ \le -> do
     cfg <- mkIndexerConfig logCfg {_logEnv = le}
