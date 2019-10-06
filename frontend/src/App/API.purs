@@ -21,28 +21,32 @@ import App.Data.SignalDetails (SignalDetails(..))
 import App.Data.SignalId (SignalId, signalIdFromBigNumber)
 import App.Data.Token (zeroToken)
 import Control.Monad.Error.Class (throwError)
-import Data.Argonaut (class DecodeJson, decodeJson)
+import Data.Argonaut (Json, decodeJson, getField, (.:))
+import Data.Array as Array
 import Data.DateTime (adjust)
 import Data.Either (Either(..))
 import Data.Geohash (geohashFromLngLat)
 import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Days(..), Milliseconds(..), Minutes(..), fromDuration)
+import Data.Traversable (for)
 import Deploy.Utils (unsafeFromJust)
 import Effect.Aff (Aff, delay)
 import Effect.Exception (error)
 import Effect.Now (nowDateTime)
 import Effect.Unsafe (unsafePerformEffect)
+import Foreign.Object (Object)
 import Network.Ethereum.Core.BigNumber as BN
 import Network.Ethereum.Core.HexString (mkHexString)
 import Network.Ethereum.Core.Signatures (Address, mkAddress)
+import Record.Extra (sequenceRecord)
 
 getContracts :: Aff Contracts
-getContracts = get "config/contracts"
+getContracts = get "config/contracts" decodeJson
 
 type URLPath = String
 
-get :: forall a. DecodeJson a => URLPath -> Aff a
-get path = do
+get :: forall a. URLPath -> (Json -> Either String a) -> Aff a
+get path decode = do
   let
     request = AJ.defaultRequest { url = apiBaseURL <> path, responseFormat = ResponseFormat.json }
     retryPolicy = AJ.defaultRetryPolicy {timeout = Just $ fromDuration $ Minutes 0.4}
@@ -50,7 +54,7 @@ get path = do
   -- resp <- AJ.request request
   case resp.body of
     Left err -> throwAPIError resp "AffJax error" $ printResponseFormatError err
-    Right json -> case decodeJson json of
+    Right json -> case decode json of
       Left err -> throwAPIError resp "DecodeJson error" err
       Right res -> pure res
   where
@@ -126,10 +130,46 @@ signal3 = Signal
   , sale: Nothing
   }
 
+getSignals' :: Cursor -> Aff (Collection Signal)
+getSignals' cursor = get
+  ("signal_token/with_sales?limit=" <> show (cursor.limit + 1) <> "&offset=" <> show cursor.offset)
+  \json -> do
+    (jsonArr :: Array (Object Json)) <- decodeJson json
+    (items :: Array Signal) <- for jsonArr \itemJson -> do
+      signalJson <- itemJson .: "data"
+      eSignal <- getField signalJson "eSignal"
+      eSaleMb <- getField signalJson "eSale"
+      Signal <$> sequenceRecord
+        { id: eSignal .: "tokenID"
+        , stake: eSignal .: "staked"
+        , owner: eSignal .: "owner"
+        , geohash: eSignal .: "geohash"
+        , radius: eSignal .: "radius"
+        , sale: for eSaleMb \eSale -> sequenceRecord
+            { id: eSale .: "saleId"
+            , price: eSale .: "price"
+            }
+        }
+    pure if Array.length items > cursor.limit
+      then
+        { items: Array.take cursor.limit items
+        , next: Just $ cursor{offset = cursor.limit + cursor.offset}
+        }
+      else
+        { items
+        , next: Nothing
+        }
+
 getSignals :: Cursor -> Aff (Collection Signal)
 getSignals c = do
   delay $ Milliseconds 1000.0
   pure {items: [signal1, signal2, signal3], next: Just c}
+
+-- getSignal :: SignalId -> Aff SignalDetails
+-- getSignal (SignalId sid) = get
+--   ("signal_market/" <> show sid)
+--   \json ->
+
 
 getSignal :: SignalId -> Aff SignalDetails
 getSignal sid = do
