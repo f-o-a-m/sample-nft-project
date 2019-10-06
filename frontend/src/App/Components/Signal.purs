@@ -21,7 +21,6 @@ import Effect.Aff (fiberCanceler, launchAff)
 import Effect.Aff.Bus (BusR)
 import Effect.Aff.Bus as Bus
 import Effect.Class (liftEffect)
-import Effect.Now (nowDateTime)
 import Etherium.Tx as Tx
 import React.Basic (JSX)
 import React.Basic as React

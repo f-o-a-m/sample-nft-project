@@ -42,7 +42,6 @@ import Effect.Aff.Bus as Bus
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
-import Effect.Now (nowDateTime)
 import Network.Ethereum.Web3 (EventAction(..), Filter, event, eventFilter, runWeb3)
 import Network.Ethereum.Web3.Solidity (class DecodeEvent)
 import React.Basic (JSX)
@@ -205,8 +204,7 @@ pullEvents bus {provider, contracts: (Contracts c)} = parSequence_
       -> Aff Void
     eventPoll filter f = fix \loop -> do
       res <- runWeb3 provider $ void $ event filter \t -> do
-        timestamp <- liftEffect nowDateTime
-        liftAff $ Bus.write { timestamp, raw: f t } bus
+        liftAff $ Bus.write { raw: f t } bus
         pure ContinueEvent
       either (log <<< printWeb3Error) pure res
       loop
