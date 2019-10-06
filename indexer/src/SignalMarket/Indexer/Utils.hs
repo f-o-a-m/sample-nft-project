@@ -262,6 +262,7 @@ wrapHandlerInTransaction cfg (H h) = H $ \e -> do
   liftIO $ runIndexerM cfg $ runDB begin
   res <- h e `catch`
     (\(err :: SqlQueryException) -> liftIO $ runIndexerM cfg $ do
+      K.logFM K.ErrorS "Encountered SQLException, rolling back transaction!"
       runDB rollback
       throwM err
     )
