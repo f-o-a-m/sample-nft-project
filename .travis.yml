@@ -36,8 +36,8 @@ install:
 - docker-compose up -d
 - travis_wait make install
 - sleep 10
-- make build-purs-strict
 - make compile-contracts
+- make build-purs-strict
 - travis_wait make deploy-contracts
 # - make test-dapp
 - PGPORT=5432 make migrate
