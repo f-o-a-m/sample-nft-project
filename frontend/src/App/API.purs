@@ -13,30 +13,29 @@ import Affjax.ResponseFormat as ResponseFormat
 import App.Data.Activity (Activity(..))
 import App.Data.Collections (Cursor, Collection)
 import App.Data.Contracts (Contracts)
-import App.Data.Radius (Radius(..))
+import App.Data.Radius (Radius, radiusFromBigNumber)
 import App.Data.SaleId (SaleId, saleIdFromBigNumber)
 import App.Data.Signal (Signal(..))
 import App.Data.SignalActivity (SignalActivity(..))
 import App.Data.SignalDetails (SignalDetails(..))
-import App.Data.SignalId (SignalId, signalIdFromBigNumber)
+import App.Data.SignalId (SignalId(..), signalIdFromBigNumber)
 import App.Data.Token (zeroToken)
+import Control.Error.Util (note)
 import Control.Monad.Error.Class (throwError)
 import Data.Argonaut (Json, decodeJson, getField, (.:))
 import Data.Array as Array
-import Data.DateTime (adjust)
 import Data.Either (Either(..))
-import Data.Geohash (geohashFromLngLat)
+import Data.Geohash (Geohash, geohashFromHex, geohashFromLngLat)
 import Data.Maybe (Maybe(..))
-import Data.Time.Duration (Days(..), Milliseconds(..), Minutes(..), fromDuration)
+import Data.Time.Duration (Milliseconds(..), Minutes(..), fromDuration)
 import Data.Traversable (for)
 import Deploy.Utils (unsafeFromJust)
 import Effect.Aff (Aff, delay)
 import Effect.Exception (error)
-import Effect.Now (nowDateTime)
-import Effect.Unsafe (unsafePerformEffect)
 import Foreign.Object (Object)
 import Network.Ethereum.Core.BigNumber as BN
 import Network.Ethereum.Core.HexString (mkHexString)
+import Network.Ethereum.Core.HexString as H
 import Network.Ethereum.Core.Signatures (Address, mkAddress)
 import Record.Extra (sequenceRecord)
 
@@ -100,13 +99,18 @@ saleId2 = unsafeFromJust "SaleId of 2" $ saleIdFromBigNumber $ BN.embed 102
 saleId3 :: SaleId
 saleId3 = unsafeFromJust "SaleId of 3" $ saleIdFromBigNumber $ BN.embed 103
 
+radius2 :: Radius
+radius2 = unsafeFromJust "Radius of 2" $ radiusFromBigNumber $ BN.embed 13
+radius3 :: Radius
+radius3 = unsafeFromJust "Radius of 3" $ radiusFromBigNumber $ BN.embed 16
+
 signal1 :: Signal
 signal1 = Signal
   { id: signalId1
   , stake: zeroToken
   , owner: address1
   , geohash: geohashFromLngLat 10 {lng: 12.0, lat:41.0}
-  , radius: Radius 11.0
+  , radius: radius2
   , sale: Nothing
   }
 
@@ -116,7 +120,7 @@ signal2 = Signal
   , stake: zeroToken
   , owner: address2
   , geohash: geohashFromLngLat 10 {lng: 12.0, lat:42.0}
-  , radius: Radius 12.0
+  , radius: radius2
   , sale: Nothing
   }
 
@@ -126,12 +130,12 @@ signal3 = Signal
   , stake: zeroToken
   , owner: address1
   , geohash: geohashFromLngLat 10 {lng: 19.0, lat:22.0}
-  , radius: Radius 100.0
+  , radius: radius3
   , sale: Nothing
   }
 
-getSignals' :: Cursor -> Aff (Collection Signal)
-getSignals' cursor = get
+getSignals :: Cursor -> Aff (Collection Signal)
+getSignals cursor = get
   ("signal_token/with_sales?limit=" <> show (cursor.limit + 1) <> "&offset=" <> show cursor.offset)
   \json -> do
     (jsonArr :: Array (Object Json)) <- decodeJson json
@@ -143,10 +147,10 @@ getSignals' cursor = get
         { id: eSignal .: "tokenID"
         , stake: eSignal .: "staked"
         , owner: eSignal .: "owner"
-        , geohash: eSignal .: "geohash"
+        , geohash: eSignal .: "geohash" >>= decodeGeoHash
         , radius: eSignal .: "radius"
         , sale: for eSaleMb \eSale -> sequenceRecord
-            { id: eSale .: "saleId"
+            { id: eSale .: "saleID"
             , price: eSale .: "price"
             }
         }
@@ -160,19 +164,57 @@ getSignals' cursor = get
         , next: Nothing
         }
 
-getSignals :: Cursor -> Aff (Collection Signal)
-getSignals c = do
+getSignals' :: Cursor -> Aff (Collection Signal)
+getSignals' c = do
   delay $ Milliseconds 1000.0
   pure {items: [signal1, signal2, signal3], next: Just c}
 
--- getSignal :: SignalId -> Aff SignalDetails
--- getSignal (SignalId sid) = get
---   ("signal_market/" <> show sid)
---   \json ->
-
-
 getSignal :: SignalId -> Aff SignalDetails
-getSignal sid = do
+getSignal (SignalId sid) = get
+  ("signal_market/" <> show sid)
+  \json -> do
+    jsonObj :: Object Json <- decodeJson json
+    jsonSignal <- jsonObj .: "signal"
+    jsonHistory :: Array (Object Json) <- jsonObj .: "history"
+    jsonSignalData <- jsonSignal .: "data"
+    activity <- for jsonHistory \itemJson -> do
+      jsonData <- itemJson .: "data"
+      tag <- jsonData .: "tag"
+      contents <- jsonData .: "contents"
+      case tag of
+        "ListedForSale" ->
+          ListedForSale <$> sequenceRecord
+            { owner: contents .: "seller"
+            , saleId: contents .: "saleID"
+            , price: contents .: "price"
+            }
+        "Sold" -> Sold <$> sequenceRecord
+          { owner: contents .: "soldFrom"
+          , saleId: contents .: "saleID"
+          , price: contents .: "price"
+          , buyer: contents .: "soldTo"
+          }
+        "Unlisted" -> UnlistedFromSale <$> sequenceRecord
+          { owner: contents .: "owner"
+          , saleId: contents .: "saleID"
+          }
+        _ -> throwError $ "Invalid tag: " <> show tag
+    signal <- Signal <$> sequenceRecord
+      { id: jsonSignalData .: "tokenID"
+      , stake: jsonSignalData .: "staked"
+      , owner: jsonSignalData .: "owner"
+      , geohash: jsonSignalData .: "geohash" >>= decodeGeoHash
+      , radius: jsonSignalData .: "radius"
+      , sale: pure $ Array.head activity >>= case _ of
+          ListedForSale { saleId, price } -> Just { id: saleId, price }
+          Sold _ -> Nothing
+          UnlistedFromSale _ -> Nothing
+      }
+    pure $ SignalDetails {signal, activity}
+
+
+getSignal' :: SignalId -> Aff SignalDetails
+getSignal' sid = do
   delay $ Milliseconds 1000.0
   pure $ SignalDetails
     { signal: signal1
@@ -182,7 +224,7 @@ getSignal sid = do
             , saleId: saleId2
             , price: zeroToken
             }
-        , Soled
+        , Sold
             { owner: address2
             , saleId: saleId3
             , price: zeroToken
@@ -207,7 +249,7 @@ getActivity c = do
             , signal: signal1
             , price: zeroToken
             }
-        , SignalSoled
+        , SignalSold
             { owner: address2
             , saleId: saleId3
             , buyer: address1
@@ -217,3 +259,7 @@ getActivity c = do
         ]
     , next: Just c
     }
+
+
+decodeGeoHash :: String -> Either String Geohash
+decodeGeoHash str = note "Invalid GeoHash" (H.mkHexString str) <#> geohashFromHex

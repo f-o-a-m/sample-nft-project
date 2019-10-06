@@ -99,5 +99,5 @@ eventToActivity { raw, timestamp } = raw # V.match
       pure $ Just $ SignalUnlistedFromSale { owner: e.owner, saleId: SaleId e.saleId, signal }
   , signalSold: \(SignalMarket.SignalSold e) -> ask >>= \getter -> do
       signal <- lift $ getter $ SignalId e.tokenId
-      pure $ Just $ SignalSoled { owner: e.owner, buyer: e.newOwner, saleId: SaleId e.saleId, price: Token e.price, signal }
+      pure $ Just $ SignalSold { owner: e.owner, buyer: e.newOwner, saleId: SaleId e.saleId, price: Token e.price, signal }
   }

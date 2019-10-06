@@ -157,7 +157,7 @@ root = React.make component
             { events: fst self.props.events
             , user
             }
-          Right (Route.Signal sid) -> signal
+          Right (Route.Signal sid) -> React.keyed (show sid) $ signal
             { events: fst self.props.events
             , user
             , sid

@@ -128,14 +128,14 @@ activity = React.make component
         -- , R.text " at "
         -- , R.text $ renderDateTime a.timestamp
         ]
-      SignalSoled a -> R.li_
+      SignalSold a -> R.li_
         [ R.a
             { href: Route.href $ Route.Signal (un Signal a.signal).id
             , children: [ R.text $ "Signal " <> renderGeoHash (un Signal a.signal).geohash]
             }
         , R.text " with stake "
         , renderToken (un Signal a.signal).stake
-        , R.text " was soled to "
+        , R.text " was sold to "
         , avatar a.buyer
         , R.text " by "
         , avatar a.owner

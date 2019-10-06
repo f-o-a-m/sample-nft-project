@@ -16,15 +16,15 @@ import Control.MonadZero as MZ
 import Data.Array (length)
 import Data.DateTime (DateTime)
 import Data.Formatter.DateTime as DF
-import Data.Geohash (Geohash)
+import Data.Geohash (Geohash, geohashToLngLat)
 import Data.Int as Int
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect (Effect)
 import Etherium.Tx as Tx
 import Network.Ethereum.Core.BigNumber (divide)
-import Network.Ethereum.Web3 (unUIntN)
 import Network.Ethereum.Web3 (embed) as BN
+import Network.Ethereum.Web3 (unUIntN)
 import Network.Ethereum.Web3.Types (ETHER)
 import Network.Ethereum.Web3.Types.TokenUnit (MinorUnitE18, ProxyTU(..), divider)
 import React.Basic (JSX)
@@ -55,9 +55,7 @@ renderRadius :: Radius -> JSX
 renderRadius (Radius n) = R.text $ show n <> " km"
 
 renderGeoHash :: Geohash -> String
-renderGeoHash = show
--- TODO: this results in error when: signal is minted in the app, then it's reconstructed form event and rendered
--- geohashToLngLat >>> \{lat, lng} -> show lat <> ", " <> show lng
+renderGeoHash = geohashToLngLat >>> \{lat, lng} -> show lat <> ", " <> show lng
 
 renderBaseSignal :: Boolean -> Signal -> JSX
 renderBaseSignal addLink (Signal s) = classy R.div "SignalContent"
@@ -104,13 +102,16 @@ renderSignal {txSend, addLink, updateState, state, user, details} =
           R.div_ [R.text $ "ON SALE FOR ", renderToken price]
         UserConnected con@{userAddress}
           | userAddress == s.owner -> case s.sale of
-              Just {id} -> txOrElse state.tx $ R.button
-                { onClick: capture_ $ txSend
-                    (Tx.UnSell id)
-                    con
-                    (\newTxSt -> updateState _ {tx = Just newTxSt})
-                , children: [ R.text "UnList" ]
-                }
+              Just {id, price} -> txOrElse state.tx $ React.fragment
+                [ R.span_ [R.text $ "ON SALE FOR ", renderToken price, R.text " "]
+                , R.button
+                  { onClick: capture_ $ txSend
+                      (Tx.UnSell id)
+                      con
+                      (\newTxSt -> updateState _ {tx = Just newTxSt})
+                  , children: [ R.text "UnList" ]
+                  }
+                ]
               Nothing -> txOrElse state.tx $ React.fragment
                 [ R.input {value: fromMaybe "" state.price, onChange: handler targetValue \p -> updateState _ {price = p}}
                 , case state.price >>= parseToken of

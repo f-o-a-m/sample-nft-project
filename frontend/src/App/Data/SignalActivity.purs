@@ -14,7 +14,7 @@ import Network.Ethereum.Web3.Types (ETHER)
 data SignalActivity
   = ListedForSale (ListedForSaleR ())
   | UnlistedFromSale (UnlistedFromSaleR ())
-  | Soled (SoledR ())
+  | Sold (SoldR ())
 
 derive instance genericSignalActivity :: Generic SignalActivity _
 instance eqSignalId :: Eq SignalActivity where eq = genericEq
@@ -35,7 +35,7 @@ type UnlistedFromSaleR r =
   | r
   }
 
-type SoledR r =
+type SoldR r =
   { owner :: Address
   , saleId :: SaleId
   , buyer :: Address

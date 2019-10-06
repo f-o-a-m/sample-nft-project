@@ -14,6 +14,7 @@ import App.Data.User (User)
 import App.HTML (classy)
 import App.HTML.Canceler (pushCanceler, runCancelers)
 import Control.Monad.Rec.Class (forever)
+import Data.Array as Array
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Effect (Effect)
 import Effect.Aff (fiberCanceler, launchAff)
@@ -83,9 +84,13 @@ signal = React.make component
                 , user: props.user
                 , addLink: false
                 , details: classy R.div "SignalActivity"
-                    [ R.div_ [R.text "Activity:"]
-                    , classy R.ul "Activity" $ renderActivity <$> signal'.activity
-                    ]
+                    if Array.null signal'.activity
+                      then
+                        [ classy R.div "SignalActivity-header" [R.text "No Activity"] ]
+                      else
+                        [ classy R.div "SignalActivity-header" [R.text "Activity:"]
+                        , classy R.ul "Activity" $ renderActivity <$> signal'.activity
+                        ]
                 }
             ]
       ]
