@@ -24,6 +24,12 @@ newtype BaseURL = BaseURL String
 
 type ApiSettings = { protocol :: Protocol, baseURL :: BaseURL }
 
+mkURL :: ApiSettings -> String
+mkURL { protocol: p, baseURL: BaseURL s} =
+  case p of
+    HTTP -> s
+    HTTPS -> s
+
 newtype Contracts = Contracts
   { foamToken :: Address
   , signalToken :: Address

@@ -21,26 +21,26 @@
         "solc": "^0.5"
     },
     "devDependencies": {
-        "purescript-psa": "^0.7.3",
-        "purescript": "^0.13.0",
-        "pulp": "^13.0.0",
-        "erc20-tokens": "ConsenSys/Tokens#812791dfbf3c9a9f5e8370e26cda0009bde43f03",
-        "bower": "^1.8.8",
         "autodll-webpack-plugin": "^0.4.2",
         "autoprefixer": "^9.0.0",
+        "bower": "^1.8.8",
         "css-loader": "^1.0.0",
         "cssnano": "^4.0.3",
+        "erc20-tokens": "ConsenSys/Tokens#812791dfbf3c9a9f5e8370e26cda0009bde43f03",
         "eslint": "^4.19.1",
         "html-webpack-plugin": "^3.2.0",
         "json": "^9.0.6",
         "mini-css-extract-plugin": "^0.4.1",
         "postcss-loader": "^2.1.6",
+        "pulp": "^13.0.0",
+        "purescript": "^0.13.0",
+        "purescript-psa": "^0.7.3",
         "style-loader": "^0.21.0",
         "uglifyjs-webpack-plugin": "^1.2.7",
         "webpack": "4.16.1",
         "webpack-cli": "3.0.8",
         "webpack-dev-server": "3.2.1",
-        "ws": "^5.1.1",
+        "ws": "^6.1.2",
         "xhr2": "^0.1.4"
     }
 }

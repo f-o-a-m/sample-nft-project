@@ -94,7 +94,9 @@ listenerC = do
 
 
 rawChangeC :: (MonadThrow m, MonadPG m) => ConduitT EventID RC.RawChange m ()
-rawChangeC = awaitForever $ \eid -> lift $ getRawChange eid
+rawChangeC = awaitForever $ \eid -> do
+    res <- lift $ getRawChange eid
+    yield res
   where
     getRawChange :: (MonadThrow m, MonadPG m) => EventID -> m RC.RawChange
     getRawChange eid = queryExact $ \conn -> O.runQuery conn q
@@ -125,7 +127,7 @@ subscriptionC = awaitForever $ \rc -> do
       let primaryTopic = case topics of
             t : _ -> t
             _     -> error "expected topics to contain at least one item!"
-          p (_, _addresses, _topics) = address `L.elem` _addresses && primaryTopic `elem` _topics
+          p (_, _address, _topics) = address == _address && primaryTopic `L.elem` _topics
       in filter p ks
 
     mkWSMessage

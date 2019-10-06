@@ -19,10 +19,10 @@ import           SignalMarket.Common.Config.Logging
 import           SignalMarket.Common.EventTypes       (EthAddress, HexString)
 import qualified SignalMarket.Common.Models.RawChange as RC
 
-newtype SubscriptionID  = SubscriptionID String deriving (Eq, Ord, A.FromJSON, A.ToJSON)
+newtype SubscriptionID  = SubscriptionID String deriving (Eq, Show, Ord, A.FromJSON, A.ToJSON)
 
 data Filter = Filter
-  { filterAddress :: Maybe [EthAddress]
+  { filterAddress :: Maybe EthAddress
   , filterTopics  :: Maybe [Maybe HexString]
   } deriving Generic
 
@@ -42,12 +42,12 @@ data UpdateSubscriptionMsg = Update Subscription | Cancel SubscriptionID derivin
 instance A.FromJSON UpdateSubscriptionMsg where
   parseJSON = A.genericParseJSON (defaultAesonOptions "")
 
-type SubscriptionKey = (SubscriptionID, [EthAddress], Maybe HexString)
+type SubscriptionKey = (SubscriptionID, EthAddress, Maybe HexString)
 
 data WebSocketMsg = WebSocketMsg
   { webSocketMsgSubscriptionID :: SubscriptionID
   , webSocketMsgContents       :: RC.RawChange
-  } deriving Generic
+  } deriving (Show, Generic)
 
 instance A.ToJSON WebSocketMsg where
   toJSON = A.genericToJSON (defaultAesonOptions "webSocketMsg")

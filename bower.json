@@ -19,7 +19,10 @@
     "purescript-react-basic": "^12.0.0",
     "purescript-affjax": "^9.0.1",
     "purescript-chanterelle": "^4.0.0",
-    "purescript-servant": "f-o-a-m/purescript-servant#v1.0.0"
+    "purescript-servant": "f-o-a-m/purescript-servant#v1.0.0",
+    "purescript-websocket-simple": "f-o-a-m/purescript-websocket-simple#master",
+    "purescript-var": "^3.0.0",
+    "purescript-foreign-generic": "^10.0.0"
   },
   "devDependencies": {
     "purescript-spec": "^4.0.0",
