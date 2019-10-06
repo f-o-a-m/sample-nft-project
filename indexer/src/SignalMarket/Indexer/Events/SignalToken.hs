@@ -3,7 +3,6 @@ module SignalMarket.Indexer.Events.SignalToken where
 import           Control.Lens                                       ((^.))
 import           Control.Monad                                      (unless)
 import           Control.Monad.Catch                                (MonadThrow)
-import           Control.Monad.IO.Class
 import           Control.Monad.Reader                               (MonadReader)
 import qualified Katip                                              as K
 import           Opaleye                                            (constant,
@@ -47,9 +46,6 @@ signalTokenTransferH Event{eventEventID, eventData} =
             , Transfer.tokenID = tokenID
             , Transfer.eventID = eventEventID
             }
-          liftIO . print $ originalTokenOwner
-          liftIO . print $ zeroAddress
-          liftIO . print $ isMinted
           unless isMinted $ do
             let updateSignalOwner s = s { TrackedToken.owner = constant newTokenOwner }
                 isTargetSignalID  s = TrackedToken.tokenID s .== constant tokenID
