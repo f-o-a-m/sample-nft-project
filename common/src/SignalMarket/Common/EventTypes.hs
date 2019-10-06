@@ -25,15 +25,12 @@ import qualified Database.PostgreSQL.Simple.FromField as FF
 import           GHC.TypeLits
 import           Opaleye                              (Column, Constant,
                                                        SqlNumeric, SqlText,
-                                                       ToFields,
-                                                       unsafeCoerceColumn)
+                                                       ToFields)
 import qualified Opaleye.Internal.RunQuery            as IQ
 import           Opaleye.RunQuery                     (QueryRunnerColumnDefault,
                                                        fieldQueryRunnerColumn)
 
 import           Opaleye.Column                       (unsafeCast)
-import           Opaleye.Constant
-import           Opaleye.SqlTypes                     (sqlString)
 
 
 --------------------------------------------------------------------------------
