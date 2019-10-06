@@ -4,7 +4,7 @@ import Prelude
 
 import App.API (getSignal)
 import App.Components.Avatar (avatar)
-import App.Components.Common (renderDateTime, renderSignal, renderToken)
+import App.Components.Common (renderSignal, renderToken)
 import App.Data.Event (Event, eventToSignalId, eventToSignalActivity, eventToSignalUpdate)
 import App.Data.Signal (Signal)
 import App.Data.SignalActivity (SignalActivity(..))
@@ -94,24 +94,18 @@ signal = React.make component
       ListedForSale a -> R.li_
         [ R.text "Listed for sale by "
         , avatar a.owner
-        , R.text " at "
-        , R.text $ renderDateTime a.timestamp
         , R.text " for "
         , renderToken a.price
         ]
       UnlistedFromSale a -> R.li_
         [ R.text "Unlisted from sale by "
         , avatar a.owner
-        , R.text " at "
-        , R.text $ renderDateTime a.timestamp
         ]
-      Soled a -> R.li_
-        [ R.text "Soled to "
+      Sold a -> R.li_
+        [ R.text "Sold to "
         , avatar a.buyer
         , R.text " by "
         , avatar a.owner
-        , R.text " at "
-        , R.text $ renderDateTime a.timestamp
         , R.text " for "
         , renderToken a.price
         ]

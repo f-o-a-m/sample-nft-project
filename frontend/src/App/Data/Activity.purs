@@ -5,7 +5,6 @@ import Prelude
 import App.Data.Signal (Signal(..))
 import App.Data.SignalActivity (ListedForSaleR, SoledR, UnlistedFromSaleR)
 import App.Data.Token (FOAM, Token)
-import Data.DateTime (DateTime)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Eq (genericEq)
 import Data.Generic.Rep.Ord (genericCompare)
@@ -18,7 +17,6 @@ data Activity
     { from :: Address
     , to :: Address
     , amount :: Token FOAM
-    , timestamp :: DateTime
     }
   | SignalListedForSale (ListedForSaleR (signal :: Signal))
   | SignalUnlistedFromSale (UnlistedFromSaleR (signal :: Signal))

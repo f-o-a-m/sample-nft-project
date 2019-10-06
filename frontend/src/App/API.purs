@@ -181,13 +181,11 @@ getSignal sid = do
             { owner: address2
             , saleId: saleId2
             , price: zeroToken
-            , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-3.0)) (unsafePerformEffect nowDateTime)
             }
         , Soled
             { owner: address2
             , saleId: saleId3
             , price: zeroToken
-            , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-2.0)) (unsafePerformEffect nowDateTime)
             , buyer: address1
             }
         ]
@@ -202,19 +200,16 @@ getActivity c = do
             { from: address3
             , to: address3
             , amount: zeroToken
-            , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-6.0)) (unsafePerformEffect nowDateTime)
             }
         , SignalListedForSale
             { owner: address2
             , saleId: saleId2
-            , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-3.0)) (unsafePerformEffect nowDateTime)
             , signal: signal1
             , price: zeroToken
             }
         , SignalSoled
             { owner: address2
             , saleId: saleId3
-            , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-2.0)) (unsafePerformEffect nowDateTime)
             , buyer: address1
             , signal: signal1
             , price: zeroToken

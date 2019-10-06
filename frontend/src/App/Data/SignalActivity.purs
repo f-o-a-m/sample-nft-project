@@ -4,7 +4,6 @@ import Prelude
 
 import App.Data.SaleId (SaleId)
 import App.Data.Token (Token)
-import Data.DateTime (DateTime)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Eq (genericEq)
 import Data.Generic.Rep.Ord (genericCompare)
@@ -26,7 +25,6 @@ instance showSignalId :: Show SignalActivity where show = genericShow
 type ListedForSaleR r =
   { owner :: Address
   , saleId :: SaleId
-  , timestamp :: DateTime
   , price :: Token ETHER
   | r
   }
@@ -34,14 +32,12 @@ type ListedForSaleR r =
 type UnlistedFromSaleR r =
   { owner :: Address
   , saleId :: SaleId
-  , timestamp :: DateTime
   | r
   }
 
 type SoledR r =
   { owner :: Address
   , saleId :: SaleId
-  , timestamp :: DateTime
   , buyer :: Address
   , price :: Token ETHER
   | r

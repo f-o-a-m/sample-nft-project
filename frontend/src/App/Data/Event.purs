@@ -16,13 +16,12 @@ import Control.Monad.Reader (ReaderT, ask, lift)
 import Control.MonadZero (guard)
 import Data.DateTime (DateTime)
 import Data.Geohash (geohashFromBS)
-import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
 import Data.Variant as V
-import Network.Ethereum.Core.BigNumber (unsafeToInt)
-import Network.Ethereum.Web3 (unBytesN, unUIntN)
+import Network.Ethereum.Web3 (unBytesN)
 
 type Event =
+  -- TODO remove timestamp :(((
   { timestamp :: DateTime
   , raw :: EventRaw
   }
@@ -52,7 +51,7 @@ eventToSignal = _.raw >>> V.match
       , stake: Token e.stake
       , owner: e.owner
       , geohash: geohashFromBS $ unBytesN e.geohash
-      , radius: Radius $ toNumber $ unsafeToInt $ unUIntN e.radius
+      , radius: Radius e.radius
       , sale: Nothing
       }
   , signalForSale: \(SignalMarket.SignalForSale e) -> Nothing
@@ -81,24 +80,24 @@ eventToSignalActivity { raw, timestamp } = raw # V.match
   { transfer: \(FoamToken.Transfer e) -> Nothing
   , trackedToken: \(SignalToken.TrackedToken e) -> Nothing
   , signalForSale: \(SignalMarket.SignalForSale e) ->
-      Just $ ListedForSale { timestamp, owner: e.seller, price: Token e.price, saleId: SaleId e.saleId }
+      Just $ ListedForSale { owner: e.seller, price: Token e.price, saleId: SaleId e.saleId }
   , signalUnlisted: \(SignalMarket.SignalUnlisted e) ->
-      Just $ UnlistedFromSale { timestamp, owner: e.owner, saleId: SaleId e.saleId }
+      Just $ UnlistedFromSale { owner: e.owner, saleId: SaleId e.saleId }
   , signalSold: \(SignalMarket.SignalSold e) ->
-      Just $ Soled { timestamp, owner: e.owner, buyer: e.newOwner, saleId: SaleId e.saleId, price: Token e.price }
+      Just $ Sold { owner: e.owner, buyer: e.newOwner, saleId: SaleId e.saleId, price: Token e.price }
   }
 
 eventToActivity :: forall m . Monad m => Event -> ReaderT (SignalId -> m Signal) m (Maybe Activity)
 eventToActivity { raw, timestamp } = raw # V.match
-  { transfer: \(FoamToken.Transfer e) -> pure $ Just $ TokenTransfer {from:e.from, to: e.to, amount: Token e.value, timestamp}
+  { transfer: \(FoamToken.Transfer e) -> pure $ Just $ TokenTransfer {from:e.from, to: e.to, amount: Token e.value}
   , trackedToken: \(SignalToken.TrackedToken e) -> pure Nothing
   , signalForSale: \(SignalMarket.SignalForSale e) -> ask >>= \getter -> do
       signal <- lift $ getter $ SignalId e.tokenId
-      pure $ Just $ SignalListedForSale { timestamp, owner: e.seller, price: Token e.price, saleId: SaleId e.saleId, signal }
+      pure $ Just $ SignalListedForSale { owner: e.seller, price: Token e.price, saleId: SaleId e.saleId, signal }
   , signalUnlisted: \(SignalMarket.SignalUnlisted e) -> ask >>= \getter -> do
       signal <- lift $ getter $ SignalId e.tokenId
-      pure $ Just $ SignalUnlistedFromSale { timestamp, owner: e.owner, saleId: SaleId e.saleId, signal }
+      pure $ Just $ SignalUnlistedFromSale { owner: e.owner, saleId: SaleId e.saleId, signal }
   , signalSold: \(SignalMarket.SignalSold e) -> ask >>= \getter -> do
       signal <- lift $ getter $ SignalId e.tokenId
-      pure $ Just $ SignalSoled { timestamp, owner: e.owner, buyer: e.newOwner, saleId: SaleId e.saleId, price: Token e.price, signal }
+      pure $ Just $ SignalSoled { owner: e.owner, buyer: e.newOwner, saleId: SaleId e.saleId, price: Token e.price, signal }
   }

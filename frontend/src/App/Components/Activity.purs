@@ -4,7 +4,7 @@ import Prelude
 
 import App.API (getActivity, getSignal)
 import App.Components.Avatar (avatar)
-import App.Components.Common (renderDateTime, renderGeoHash, renderLinkedCollection, renderToken)
+import App.Components.Common (renderGeoHash, renderLinkedCollection, renderToken)
 import App.Data.Activity (Activity(..))
 import App.Data.Activity as Activity
 import App.Data.Collections (initialCursor, initialLinkedCollection, insertCollection)
@@ -99,8 +99,8 @@ activity = React.make component
         , avatar a.from
         , R.text " to "
         , avatar a.to
-        , R.text " at "
-        , R.text $ renderDateTime a.timestamp
+        -- , R.text " at "
+        -- , R.text $ renderDateTime a.timestamp
         ]
       SignalListedForSale a -> R.li_
         [ R.a
@@ -111,8 +111,8 @@ activity = React.make component
         , renderToken (un Signal a.signal).stake
         , R.text " was listed for sale by "
         , avatar a.owner
-        , R.text " at "
-        , R.text $ renderDateTime a.timestamp
+        -- , R.text " at "
+        -- , R.text $ renderDateTime a.timestamp
         , R.text " for "
         , renderToken a.price
         ]
@@ -125,8 +125,8 @@ activity = React.make component
         , renderToken (un Signal a.signal).stake
         , R.text " was unlisted from sale by "
         , avatar a.owner
-        , R.text " at "
-        , R.text $ renderDateTime a.timestamp
+        -- , R.text " at "
+        -- , R.text $ renderDateTime a.timestamp
         ]
       SignalSoled a -> R.li_
         [ R.a
@@ -139,8 +139,8 @@ activity = React.make component
         , avatar a.buyer
         , R.text " by "
         , avatar a.owner
-        , R.text " at "
-        , R.text $ renderDateTime a.timestamp
+        -- , R.text " at "
+        -- , R.text $ renderDateTime a.timestamp
         , R.text " for "
         , renderToken a.price
         ]
