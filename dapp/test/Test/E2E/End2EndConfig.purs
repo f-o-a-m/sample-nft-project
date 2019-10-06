@@ -29,8 +29,8 @@ type ApiSettings = { protocol :: Protocol, baseURL :: BaseURL }
 mkURL :: ApiSettings -> String
 mkURL { protocol: p, baseURL: BaseURL s} =
   case p of
-    HTTP -> "http://" <> s
-    HTTPS -> "https://" <> s
+    HTTP -> s
+    HTTPS -> s
 
 newtype Contracts = Contracts
   { foamToken :: Address

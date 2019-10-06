@@ -24,7 +24,7 @@ data RawChange' li ti txh r bh bn addr d ts eid = RawChange
   , _data            :: d
   , topics           :: ts
   , eventID          :: eid
-  } deriving (Eq, Generic)
+  } deriving (Eq, Show, Generic)
 
 
 $(makeAdaptorAndInstance "pRawChange" ''RawChange')

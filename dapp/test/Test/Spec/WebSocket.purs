@@ -62,8 +62,8 @@ instance encodeUpdateSubscriptionMsg :: Encode UpdateSubscriptionMsg where
     ]
 
 newtype WebSocketMsg = WebSocketMsg
-  { msgSubscriptionID :: SubscriptionID
-  , msgContents       :: Web3.Change
+  { subscriptionID :: SubscriptionID
+  , contents       :: Web3.Change
   }
 
 derive instance genericWebSocketMsg :: Generic WebSocketMsg _
@@ -79,7 +79,8 @@ createWebSocket :: String -> Aff WebSocket
 createWebSocket url' = do
     Tuple incomingBusR incomingBusW <- Bus.split <$> Bus.make
     Tuple outgoingBusR outgoingBusW <- Bus.split <$> Bus.make
-    let url = (replace (Pattern "http") (Replacement "ws") url') <> "ws"
+    let url = (replace (Pattern "http") (Replacement "ws") url') <> "/ws"
+    log ("Connecting to websocket on  " <> url)
     liftEffect $ createSocket url incomingBusW outgoingBusR $ Milliseconds 1000.0
     pure { send: outgoingBusW
          , receive: incomingBusR
@@ -89,7 +90,9 @@ createWebSocket url' = do
     parseIncoming str = do
       case runExcept $ decodeJSON str of
         Left err -> throw $ show err
-        Right n -> pure n
+        Right n -> do
+          log $ unsafeCoerce n
+          pure n
 
     createSocket :: String -> Bus.BusW WebSocketMsg -> Bus.BusR UpdateSubscriptionMsg -> Milliseconds -> Effect Unit
     createSocket url incomingBus outgoingBus delayMS = do
@@ -106,7 +109,9 @@ createWebSocket url' = do
       socket.onopen $= \_-> do
         let sendPayload = encodeJSON >>> WS.Message >>> socket.send
         launchAff_ $ forever do
+          log "Waiting for bus"
           msg <- Bus.read outgoingBus
+          log $ unsafeCoerce msg
           liftEffect $ sendPayload msg
 
 -------------------------
@@ -116,11 +121,16 @@ changeWSProducer
   -> Bus.BusR WebSocketMsg
   -> Transducer Void Web3.Change Aff Unit
 changeWSProducer sId busR = do
+  log "Waiting to reveive changes"
   WebSocketMsg msg <- lift $ Bus.read busR
-  if msg.msgSubscriptionID /= sId
-    then changeWSProducer sId busR
+  log "GOT CHANGE!"
+  if msg.subscriptionID /= sId
+    then do
+      log "WASN't Matching :/"
+      changeWSProducer sId busR
     else do
-      yieldT msg.msgContents
+      log "IT WAS A MATCH!"
+      yieldT msg.contents
       changeWSProducer sId busR
 
 changeConsumer
@@ -145,13 +155,22 @@ mkMonitor subscriptionID fltr { send, receive } = do
           { subscriptionID
           , filter: FilterE $ mkExists fltr
           }
-      eventMapper = transform  (\change -> unsafePartial $ fromJust (decodeEvent change :: Maybe e))
+      eventMapper = awaitForever \change ->
+        case decodeEvent change of
+          Nothing -> log "Couldn't decode change!"
+          Just (a :: e) -> do
+            log "Decoded CHange!"
+            yieldT a
       changeProducer = changeWSProducer subscriptionID receive
       process consumer =
         void $ runProcess $ toProcess
           ( changeProducer =>= eventMapper =>= consumer )
-      canceler = Bus.write (Cancel subscriptionID) send
+      canceler = do
+        log "doing canceller"
+        Bus.write (Cancel subscriptionID) send
+  log "writing InitSubscription"
   Bus.write initSubscriptionMsg send
+  log "wrote InitSubscription"
   pure { process
        , canceler
        }

@@ -10,7 +10,7 @@ import Data.Maybe (Maybe(..))
 import Debug.Trace (traceM)
 import Deploy.Main (deployScript)
 import Effect (Effect)
-import Effect.Aff (Aff, Milliseconds(..), forkAff, launchAff, launchAff_)
+import Effect.Aff (Aff, Milliseconds(..), delay, forkAff, launchAff, launchAff_)
 import Network.Ethereum.Web3 as Web3
 import Test.E2E.End2EndConfig (mkURL)
 import Test.E2E.End2EndConfig as E2EConfig
@@ -34,13 +34,15 @@ main = void <<< launchAff $ do
                    , provider: e2eConfig.provider
                    }
 
+  ws <- createWebSocket (mkURL e2eConfig.apiSettings)
+  delay (Milliseconds 10000.0)
   _ <- forkAff $ do
-    ws <- createWebSocket (mkURL e2eConfig.apiSettings)
+
+
     {process, canceler } <- mkMonitor
             "foamTokenSubscription"
             (Web3.eventFilter (Proxy :: Proxy Transfer) foamToken)
             ws
-
     process changeConsumer
 
   join $ runSpecT specConfig [consoleReporter] do
