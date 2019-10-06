@@ -25,11 +25,13 @@ import qualified Database.PostgreSQL.Simple.FromField as FF
 import           GHC.TypeLits
 import           Opaleye                              (Column, Constant,
                                                        SqlNumeric, SqlText,
-                                                       ToFields,
-                                                       unsafeCoerceColumn)
+                                                       ToFields)
 import qualified Opaleye.Internal.RunQuery            as IQ
 import           Opaleye.RunQuery                     (QueryRunnerColumnDefault,
                                                        fieldQueryRunnerColumn)
+
+import           Opaleye.Column                       (unsafeCast)
+
 
 --------------------------------------------------------------------------------
 -- | The basic type for any integer like data in Ethereum (e.g. block number, uint245, int8, etc.)
@@ -118,6 +120,9 @@ parseHexString = parse . T.toLower . trim0x
     parse txt | T.all isHexDigit txt && (T.length txt `mod` 2 == 0) = Right $ HexString txt
               | otherwise            = Left $ "Failed to parse text as HexString: " <> show txt
 
+unsafeParseHexString :: Text -> HexString
+unsafeParseHexString = either (error . cs) id . parseHexString
+
 displayHexString :: HexString -> Text
 displayHexString (HexString hex) = "0x" <> hex
 
@@ -136,7 +141,8 @@ instance D.Default ToFields HexString (Column SqlText) where
 
 -- | convert safely to or from the Web3.HexString type.
 _HexString :: Iso' Hx.HexString HexString
-_HexString = iso (HexString . Hx.toText) (\(HexString hx) -> fromString $ T.unpack hx)
+_HexString = iso (unsafeParseHexString . Hx.toText)
+                 (\(HexString hx) -> fromString $ T.unpack hx)
 
 
 --------------------------------------------------------------------------------
@@ -201,10 +207,8 @@ instance QueryRunnerColumnDefault SqlSaleStatus SaleStatus where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance D.Default Constant SaleStatus (Column SqlSaleStatus) where
-  def = constantColumnUsing (D.def :: Constant String (Column SqlText)) $ \case
-    SSActive -> "active"
-    SSComplete -> "complete"
-    SSUnlisted -> "unlisted"
+  def = dimap saleStatusToText (unsafeCast "salestatus")
+          (D.def :: Constant Text (Column SqlText))
 
 instance A.FromJSON SaleStatus where
   parseJSON = A.withText "SaleStatus" $ \case
@@ -214,21 +218,16 @@ instance A.FromJSON SaleStatus where
       _ -> fail "SaleStatus must be \"active\", \"complete\", or \"unlisted\"."
 
 instance A.ToJSON SaleStatus where
-  toJSON SSActive   = "active"
-  toJSON SSComplete = "complete"
-  toJSON SSUnlisted = "unlisted"
+  toJSON = A.toJSON . saleStatusToText
+
+saleStatusToText :: SaleStatus -> Text
+saleStatusToText = \case
+  SSActive -> "active"
+  SSComplete -> "complete"
+  SSUnlisted  -> "unlisted"
 
 parseHStatus :: Text -> Either String SaleStatus
 parseHStatus "active"   = Right SSActive
 parseHStatus "complete" = Right SSComplete
 parseHStatus "unlisted" = Right SSUnlisted
 parseHStatus txt        = Left $ "Invalid status token" <> show txt
-
---------------------------------------------------------------------------------
-
--- vendored from https://hackage.haskell.org/package/composite-opaleye-0.6.0.0/docs/Composite-Opaleye-Util.html#v:constantColumnUsing
-constantColumnUsing
-  :: Constant haskell (Column pgType)
-  -> (haskell' -> haskell)
-  -> Constant haskell' (Column pgType')
-constantColumnUsing oldConstant f = dimap f unsafeCoerceColumn oldConstant

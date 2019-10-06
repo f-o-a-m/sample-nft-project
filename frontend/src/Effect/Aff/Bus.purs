@@ -37,16 +37,16 @@ import Prelude
 import Control.Capability (Cap) as Reexport
 import Control.Capability (kind Cap)
 import Control.Capability as Cap
+import Data.Foldable (foldl, sequence_, traverse_)
+import Data.List (List, (:))
+import Data.Tuple (Tuple(..))
+import Effect.AVar as EffAvar
 import Effect.Aff (attempt, launchAff_)
 import Effect.Aff.AVar (AVar)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect.AVar as EffAvar
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Exception as Exn
-import Data.Foldable (foldl, sequence_, traverse_)
-import Data.List (List, (:))
-import Data.Tuple (Tuple(..))
 
 data Bus (r :: # Cap) a = Bus (AVar a) (AVar (List (AVar a)))
 
@@ -83,7 +83,8 @@ read (Bus _ consumers) = liftAff do
 
 -- | Pushes a new value to the Bus, yielding immediately.
 write :: ∀ m a r. MonadAff m => a -> BusW' r a -> m Unit
-write a (Bus cell _) = liftAff $ AVar.put a cell
+write a (Bus cell _) = do
+  liftAff $ AVar.put a cell
 
 -- | Splits a bidirectional Bus into separate read and write Buses.
 split :: ∀ a. BusRW a -> Tuple (BusR a) (BusW a)
