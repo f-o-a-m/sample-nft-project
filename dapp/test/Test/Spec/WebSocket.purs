@@ -124,18 +124,11 @@ changeWSProducer sId busR = do
       changeWSProducer sId busR
 
 changeConsumer
-  :: forall i ni e
-   . (DecodeEvent i ni e)
-  => Proxy e
-  -> Transducer Web3.Change Void Aff Unit
-changeConsumer _ = awaitForever \change -> do
-  case (decodeEvent change) of
-    Nothing -> do
-      log "couldn't decode change"
-      log $ unsafeCoerce change
-    Just (a :: e) -> do
-      log "succesfully decoded change"
-      log $ unsafeCoerce a
+  :: forall e
+   . Transducer e Void Aff Unit
+changeConsumer = awaitForever \a -> do
+  log "succesfully decoded change:"
+  log $ unsafeCoerce a
 
 mkMonitor
   :: forall i ni e
