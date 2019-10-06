@@ -4,11 +4,9 @@ module SignalMarket.Indexer.Utils
  , makeFilterHandlerPair
  ) where
 
-import SignalMarket.Common.Orphans ()
-import Control.Monad.Catch (catch, throwM)
-import Database.PostgreSQL.Simple (begin,rollback,commit)
 import           Control.Arrow                               (returnA)
-import           Control.Monad.Catch                         (MonadThrow)
+import           Control.Monad.Catch                         (MonadThrow, catch,
+                                                              throwM)
 import           Control.Monad.IO.Class                      (liftIO)
 import           Control.Monad.Reader                        (MonadReader,
                                                               ReaderT, ask)
@@ -19,6 +17,8 @@ import           Data.Proxy
 import           Data.String                                 (fromString)
 import           Data.String.Conversions                     (cs)
 import           Data.Text                                   (Text)
+import           Database.PostgreSQL.Simple                  (begin, commit,
+                                                              rollback)
 import           Katip                                       as K
 import           Network.Ethereum.Api.Provider               (Web3)
 import           Network.Ethereum.Api.Types                  (Change (..),
@@ -46,6 +46,7 @@ import           SignalMarket.Common.EventTypes              (EventID,
                                                               HexInteger (..))
 import qualified SignalMarket.Common.Models.Checkpoint       as Checkpoint
 import qualified SignalMarket.Common.Models.RawChange        as RawChange
+import           SignalMarket.Common.Orphans                 ()
 import           SignalMarket.Indexer.Config                 (IndexerConfig)
 import           SignalMarket.Indexer.IndexerM               (IndexerM,
                                                               runIndexerM)

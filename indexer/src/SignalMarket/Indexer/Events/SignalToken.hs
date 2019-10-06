@@ -1,9 +1,9 @@
 module SignalMarket.Indexer.Events.SignalToken where
 
-import Control.Monad.IO.Class
 import           Control.Lens                                       ((^.))
 import           Control.Monad                                      (unless)
 import           Control.Monad.Catch                                (MonadThrow)
+import           Control.Monad.IO.Class
 import           Control.Monad.Reader                               (MonadReader)
 import qualified Katip                                              as K
 import           Opaleye                                            (constant,
