@@ -10,14 +10,15 @@ import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
                                                  Table, table, tableField)
 import           SignalMarket.Common.Aeson
-import           SignalMarket.Common.EventTypes (EthAddress, EventID, SaleID, TokenID)
+import           SignalMarket.Common.EventTypes (EthAddress, EventID, SaleID,
+                                                 TokenID)
 
 -- | Represents a sale that was unlisted by the owner.
 data SignalUnlisted' saleID tokenID eventID owner = SignalUnlisted
   { saleID  :: saleID
   , tokenID :: tokenID
   , eventID :: eventID
-  , owner :: owner
+  , owner   :: owner
   } deriving Generic
 
 $(makeAdaptorAndInstance "pSignalUnlisted" ''SignalUnlisted')
