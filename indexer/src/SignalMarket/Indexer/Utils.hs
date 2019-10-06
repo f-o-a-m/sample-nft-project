@@ -5,7 +5,8 @@ module SignalMarket.Indexer.Utils
  ) where
 
 import           Control.Arrow                               (returnA)
-import           Control.Monad.Catch                         (MonadThrow)
+import           Control.Monad.Catch                         (MonadThrow, catch,
+                                                              throwM)
 import           Control.Monad.IO.Class                      (liftIO)
 import           Control.Monad.Reader                        (MonadReader,
                                                               ReaderT, ask)
@@ -16,6 +17,8 @@ import           Data.Proxy
 import           Data.String                                 (fromString)
 import           Data.String.Conversions                     (cs)
 import           Data.Text                                   (Text)
+import           Database.PostgreSQL.Simple                  (begin, commit,
+                                                              rollback)
 import           Katip                                       as K
 import           Network.Ethereum.Api.Provider               (Web3)
 import           Network.Ethereum.Api.Types                  (Change (..),
@@ -43,6 +46,7 @@ import           SignalMarket.Common.EventTypes              (EventID,
                                                               HexInteger (..))
 import qualified SignalMarket.Common.Models.Checkpoint       as Checkpoint
 import qualified SignalMarket.Common.Models.RawChange        as RawChange
+import           SignalMarket.Common.Orphans                 ()
 import           SignalMarket.Indexer.Config                 (IndexerConfig)
 import           SignalMarket.Indexer.IndexerM               (IndexerM,
                                                               runIndexerM)
@@ -244,9 +248,27 @@ makeFilterHandlerPair deployReceipt h = do
       filterWithCheckpoint :: Filter e -> Filter e
       filterWithCheckpoint = maybe id (\cp f -> f {filterFromBlock = mkFromBlock $ Checkpoint.blockNumber cp}) mCheckpoint
 
-      handler = handlerWithCheckpoint . wrapHandlerWithCheckpointing indexerCfg $ makeHandler indexerCfg h
+      handler = wrapHandlerInTransaction indexerCfg
+              . handlerWithCheckpoint
+              . wrapHandlerWithCheckpointing indexerCfg
+              $ makeHandler indexerCfg h
       fltr = filterWithCheckpoint $ makeFilter (Proxy :: Proxy e) deployReceipt
   pure (fltr, handler)
+
+wrapHandlerInTransaction
+  :: IndexerConfig
+  -> Handler (ReaderT Change Web3 EventAction) e
+  -> Handler (ReaderT Change Web3 EventAction) e
+wrapHandlerInTransaction cfg (H h) = H $ \e -> do
+  liftIO $ runIndexerM cfg $ runDB begin
+  res <- h e `catch`
+    (\(err :: SqlQueryException) -> liftIO $ runIndexerM cfg $ do
+      K.logFM K.ErrorS "Encountered SQLException, rolling back transaction!"
+      runDB rollback
+      throwM err
+    )
+  liftIO $ runIndexerM cfg $ runDB commit
+  pure res
 
 mkFromBlock :: HexInteger -> DefaultBlock
 mkFromBlock (HexInteger n) = BlockWithNumber $ fromInteger n
