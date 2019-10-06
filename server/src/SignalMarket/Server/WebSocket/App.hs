@@ -35,14 +35,10 @@ mkWebSocketApp
   -> Socket.ServerApp
 mkWebSocketApp pg logCfg WSApplet{clientMsgHandler, msgConduit} pendingConn = do
   socket <- Socket.acceptRequest pendingConn
-  print @String "Accepted websocket message request"
   Socket.forkPingThread socket 10
-  print @String "Forked ping thread"
   env <- mkWebSocketEnv pg logCfg
   _ <- async . forever $ do
-    print @String "Listening for socket data"
     subsBS <- Socket.receiveData socket
-    print ("Received socket data : " <> show subsBS)
     runWebSocketM env $ clientMsgHandler subsBS
   runConduit
     (transPipe (runWebSocketM env) msgConduit .| socketSink socket)
@@ -99,9 +95,7 @@ listenerC = do
 
 rawChangeC :: (MonadThrow m, MonadPG m) => ConduitT EventID RC.RawChange m ()
 rawChangeC = awaitForever $ \eid -> do
-    liftIO $ print @String "fetching raw change"
     res <- lift $ getRawChange eid
-    liftIO $ print $ "got raw change : " <> show res
     yield res
   where
     getRawChange :: (MonadThrow m, MonadPG m) => EventID -> m RC.RawChange
@@ -119,12 +113,9 @@ subscriptionC
   => ConduitT RC.RawChange WebSocketMsg m ()
 subscriptionC = awaitForever $ \rc -> do
   WebSocketEnv{subscriptionRef} <- lift ask
-  K.logFM K.DebugS "Looking for matching subscriptions.. "
   ks <- lift . liftIO $ readIORef subscriptionRef
   let matchingSubscriptions = filterSubscriptionKeys rc ks
-  K.logFM K.DebugS $ fromString ("Found matching subscriptions! : " <> show matchingSubscriptions)
-  let outgoingMessages = map (mkWSMessage rc) matchingSubscriptions
-  K.logFM K.DebugS $ fromString ("Outgoing Messages ! : " <> show outgoingMessages)
+      outgoingMessages = map (mkWSMessage rc) matchingSubscriptions
   sourceList outgoingMessages
   where
 

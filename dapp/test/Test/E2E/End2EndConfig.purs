@@ -3,7 +3,6 @@ module Test.E2E.End2EndConfig where
 import Prelude
 
 import Affjax as AX
-import Affjax.RequestBody (RequestBody(..))
 import Affjax.ResponseFormat as ResponseFormat
 import Data.Argonaut (class DecodeJson, decodeJson, (.:))
 import Data.Either (Either(..), either)
@@ -17,7 +16,6 @@ import Effect.Class.Console (log)
 import Network.Ethereum.Web3 (Address, Provider, httpProvider)
 import Network.Ethereum.Web3.Api (eth_getAccounts, net_version)
 import Node.Process as NP
-import React.Basic.DOM (s)
 import Test.Utils (expectWeb3)
 
 data Protocol = HTTP | HTTPS

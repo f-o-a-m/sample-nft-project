@@ -2,15 +2,10 @@ module Test.E2E.Main where
 
 import Prelude
 
-import Chanterelle.Test (buildTestConfig)
-import Contracts.FoamToken (Transfer(..))
-import Contracts.SignalMarket (signalToken)
-import Control.Coroutine.Transducer (Transducer)
+import Contracts.FoamToken (Transfer)
 import Data.Maybe (Maybe(..))
-import Debug.Trace (traceM)
-import Deploy.Main (deployScript)
 import Effect (Effect)
-import Effect.Aff (Aff, Milliseconds(..), delay, forkAff, launchAff, launchAff_)
+import Effect.Aff (Milliseconds(..), delay, launchAff)
 import Network.Ethereum.Web3 as Web3
 import Test.E2E.End2EndConfig (mkURL)
 import Test.E2E.End2EndConfig as E2EConfig
@@ -19,7 +14,6 @@ import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (runSpecT, defaultConfig)
 import Test.Spec.SignalMarketSpec as SignalMarketSpec
 import Test.Spec.Websocket (changeConsumer, createWebSocket, mkMonitor)
-import Test.Types (FoamTokenTransfer(..))
 import Type.Proxy (Proxy(..))
 
 main :: Effect Unit
@@ -35,16 +29,10 @@ main = void <<< launchAff $ do
                    }
 
   ws <- createWebSocket (mkURL e2eConfig.apiSettings)
+  -- TODO: remove this
   delay (Milliseconds 10000.0)
-  _ <- forkAff $ do
-
-
-    {process, canceler } <- mkMonitor
-            "foamTokenSubscription"
-            (Web3.eventFilter (Proxy :: Proxy Transfer) foamToken)
-            ws
-    process changeConsumer
-
+  let fltr = Web3.eventFilter (Proxy :: Proxy Transfer) foamToken
+  _ <- mkMonitor ws fltr changeConsumer
   join $ runSpecT specConfig [consoleReporter] do
     SignalMarketSpec.spec tempConfig
     E2E.spec e2eConfig
