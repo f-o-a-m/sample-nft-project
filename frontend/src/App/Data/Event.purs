@@ -14,7 +14,6 @@ import Contracts.SignalMarket as SignalMarket
 import Contracts.SignalToken as SignalToken
 import Control.Monad.Reader (ReaderT, ask, lift)
 import Control.MonadZero (guard)
-import Data.DateTime (DateTime)
 import Data.Geohash (geohashFromBS)
 import Data.Maybe (Maybe(..))
 import Data.Variant as V
