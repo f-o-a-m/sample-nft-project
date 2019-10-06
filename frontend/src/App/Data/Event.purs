@@ -20,10 +20,9 @@ import Data.Maybe (Maybe(..))
 import Data.Variant as V
 import Network.Ethereum.Web3 (unBytesN)
 
+-- TODO we can flatten this
 type Event =
-  -- TODO remove timestamp :(((
-  { timestamp :: DateTime
-  , raw :: EventRaw
+  { raw :: EventRaw
   }
 
 type EventRaw = V.Variant
@@ -76,7 +75,7 @@ eventToSignalUpdate = _.raw >>> V.match
   }
 
 eventToSignalActivity :: Event -> Maybe SignalActivity
-eventToSignalActivity { raw, timestamp } = raw # V.match
+eventToSignalActivity { raw } = raw # V.match
   { transfer: \(FoamToken.Transfer e) -> Nothing
   , trackedToken: \(SignalToken.TrackedToken e) -> Nothing
   , signalForSale: \(SignalMarket.SignalForSale e) ->
@@ -88,7 +87,7 @@ eventToSignalActivity { raw, timestamp } = raw # V.match
   }
 
 eventToActivity :: forall m . Monad m => Event -> ReaderT (SignalId -> m Signal) m (Maybe Activity)
-eventToActivity { raw, timestamp } = raw # V.match
+eventToActivity { raw } = raw # V.match
   { transfer: \(FoamToken.Transfer e) -> pure $ Just $ TokenTransfer {from:e.from, to: e.to, amount: Token e.value}
   , trackedToken: \(SignalToken.TrackedToken e) -> pure Nothing
   , signalForSale: \(SignalMarket.SignalForSale e) -> ask >>= \getter -> do

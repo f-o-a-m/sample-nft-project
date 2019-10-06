@@ -63,7 +63,6 @@ signal = React.make component
         liftEffect $ self.setState \_ -> Just { tx: Nothing, price: Nothing, signal:s, activity }
       liveFib <- launchAff $ forever $ Bus.read self.props.events >>= \event -> liftEffect do
         when (eventToSignalId event == Just self.props.sid) do
-          timestamp <- nowDateTime
           self.setState $ map \s -> s
             { activity = maybe [] pure (eventToSignalActivity event) <> s.activity
             , signal = fromMaybe s.signal $ eventToSignalUpdate event s.signal
