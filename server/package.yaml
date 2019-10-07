@@ -37,7 +37,9 @@ dependencies:
 - postgresql-simple
 - servant
 - servant-server
+- servant-swagger
 - string-conversions
+- swagger2
 - text
 - wai
 - wai-extra

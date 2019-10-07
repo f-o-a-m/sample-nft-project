@@ -6,6 +6,11 @@ module SignalMarket.Common.Models.FoamTokenTransfer where
 import qualified Data.Aeson                     as A
 import           Data.Int                       (Int64)
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
+import           Data.Swagger                   (SwaggerType (..),
+                                                 ToParamSchema (..),
+                                                 ToSchema (..),
+                                                 defaultSchemaOptions,
+                                                 genericDeclareNamedSchema)
 import           Database.PostgreSQL.Simple     (Connection)
 import           GHC.Generics                   (Generic)
 import qualified Katip                          as K
@@ -27,6 +32,10 @@ $(makeAdaptorAndInstance "pTransfer" ''Transfer')
 
 type TransferPG = Transfer' (Field SqlText) (Field SqlText) (Field SqlNumeric) (Field SqlText)
 type Transfer = Transfer' EthAddress EthAddress Value EventID
+
+instance ToSchema Transfer where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
 
 transferTable :: Table TransferPG TransferPG
 transferTable = table "foam_token_transfer"

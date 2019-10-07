@@ -5,8 +5,14 @@ module SignalMarket.Server.API.Types where
 import           Control.Error                                         (fmapL)
 import qualified Data.Aeson                                            as A
 import           Data.String.Conversions                               (cs)
+import           Data.Swagger                                          (SwaggerType (..),
+                                                                        ToParamSchema (..),
+                                                                        ToSchema (..),
+                                                                        defaultSchemaOptions,
+                                                                        genericDeclareNamedSchema)
 import qualified Data.Text                                             as T
 import           GHC.Generics                                          (Generic)
+import qualified GHC.Generics                                          as GHC (Generic)
 import           SignalMarket.Common.Aeson                             (defaultAesonOptions)
 import           SignalMarket.Common.EventTypes                        (ByteNValue (..),
                                                                         EthAddress (..),
@@ -33,6 +39,9 @@ data WithMetadata a = WithMetadata
   , withMetadataMetaData :: RawChange.RawChange
   } deriving Generic
 
+instance (ToSchema a) => ToSchema (WithMetadata a) where
+  declareNamedSchema _ = undefined --genericDeclareNamedSchema defaultSchemaOptions proxy
+
 instance A.ToJSON a => A.ToJSON (WithMetadata a) where
   toJSON = A.genericToJSON (defaultAesonOptions "withMetadata")
 
@@ -52,7 +61,8 @@ deriving instance FromHttpApiData TokenID
 instance FromHttpApiData SaleStatus where
   parseQueryParam = fmapL cs . parseHStatus
 
-data BlockNumberOrdering = ASC | DESC
+data BlockNumberOrdering = ASC | DESC deriving (Eq, Show, GHC.Generic)
+instance ToParamSchema BlockNumberOrdering
 
 instance FromHttpApiData BlockNumberOrdering where
     parseQueryParam qp

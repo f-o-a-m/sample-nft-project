@@ -53,6 +53,7 @@ dependencies:
 - profunctors
 - scientific
 - string-conversions
+- swagger2
 - text
 - web3
 

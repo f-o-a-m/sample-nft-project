@@ -73,7 +73,7 @@ make run-server
 ```
 
 ```sh
-`make frontend-start
+make frontend-start
 ```
 
 ## Detailed documentation
