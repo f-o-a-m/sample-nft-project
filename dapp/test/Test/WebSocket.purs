@@ -1,22 +1,23 @@
-module Test.Spec.Websocket where
+module Test.Websocket where
 
 import Prelude
 
-import Control.Coroutine (Consumer, consumer, pullFrom, runProcess)
-import Control.Coroutine.Transducer (Transducer, awaitForever, toConsumer, toProcess, toProducer, transform, yieldT, (=>=))
+import Control.Coroutine (Consumer, consumer, producer, pullFrom, runProcess)
+import Control.Coroutine.Transducer (Transducer, awaitForever, fromProducer, toProducer, yieldT, (=>=))
 import Control.Monad.Except (runExcept)
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.Trans.Class (lift)
 import Data.Either (Either(..))
 import Data.Exists (Exists, mkExists, runExists)
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (over)
 import Data.Ord (abs)
 import Data.String (replace, Pattern(..), Replacement(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import Effect.Aff (Aff, Milliseconds(..), delay, forkAff, killFiber, launchAff_)
+import Effect.Aff (Aff, Fiber, Milliseconds(..), delay, forkAff, killFiber, launchAff_)
+import Effect.Aff.AVar as AVar
 import Effect.Aff.Bus as Bus
 import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
@@ -29,7 +30,6 @@ import Foreign.Object as FO
 import Network.Ethereum.Web3 as Web3
 import Network.Ethereum.Web3.Solidity (class DecodeEvent, decodeEvent)
 import Partial.Unsafe (unsafePartial)
-import Type.Proxy (Proxy)
 import Unsafe.Coerce (unsafeCoerce)
 import WebSocket as WS
 
@@ -81,7 +81,7 @@ createWebSocket :: String -> Aff WebSocket
 createWebSocket url' = do
     Tuple incomingBusR incomingBusW <- Bus.split <$> Bus.make
     Tuple outgoingBusR outgoingBusW <- Bus.split <$> Bus.make
-    let url = (replace (Pattern "http") (Replacement "ws") url') <> "/ws"
+    let url = (replace (Pattern "http") (Replacement "ws") url') <> "ws"
     log ("Connecting to websocket on  " <> url)
     liftEffect $ createSocket url incomingBusW outgoingBusR $ Milliseconds 1000.0
     pure { send: outgoingBusW
@@ -117,18 +117,27 @@ createWebSocket url' = do
 changeWSProducer
   :: SubscriptionID
   -> Bus.BusR WebSocketMsg
-  -> Transducer Void Web3.Change Aff Unit
+  -> Aff { changeProducer :: Transducer Void Web3.Change Aff Unit
+         , writeLoopCanceler :: Aff Unit
+         }
 changeWSProducer sId busR = do
-  WebSocketMsg msg <- lift $ Bus.read busR
-  if msg.subscriptionID /= sId
-    then changeWSProducer sId busR
-    else do
-      yieldT msg.contents
-      changeWSProducer sId busR
+  changeVar <- AVar.empty
+  let writeLoop = forever do
+        WebSocketMsg msg <- Bus.read busR
+        void $ forkAff
+          if msg.subscriptionID /= sId
+            then pure unit
+            else AVar.put msg.contents changeVar
+      changeProducer = fromProducer $ producer $ Left <$> AVar.read changeVar
+  f <- forkAff writeLoop
+  let writeLoopCanceler = do
+        killFiber (error "producer ended") f
+        AVar.kill (error "producer ended") changeVar
+  pure {changeProducer, writeLoopCanceler}
 
 changeConsumer
   :: forall e
-   . Consumer e Aff Unit
+   . Consumer {change :: Web3.Change, event :: e} Aff Unit
 changeConsumer = consumer \i -> do
   log $ unsafeCoerce i
   pure Nothing
@@ -138,7 +147,7 @@ mkMonitor
    . DecodeEvent i ni e
   => WebSocket
   -> Web3.Filter e
-  -> Consumer e Aff Unit
+  -> Consumer {change :: Web3.Change, event :: e} Aff Unit
   -> Aff (Aff Unit)
 mkMonitor { send, receive } fltr consumer = do
   n <- liftEffect $ randomInt 1 2147483647
@@ -150,10 +159,10 @@ mkMonitor { send, receive } fltr consumer = do
           }
       eventMapper = awaitForever \change ->
         unsafePartial $ case decodeEvent change of
-          Just (a :: e) -> do
-            yieldT a
-      changeProducer = changeWSProducer subscriptionID receive
-      process = runProcess $
+          Just (event :: e) -> do
+            yieldT $ {change, event}
+  {changeProducer, writeLoopCanceler} <- changeWSProducer subscriptionID receive
+  let process = runProcess $
           (consumer `pullFrom` void (toProducer (changeProducer =>= eventMapper)))
       cancelWithServer = Bus.write (Cancel subscriptionID) send
   Bus.write initSubscriptionMsg send
@@ -161,3 +170,4 @@ mkMonitor { send, receive } fltr consumer = do
   pure do
     cancelWithServer
     killFiber (error $ "cleanup subscription " <> subscriptionID) f
+    writeLoopCanceler
