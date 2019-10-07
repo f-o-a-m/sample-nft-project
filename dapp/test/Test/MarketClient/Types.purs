@@ -2,21 +2,58 @@ module Test.MarketClient.Types where
 
 import Prelude
 
-import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson)
+import Data.Argonaut as A
 import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
-import Data.Newtype (class Newtype)
-import Foreign.Class (class Decode, class Encode)
-import Foreign.Generic (defaultOptions, genericDecode, genericEncode)
-import Network.Ethereum.Web3 (Address)
+import Foreign.Class (class Decode)
+import Foreign.Generic (defaultOptions, genericDecode)
+import Network.Ethereum.Core.HexString (HexString)
+import Network.Ethereum.Web3 (Address, BigNumber, BlockNumber)
 import Servant.API as API
+
+newtype MetaData = MetaData
+  { logIndex         :: BigNumber
+  , transactionIndex :: BigNumber
+  , transactionHash  :: HexString
+  , removed          :: Boolean
+  , blockHash        :: HexString
+  , blockNumber      :: BlockNumber
+  , address          :: Address
+  , data             :: HexString
+  , topics           :: Array HexString
+  }
+
+derive instance genericMetadata :: Generic MetaData _
+
+instance decodeMetadata :: Decode MetaData where
+  decode = genericDecode defaultOptions
+
+instance decodeJsonMetadata :: A.DecodeJson MetaData where
+  decodeJson x = MetaData <$> A.decodeJson x
+
+newtype WithMetaData a = WithMetaData
+  { "data"     :: a
+  , metaData :: MetaData
+  }
+
+derive instance genericWithMetadata :: Generic (WithMetaData a) _
+
+instance decodeWithMetadata :: Decode a => Decode (WithMetaData a) where
+  decode = genericDecode defaultOptions
+
+
+instance decodeJsonWithMetadata :: A.DecodeJson a => A.DecodeJson (WithMetaData a) where
+  decodeJson x = do
+    obj <- A.decodeJson x
+    _data <- obj A..: "data"
+    metaData <- obj A..: "metaData"
+    pure $ WithMetaData {"data": _data, metaData}
 
 -- BlockNumberOrdering
 data BlockNumberOrdering = ASC | DESC
 
 instance encodeQueryParamData :: API.EncodeQueryParam BlockNumberOrdering where
-  encodeQueryParam ASC = show "asc"
-  encodeQueryParam DESC = show "desc"
+  encodeQueryParam ASC = "asc"
+  encodeQueryParam DESC = "desc"
 
 -- Transaction Receipt
 newtype Receipt =
@@ -28,21 +65,12 @@ newtype Receipt =
           }
 
 derive instance genericReceipt :: Generic Receipt _
-derive instance newtypeReceipt :: Newtype Receipt _
-derive newtype instance eqReceipt :: Eq Receipt
-instance showReceipt :: Show Receipt where show = genericShow
-
-instance encodeReceipt :: Encode Receipt where
-  encode = genericEncode defaultOptions
 
 instance decodeReceipt :: Decode Receipt where
   decode = genericDecode defaultOptions
 
-instance encodeJsonReceipt :: EncodeJson Receipt where
-  encodeJson (Receipt photo) = encodeJson photo
-
-instance decodeJsonReceipt :: DecodeJson Receipt where
-  decodeJson x = Receipt <$> decodeJson x
+instance decodeJsonReceipt :: A.DecodeJson Receipt where
+  decodeJson x = Receipt <$> A.decodeJson x
 
 -- config/contracts
 newtype Contracts =
@@ -53,21 +81,12 @@ newtype Contracts =
             }
 
 derive instance genericContracts :: Generic Contracts _
-derive instance newtypeContracts :: Newtype Contracts _
-derive newtype instance eqContracts :: Eq Contracts
-instance showContracts :: Show Contracts where show = genericShow
-
-instance encodeContracts :: Encode Contracts where
-  encode = genericEncode defaultOptions
 
 instance decodeContracts :: Decode Contracts where
   decode = genericDecode defaultOptions
 
-instance encodeJsonContracts :: EncodeJson Contracts where
-  encodeJson (Contracts photo) = encodeJson photo
-
-instance decodeJsonContracts :: DecodeJson Contracts where
-  decodeJson x = Contracts <$> decodeJson x
+instance decodeJsonContracts :: A.DecodeJson Contracts where
+  decodeJson x = Contracts <$> A.decodeJson x
 
 -- foam token transfer
 
@@ -77,18 +96,9 @@ newtype FoamTokenTransfer =
                     }
 
 derive instance genericFoamTokenTransfer :: Generic FoamTokenTransfer _
-derive instance newtypeFoamTokenTransfer :: Newtype FoamTokenTransfer _
-derive newtype instance eqFoamTokenTransfer :: Eq FoamTokenTransfer
-instance showFoamTokenTransfer :: Show FoamTokenTransfer where show = genericShow
-
-instance encodeFoamTokenTransfer :: Encode FoamTokenTransfer where
-  encode = genericEncode defaultOptions
 
 instance decodeFoamTokenTransfer :: Decode FoamTokenTransfer where
   decode = genericDecode defaultOptions
 
-instance encodeJsonFoamTokenTransfer :: EncodeJson FoamTokenTransfer where
-  encodeJson (FoamTokenTransfer photo) = encodeJson photo
-
-instance decodeJsonFoamTokenTransfer :: DecodeJson FoamTokenTransfer where
-  decodeJson x = FoamTokenTransfer <$> decodeJson x
+instance decodeJsonFoamTokenTransfer :: A.DecodeJson FoamTokenTransfer where
+  decodeJson x = FoamTokenTransfer <$> A.decodeJson x

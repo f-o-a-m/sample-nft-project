@@ -1,5 +1,5 @@
 module Test.MarketClient.Client
-  ( module ReExport
+  ( module Types
   , module Test.MarketClient.Client
   ) where
 
@@ -19,8 +19,8 @@ import Network.Ethereum.Web3 (Address)
 import Servant.API (type (:>))
 import Servant.API as API
 import Servant.Client as Client
+import Test.MarketClient.Types (BlockNumberOrdering(..), Contracts(..), FoamTokenTransfer(..), Receipt(..)) as ReExport
 import Test.MarketClient.Types as Types
-import Test.MarketClient.Types as ReExport
 
 -- ClientM
 newtype ClientM a = ClientM (ReaderT Client.ClientEnv (ExceptT Client.AjaxError Aff) a)
@@ -68,22 +68,22 @@ instance encodeQueryParamData :: API.EncodeQueryParam AddressP where
 type GetFoamTokenTransfers =
      API.S "foam_token"
   :> API.S "transfers"
-  :> API.QPs ( to :: Maybe AddressP
-             , from :: Maybe AddressP
+  :> API.QPs ( to :: Array AddressP
+             , from :: Array AddressP
              , limit :: Maybe Int
              , offset :: Maybe Int
              , ordering :: Maybe Types.BlockNumberOrdering
              )
-  :> API.GET Json (Array Types.FoamTokenTransfer)
+  :> API.GET Json (Array (Types.WithMetaData Types.FoamTokenTransfer))
 
 foamTokenTransfers
-  :: API.QueryParams ( to :: Maybe AddressP
-                     , from :: Maybe AddressP
+  :: API.QueryParams ( to :: Array AddressP
+                     , from :: Array AddressP
                      , limit :: Maybe Int
                      , offset :: Maybe Int
                      , ordering :: Maybe Types.BlockNumberOrdering
                      )
-  -> ClientM (Array Types.FoamTokenTransfer)
+  -> ClientM (Array (Types.WithMetaData Types.FoamTokenTransfer))
 foamTokenTransfers =
   Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetFoamTokenTransfers)
 

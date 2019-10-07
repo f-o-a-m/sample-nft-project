@@ -7,7 +7,7 @@ import Contracts.FoamToken as FoamToken
 import Control.Coroutine as C
 import Control.Monad.Error.Class (class MonadError)
 import Control.Monad.Reader (ask)
-import Data.Array ((!!))
+import Data.Array (filter, head, (!!))
 import Data.Lens ((?~))
 import Data.Maybe (Maybe(..), fromJust)
 import Deploy.Utils (mkUIntN)
@@ -20,9 +20,12 @@ import Effect.Exception (Error)
 import Network.Ethereum.Web3 (class EventFilter, Address, Change(..), HexString, Web3, _from, _to, defaultTransactionOptions, eventFilter)
 import Network.Ethereum.Web3.Solidity (class DecodeEvent)
 import Network.Ethereum.Web3.Solidity.Sizes (s256)
-import Partial.Unsafe (unsafePartial)
+import Partial.Unsafe (unsafeCrashWith, unsafePartial)
+import Servant.API as API
 import Test.Actions (faucetTokens)
 import Test.E2E.End2EndConfig (End2EndConfig)
+import Test.MarketClient.Client (MetaData(..))
+import Test.MarketClient.Client as Client
 import Test.Spec (SpecT, beforeAll_, describe, it, parallel)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Utils (TestEnv, go, mkSignalAttrGen)
@@ -30,18 +33,6 @@ import Test.Websocket (mkMonitor)
 import Type.Proxy (Proxy(..))
 
 
---transferFOAM
---  :: forall r.
---     { clientEnv :: ClientEnv
---     , ws :: WebSocket
---     | r
---     }
---  -> { from :: Address
---     , to :: Address
---     , value :: Int
---     }
---  -> Aff Unit
---transferFOAM {clientEnv, ws} {to, from, value} = do
 
 spec :: End2EndConfig -> SpecT Aff Unit Aff Unit
 spec cfg = do
@@ -68,7 +59,7 @@ spec' cfg@{provider, clientEnv, accounts, contractAddresses, faucetAddress} env@
   beforeAll_ (faucetTokens env { foamToken,  tokenFaucet: faucetAddress, provider, account1, account2 }) $ do
     describe "indexer/server interaction" $ parallel do
       it "can track foam token transfers" do
-        sendTokens cfg {to: account1, from: account2, amount: 1}
+        sendTokens cfg env {to: account1, from: account2, amount: 1}
       it "can track signal token creation" do
         pure unit
       it "can track signals for sale" do
@@ -107,19 +98,48 @@ sendTokens
   :: forall m.
      MonadAff m
   => End2EndConfig
+  -> TestEnv m
   -> { to :: Address
      , from :: Address
      , amount :: Int
      }
   -> m Unit
-sendTokens cfg@{clientEnv, contractAddresses} {to, from, amount} = do
+sendTokens cfg@{clientEnv, contractAddresses} {logger} {to, from, amount} = do
   let {foamToken} = contractAddresses
       txOpts = defaultTransactionOptions # _to ?~ foamToken
                                          # _from ?~ from
       action = FoamToken.transfer txOpts { amount: mkUIntN s256 amount, recipient: to }
-  {change, event} <- monitorUntilEvent cfg (Proxy :: Proxy FoamToken.Transfer) {action, emittingAddress: foamToken}
+  logger "Submitting FoamToken transfer"
+  {change: Change {transactionHash}, event} <-
+     monitorUntilEvent cfg (Proxy :: Proxy FoamToken.Transfer) {action, emittingAddress: foamToken}
   let FoamToken.Transfer {from: _from, to: _to} = event
+  logger "Checking FoamToken transaction from WebSockets"
   liftAff do
     from `shouldEqual` _from
     to `shouldEqual` _to
+  logger "Checking FoamToken transaction from API"
+  liftAff do
+    let params = API.QueryParams
+          { to: [Client.AddressP to]
+          , from: [Client.AddressP from]
+          , limit: Just 100
+          , offset: Just 0
+          , ordering: Just Client.DESC
+          }
+    results <- Client.assertClientM clientEnv $ Client.foamTokenTransfers params
+    Client.WithMetaData {"data": Client.FoamTokenTransfer transfer} <- findByHash transactionHash results
+    from `shouldEqual` transfer.from
+    to `shouldEqual` transfer.to
+
+findByHash
+  :: forall a.
+     HexString
+  -> Array (Client.WithMetaData a)
+  -> Aff (Client.WithMetaData a)
+findByHash hash as =
+  let p (Client.WithMetaData {metaData: MetaData {transactionHash}}) =
+        transactionHash == hash
+  in case head $ filter p as of
+       Nothing -> unsafeCrashWith ("Failed to find item with metadata hash " <> show hash)
+       Just a -> pure a
 
