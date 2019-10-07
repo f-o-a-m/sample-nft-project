@@ -1,16 +1,16 @@
-module Test.Spec.Websocket where
+module Test.Websocket where
 
 import Prelude
 
 import Control.Coroutine (Consumer, consumer, pullFrom, runProcess)
-import Control.Coroutine.Transducer (Transducer, awaitForever, toConsumer, toProcess, toProducer, transform, yieldT, (=>=))
+import Control.Coroutine.Transducer (Transducer, awaitForever, toProducer, yieldT, (=>=))
 import Control.Monad.Except (runExcept)
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.Trans.Class (lift)
 import Data.Either (Either(..))
 import Data.Exists (Exists, mkExists, runExists)
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (over)
 import Data.Ord (abs)
 import Data.String (replace, Pattern(..), Replacement(..))
@@ -29,7 +29,6 @@ import Foreign.Object as FO
 import Network.Ethereum.Web3 as Web3
 import Network.Ethereum.Web3.Solidity (class DecodeEvent, decodeEvent)
 import Partial.Unsafe (unsafePartial)
-import Type.Proxy (Proxy)
 import Unsafe.Coerce (unsafeCoerce)
 import WebSocket as WS
 

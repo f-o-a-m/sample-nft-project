@@ -1,4 +1,4 @@
-module Test.Types where
+module Test.MarketClient.Types where
 
 import Prelude
 
@@ -8,8 +8,7 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Newtype (class Newtype)
 import Foreign.Class (class Decode, class Encode)
 import Foreign.Generic (defaultOptions, genericDecode, genericEncode)
-import Network.Ethereum.Web3 (Address, Value)
-import Servant.API (class EncodeQueryParam)
+import Network.Ethereum.Web3 (Address)
 import Servant.API as API
 
 -- BlockNumberOrdering

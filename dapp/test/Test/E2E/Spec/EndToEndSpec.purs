@@ -1,42 +1,35 @@
-module Test.Spec.End2EndSpec where
+module Test.E2E.Spec.End2EndSpec where
 
 import Prelude
 
 import Control.Monad.Error.Class (class MonadError)
 import Control.Monad.Reader (ask)
-import Data.Array (length, (!!))
-import Data.Bifunctor (lmap)
-import Data.Either (Either(..))
-import Data.Lens (view)
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Array ((!!))
+import Data.Maybe (fromJust)
 import Effect.AVar as EAVar
-import Effect.Aff (Aff, error, throwError)
+import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
 import Effect.Exception (Error)
 import Partial.Unsafe (unsafePartial)
-import Servant.API as API
-import Servant.Client (ClientEnv(..), ErrorDescription)
-import Servant.Client.Error (errorDescription)
 import Test.Actions (faucetTokens)
-import Test.E2E.End2EndConfig (Contracts(..), End2EndConfig)
-import Test.MarketClient (ClientM, foamTokenTransfers, runClientM)
+import Test.E2E.End2EndConfig (End2EndConfig)
 import Test.Spec (SpecT, beforeAll_, describe, it, parallel)
-import Test.Spec.Assertions (shouldEqual)
 import Test.Utils (TestEnv, go, mkSignalAttrGen)
 
-mkClientEnv :: Int -> ClientEnv
-mkClientEnv port =
-  ClientEnv { protocol: "http"
-            , baseURL: "//localhost:" <> show port <> "/"
-            }
 
-runClientM'
-  :: ClientEnv
-  -> (forall a. ClientM a -> Aff (Either ErrorDescription a))
-runClientM' env action = do
-  eRes <- runClientM env action
-  pure $ lmap (view errorDescription) eRes
+--transferFOAM
+--  :: forall r.
+--     { clientEnv :: ClientEnv
+--     , ws :: WebSocket
+--     | r
+--     }
+--  -> { from :: Address
+--     , to :: Address
+--     , value :: Int
+--     }
+--  -> Aff Unit
+--transferFOAM {clientEnv, ws} {to, from, value} = do
 
 spec :: End2EndConfig -> SpecT Aff Unit Aff Unit
 spec cfg = do
@@ -54,29 +47,13 @@ spec'
   => End2EndConfig
   -> TestEnv m
   -> SpecT m Unit Aff Unit
-spec' cfg env@{ logger, signalAttrGen } = do
-  let { provider
-      , apiSettings
-      , contractAddresses
-      , networkId
-      , accounts
-      } = cfg
-      Contracts { foamToken
-                , signalToken
-                , signalMarket
-                } = contractAddresses
-      tokenFaucet = unsafePartial $ fromJust $ accounts !! 0
-      account1 = unsafePartial $ fromJust $ accounts !! 1
-      account2 = unsafePartial $ fromJust $ accounts !! 2
-      --
-      clientEnv@(ClientEnv cfg) = mkClientEnv 9000
-      assertClientM :: forall a. ClientM a -> Aff a
-      assertClientM action = runClientM' clientEnv action >>= case _ of
-        Left err -> throwError (error $ show err)
-        Right res -> pure res
+spec' cfg@{provider, clientEnv, accounts, contractAddresses, faucetAddress} env@{logger, signalAttrGen} = do
 
+  let {foamToken, signalToken, signalMarket} = contractAddresses
+      account1 = unsafePartial $ fromJust $ accounts !! 0
+      account2 = unsafePartial $ fromJust $ accounts !! 1
 
-  beforeAll_ (faucetTokens env { foamToken, tokenFaucet, provider, account1, account2 }) $ do
+  beforeAll_ (faucetTokens env { foamToken,  tokenFaucet: faucetAddress, provider, account1, account2 }) $ do
     describe "indexer/server interaction" $ parallel do
       -- it "can track foam token transfers" do
       --   transfers <- liftAff $ assertClientM $ foamTokenTransfers $ API.QueryParams
