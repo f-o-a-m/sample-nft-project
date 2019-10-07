@@ -8,7 +8,7 @@ The server assumes that you have run `make deploy-contracts` and that your chant
 You can test the server running
 
 ```bash
-> make start-server
+> make run-server
 > curl localhost:9000
 ```
 
