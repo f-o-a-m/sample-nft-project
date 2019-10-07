@@ -1,0 +1,109 @@
+
+body {
+  margin: 0;
+}
+
+#root {
+  max-width: 450px;
+  margin: auto;
+  border-left: 1px #999 solid;
+  border-right: 1px #999 solid;
+  min-height: 100vh;
+}
+.Content {
+  padding: 20px;
+  position: relative;
+}
+.Content-404 {
+  font-size: 60px;
+  text-align: center;
+}
+
+.Content-control {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+}
+
+.Avatar {
+  display: inline-block;
+  border-radius: 99em;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+.Header {
+  text-align: center;
+  padding: 20px;
+  border-bottom: 1px #999 solid;
+}
+
+.Navigation {
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px #999 solid;
+}
+
+.Navigation-item {
+  margin: 0 20px;
+  text-decoration: underline;
+}
+a {
+  color: #0c8be3;
+  text-decoration: none;
+}
+
+.Navigation-item--active {
+  color: gray;
+  text-decoration: none;
+}
+.Signal {
+  border: 1px #d5d5d5 solid;
+  border-radius: 8px;
+  padding: 8px;
+}
+.Signal + .Signal {
+  margin-top: 15px;
+}
+.SignalContent {
+  display: flex;
+}
+.SignalContent-Left {
+  flex: 1 1 auto;
+}
+.SignalContent-Right {
+  flex: 0 0 auto;
+}
+.Transaction {
+  margin-top: 6px;
+}
+.Transaction input,
+.Transaction button{
+  height: 24px;
+  padding: 3px;
+  border: 1px #d9d9d9 solid;
+  box-sizing: border-box;
+}
+.Transaction-status {
+  font-size: 11px;
+  padding: 4px;
+}
+.Transaction-status--error {
+  color: red;
+}
+.SignalActivity {
+  margin-top: 10px;
+}
+.SignalActivity-header:not(:only-child) {
+  margin-bottom: 10px;
+}
+.Activity {
+  padding: 0 0 0 20px;
+  margin: 0;
+}
+.Activity li + li {
+  margin-top: 10px;
+}
+.LoadingMore {
+  text-align: center;
+  padding: 10px;
+}
