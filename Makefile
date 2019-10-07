@@ -139,3 +139,6 @@ build-purs-watch: ## same as `make build-purs` but watches for changes for re-bu
 
 build-purs-editor: ## Same as `make build-purs` but with json output, it's used in `purescript.buildCommand` of `.vscode/settings.json`, this could potentially be useful for Atom users too.
 	pulp build --jobs 8 --src-path frontend/src -I dapp/src -- --json-errors
+
+faucet-locally: ## Faucet some ETH locally
+	pulp run --jobs 8 --src-path dapp/scripts -I dapp/src:frontend/src -m Faucet

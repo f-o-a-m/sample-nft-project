@@ -41,8 +41,7 @@ import Network.Ethereum.Web3.Api (eth_getAccounts, net_version)
 
 
 data Connectivity
-  = Loading
-  | Connected { userAddress :: Address }
+  = Connected { userAddress :: Address }
   | NotConnected { currentNetwork :: NetworkId, userAddress :: Maybe Address }
 
 derive instance genericConnectivity :: Generic Connectivity _
@@ -87,12 +86,12 @@ live ::
   , reconnectionDelay :: Milliseconds
   , provider :: Provider' Enabled
   }
-  -> Effect (Tuple (BRefR Connectivity) (Fiber Void))
+  -> Effect (Tuple (BRefR (Maybe Connectivity)) (Fiber Void))
 live opts= do
-  stateBRef <- BRef.make Loading
+  stateBRef <- BRef.make Nothing
   fib <- launchAff $ fix \loop -> do
     currentState <- liftEffect $ BRef.read stateBRef
-    res <- runWeb3 (toWeb3Provider opts.provider) $ sequential $ lift2 Tuple 
+    res <- runWeb3 (toWeb3Provider opts.provider) $ sequential $ lift2 Tuple
       (parallel $ net_version <#> NetworkId)
       (parallel $ eth_getAccounts <#> (_ !! 0))
     case res of
@@ -101,7 +100,7 @@ live opts= do
         liftEffect $ log $ "error during loadNetworkAndUserAddress: " <> printWeb3Error err
       Right (Tuple currentNetwork mbUserAddress) ->
         let
-          newSt = case mbUserAddress of
+          newSt = Just $ case mbUserAddress of
             Nothing -> NotConnected { currentNetwork, userAddress: Nothing }
             Just userAddress
               | opts.expectedNetwork == currentNetwork -> Connected { userAddress }

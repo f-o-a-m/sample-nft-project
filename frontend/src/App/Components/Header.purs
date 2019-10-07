@@ -1,94 +1,146 @@
-module App.Components.Header where
+module App.Components.Header (header, Props) where
 
 import Prelude
 
-import App.Data.Contracts (Contracts(..))
-import App.Data.ProviderState (ConnectedState)
+import App.Components.Avatar (avatar)
+import App.Components.Common (renderToken)
+import App.Data.Contracts (Contracts(..), networkName)
 import App.Data.ProviderState as ProviderState
-import App.Data.Token (Token(..))
+import App.Data.Token (FOAM, Token(..), tokenFromBigNumber)
 import App.Error (printCallError, printWeb3Error)
+import App.Ethereum.Provider as Provider
+import App.HTML (classy, maybeHtml)
+import App.HTML.Canceler (pushCanceler, runCancelers)
 import Contracts.FoamToken as FoamToken
 import Control.Lazy (fix)
 import Data.Either (Either(..), either)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (un)
-import Effect.Aff (Aff, Fiber, error, killFiber, launchAff, launchAff_)
+import Deploy.Utils (unsafeFromJust)
+import Effect (Effect)
+import Effect.Aff (Milliseconds(..), delay, fiberCanceler, launchAff)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
 import Etherium.TxOpts (txTo)
 import Network.Ethereum.Web3 (ChainCursor(..), EventAction(..), event, eventFilter, runWeb3)
+import Network.Ethereum.Web3.Api as Web3
+import Network.Ethereum.Web3.Types (ETHER)
 import React.Basic (JSX)
 import React.Basic as React
 import React.Basic.DOM as R
 import Type.Proxy (Proxy(..))
 
-component :: React.Component Props
-component = React.createComponent "Header"
-
 type Props =
   { providerState :: ProviderState.State
   }
 
+component :: React.Component Props
+component = React.createComponent "Header"
+
 type State =
-  { balance :: Maybe Token
-  , loadingFiber :: Maybe (Fiber Void)
+  { balance :: Maybe {foam :: Token FOAM, eth :: Token ETHER}
   }
+
 type Self = React.Self Props State
-
-reloadUserBalance :: Self -> ConnectedState -> Aff Unit
-reloadUserBalance self con = fix \loop -> do
-  res <- runWeb3 con.provider $ FoamToken.balanceOf (txTo (un Contracts con.contracts).foamToken ) Latest {account: con.userAddress}
-  case res of
-    Left web3Err -> log (printWeb3Error web3Err) *> loop
-    Right (Left callError) -> log (printCallError callError) *> loop
-    Right (Right balance) -> liftEffect $ self.setState _ {balance = Just $ Token balance}
-
-pullUserBalance :: Self -> ConnectedState -> Aff Void
-pullUserBalance self con = fix \loop -> do
-  res <- runWeb3 con.provider
-    $ void
-    $ event (eventFilter Proxy (un Contracts con.contracts).foamToken )
-    $ \t@(FoamToken.Transfer {from, to}) -> do
-      when (con.userAddress == from || con.userAddress == to) do
-        liftAff $ reloadUserBalance self con
-      pure ContinueEvent
-  either (log <<< printWeb3Error) pure res
-  loop
 
 header :: Props -> JSX
 header = React.make component
-  { initialState: { balance: Nothing, loadingFiber: Nothing } :: State
+  { initialState: { balance: Nothing }
   , render
   , willUnmount
   , didUpdate
   }
   where
+    willUnmount :: Self -> Effect Unit
+    willUnmount self = runCancelers self
+
+    didUpdate :: Self -> { prevProps :: Props, prevState :: State } -> Effect Unit
     didUpdate self {prevProps} = do
       let providerStateWasChanged = not ProviderState.partialEq self.props.providerState prevProps.providerState
       when (providerStateWasChanged) $ do
+        self.setState _ {balance = Nothing}
         for_ (ProviderState.viewConnectedState self.props.providerState) \con -> do
-          for_ self.state.loadingFiber $ killFiber (error "Provider state has changed") >>> launchAff_
-          fib <- launchAff (reloadUserBalance self con *> pullUserBalance self con)
-          self.setState _ {loadingFiber = Just fib}
+          runCancelers self
+          fib <- launchAff $ pollUserBalance self con
+          pushCanceler self $ fiberCanceler fib
 
-    willUnmount self = do
-      for_ self.state.loadingFiber $ killFiber (error "will unmount") >>> launchAff_
+    pollUserBalance self con = do
+      reloadUserBalance
+      -- void $ liftEffect do
+      --   lng <- randomRange 2.0 20.0
+      --   lat <- randomRange 2.0 20.0
+      --   radius <- map round $ randomRange 1.0 25.0
+      --   stake' <- map round $ randomRange 1.0 4.0
+      --   let stake = unsafeFromJust "invalid stake" $ uIntNFromBigNumber s256 $ toMinorUnit (mkValue (BN.embed stake') :: Value Ether)
+      --   Tx.send' (\from {foamToken,signalToken} -> NonEmptyList.cons
+      --     (FoamToken.approve (txOpts {from, to: foamToken}) { spender: signalToken, value: stake})
+      --     (NonEmptyList.singleton $ SignalToken.mintSignal
+      --       (txOpts {from, to: signalToken})
+      --       { owner: from
+      --       , geohash: geohashToBS32 $ geohashFromLngLat 5 {lng, lat}
+      --       , radius: unsafeFromJust "invalid radius" $ uIntNFromBigNumber s256 $ BN.embed radius
+      --       , stake
+      --       })
+      --     )
+      --     con
+      --     traceM
 
-    -- TODO make it look nice
-    -- TODO show avatar from address
-    -- TODO show proper network name
-    render self@{state, props} = R.div_
-      [ R.text "header"
-      , R.br {}
-      , R.text case props.providerState of
-          ProviderState.Unknown -> "Unknown"
-          ProviderState.NotInjected -> "NotInjected"
-          ProviderState.Injected -> "Injected"
-          ProviderState.Rejected _ -> "Rejected"
-          ProviderState.Enabled c _ _ -> "Enabled " <> show c
-      , R.br {}
-      , R.text $ "balance:" <> show state.balance
+      fix \loop -> do
+        res <- runWeb3 con.provider
+          $ void
+          $ event (eventFilter Proxy (un Contracts con.contracts).foamToken )
+          $ \t@(FoamToken.Transfer {from, to}) -> do
+            when (con.userAddress == from || con.userAddress == to) do
+              liftAff $ reloadUserBalance
+            pure ContinueEvent
+        either (log <<< printWeb3Error) pure res
+        loop
+      where
+        reloadUserBalance = fix \loop -> do
+          res <- runWeb3 con.provider do
+            foamBalance <- fix \retry -> FoamToken.balanceOf (txTo (un Contracts con.contracts).foamToken ) Latest {account: con.userAddress} >>= case _ of
+              Left callError ->do
+                log (printCallError callError)
+                liftAff $ delay (Milliseconds 3000.0)
+                retry
+              Right res -> pure res
+            ethBalance <- Web3.eth_getBalance con.userAddress Latest
+            pure
+              { foam: Token foamBalance
+              , eth: unsafeFromJust "eth_getBalance returned invalid result" $ tokenFromBigNumber ethBalance
+              }
+
+          case res of
+            Left web3Err -> log (printWeb3Error web3Err) *> delay (Milliseconds 100.0) *> loop
+            Right balance -> liftEffect $ self.setState _ {balance = Just balance}
+
+    render :: Self -> JSX
+    render self@{state, props} = classy R.div "Header"
+      [ R.div_ case props.providerState of
+          ProviderState.Unknown ->
+            []
+          ProviderState.NotInjected ->
+            [R.text "Web3 provider is not injected!"]
+          ProviderState.Injected {loading: false}->
+            [R.text "Web3 Connect Request was send."]
+          ProviderState.Injected {loading: true}->
+            [R.text "Loading network configuration"]
+          ProviderState.Rejected _ ->
+            [R.text "Web3 Connect Request was declined"]
+          ProviderState.Enabled (Provider.Connected {userAddress}) _ _ ->
+            [ R.text "Hi "
+            , avatar userAddress
+            , R.text " you are connected!"
+            , R.br {}
+            , case state.balance of
+                Nothing -> R.text "Loading balance"
+                Just {foam, eth} -> R.text "Your balance is " <> renderToken foam <> R.text " and " <> renderToken eth
+            ]
+          ProviderState.Enabled (Provider.NotConnected {userAddress}) _ (Contracts {networkId}) ->
+            [ maybeHtml userAddress \ua -> R.text "Hey " <> avatar ua <> R.text " "
+            , R.text $ "please connect to " <> networkName networkId
+            ]
       ]
 

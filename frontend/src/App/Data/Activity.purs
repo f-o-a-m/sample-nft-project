@@ -3,9 +3,8 @@ module App.Data.Activity where
 import Prelude
 
 import App.Data.Signal (Signal(..))
-import App.Data.SignalActivity (ListedForSaleR, SoledR)
-import App.Data.Token (Token)
-import Data.DateTime (DateTime)
+import App.Data.SignalActivity (ListedForSaleR, SoldR, UnlistedFromSaleR)
+import App.Data.Token (FOAM, Token)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Eq (genericEq)
 import Data.Generic.Rep.Ord (genericCompare)
@@ -17,11 +16,11 @@ data Activity
   = TokenTransfer
     { from :: Address
     , to :: Address
-    , amount :: Token
-    , timestamp :: DateTime
+    , amount :: Token FOAM
     }
   | SignalListedForSale (ListedForSaleR (signal :: Signal))
-  | SignalSoled (SoledR (signal :: Signal))
+  | SignalUnlistedFromSale (UnlistedFromSaleR (signal :: Signal))
+  | SignalSold (SoldR (signal :: Signal))
 
 
 derive instance genericActivity :: Generic Activity _
@@ -34,4 +33,5 @@ getUserAddresses :: Activity -> Array Address
 getUserAddresses = case _ of
   TokenTransfer a -> [a.from, a.to]
   SignalListedForSale a -> [a.owner, (un Signal a.signal).owner]
-  SignalSoled a -> [a.owner, a.buyer, (un Signal a.signal).owner]
+  SignalUnlistedFromSale a -> [a.owner, (un Signal a.signal).owner]
+  SignalSold a -> [a.owner, a.buyer, (un Signal a.signal).owner]

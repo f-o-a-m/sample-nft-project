@@ -13,15 +13,18 @@ module Data.Geohash
 
 import Prelude
 
-import Data.Argonaut as A
 import Data.ByteString as BS
 import Data.Function.Uncurried (Fn2, runFn2)
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Eq (genericEq)
+import Data.Generic.Rep.Ord (genericCompare)
+import Data.Generic.Rep.Show (genericShow)
 import Data.Int (hexadecimal, radix)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Newtype (class Newtype)
 import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Network.Ethereum.Core.BigNumber (parseBigNumber, toString)
-import Network.Ethereum.Core.HexString (HexString, mkHexString, toHexString, unHex)
+import Network.Ethereum.Core.HexString (HexString, mkHexString, padLeft, toByteString, toHexString, unHex)
 import Network.Ethereum.Web3 (BytesN, fromByteString)
 import Network.Ethereum.Web3.Solidity.Sizes (S32, s32)
 import Node.Encoding (Encoding(Hex))
@@ -29,18 +32,11 @@ import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 
 newtype Geohash = Geohash String
 
-derive newtype instance geohashEq :: Eq Geohash
-derive newtype instance geohashOrd :: Ord Geohash
-derive instance geohashNewtype :: Newtype Geohash _
-
-instance geohashShow :: Show Geohash where
-  show (Geohash gh) = gh
-
-instance decodeJsonGeohash :: A.DecodeJson Geohash where
-  decodeJson = map Geohash <<< A.decodeJson
-
-instance encodeJsonGeohash :: A.EncodeJson Geohash where
-  encodeJson (Geohash gh) = A.encodeJson gh
+derive instance newtypeGeohash :: Newtype Geohash _
+derive instance genericGeohash :: Generic Geohash _
+instance eqGeohash :: Eq Geohash where eq = genericEq
+instance ordGeohash :: Ord Geohash where compare = genericCompare
+instance showGeohash :: Show Geohash where show = genericShow
 
 foreign import toGeohash :: Fn2 Int {lat :: Number, lon :: Number} Geohash
 
@@ -78,7 +74,7 @@ geohashFromBS bs = geohashFromHex <<< unsafePartial fromJust <<< mkHexString $ B
 
 geohashToBS32 :: Geohash -> BytesN S32
 geohashToBS32 gh =
-  case fromByteString s32 $ geohashToBS gh of
+  case fromByteString s32 $ toByteString $ padLeft $ geohashToHex gh of
     Nothing -> unsafeCrashWith $ "geohash should be valid `BytesN S32`, but it wasn't " <> show gh
     Just gh' -> gh'
 

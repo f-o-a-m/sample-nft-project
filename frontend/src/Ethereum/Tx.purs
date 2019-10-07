@@ -9,23 +9,32 @@ import App.Data.SaleId (SaleId(..))
 import App.Data.SignalId (SignalId(..))
 import App.Data.Token (Token(..))
 import Contracts.SignalMarket as SignalMarket
+import Contracts.SignalToken as SignalToken
 import Control.Lazy (fix)
 import Data.Either (Either(..))
+import Data.List as List
+import Data.List.NonEmpty as NonEmptyList
+import Data.List.Types (NonEmptyList)
 import Data.Newtype (un)
 import Effect (Effect)
 import Effect.Aff (Canceler, Milliseconds(..), delay, fiberCanceler, launchAff)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Etherium.TxOpts (txOpts, txOpts')
-import Network.Ethereum.Web3 (Address, HexString, TransactionReceipt(..), TransactionStatus(..), Value, Web3, Web3Error, runWeb3)
+import Network.Ethereum.Web3 (Address, HexString, TransactionReceipt(..), TransactionStatus(..), Web3, Web3Error, fromMinorUnit, runWeb3, unUIntN)
 import Network.Ethereum.Web3.Api (eth_getTransactionReceipt)
 import Network.Ethereum.Web3.Types (ETHER)
-import Network.Ethereum.Web3.Types.TokenUnit (MinorUnit)
 
 data Tx
   = UnSell SaleId
-  | Sell SignalId Token
-  | Buy SaleId (Value (MinorUnit ETHER))
+  | Sell SignalId (Token ETHER)
+  | Buy SaleId (Token ETHER)
+
+type Progress =
+  { current :: Status
+  , finished :: Array HexString
+  , total :: Int
+  }
 
 data Status
   = Submitting
@@ -37,38 +46,45 @@ data Status
 send
   :: Tx
   -> ConnectedState
-  -> (Status -> Effect Unit)
+  -> (Progress -> Effect Unit)
   -> Effect Canceler
-send (UnSell (SaleId _saleId)) = send'
-  \userAddress {signalMarket} -> SignalMarket.unlist
-    (txOpts {from: userAddress, to: signalMarket})
-    { _saleId }
-send (Sell (SignalId _tokenId) (Token _price)) = send'
-  \userAddress {signalMarket} -> SignalMarket.forSale
-    (txOpts {from: userAddress, to: signalMarket})
-    { _tokenId, _price }
-send (Buy (SaleId _saleId) price) = send'
-  \userAddress {signalMarket} -> SignalMarket.buy
-    (txOpts' {from: userAddress, to: signalMarket, value: price})
-    { _saleId }
+send (UnSell (SaleId _saleId)) = send' \userAddress {signalMarket} ->
+  NonEmptyList.singleton $ SignalMarket.unlist (txOpts {from: userAddress, to: signalMarket}) { _saleId }
+send (Sell (SignalId _tokenId) (Token _price)) = send' \userAddress {signalMarket, signalToken} ->
+  NonEmptyList.cons
+    (SignalToken.approve (txOpts {from: userAddress, to: signalToken}) {to: signalMarket, tokenId: _tokenId})
+    (NonEmptyList.singleton $ SignalMarket.forSale (txOpts {from: userAddress, to: signalMarket}) { _tokenId, _price })
+send (Buy (SaleId _saleId) (Token price)) = send' \userAddress {signalMarket, foamToken} ->
+  NonEmptyList.singleton $ SignalMarket.buy (txOpts' {from: userAddress, to: signalMarket, value: fromMinorUnit $ unUIntN price}) { _saleId }
 
 send'
-  :: (Address -> ContractsR -> Web3 HexString)
+  :: (Address -> ContractsR -> NonEmptyList (Web3 HexString))
   -> ConnectedState
-  -> (Status -> Effect Unit)
+  -> (Progress -> Effect Unit)
   -> Effect Canceler
-send' tx connection cb = fiberCanceler <$> launchAff do
-  liftEffect $ cb $ Submitting
-  sendRes <- runWeb3 connection.provider $ tx connection.userAddress (un Contracts connection.contracts)
-  case sendRes of
-    Left err -> liftEffect $ cb $ SubmittingFailed err
-    Right txHash -> do
-      liftEffect $ cb $ MiningStart txHash
-      txReceipt@(TransactionReceipt {status}) <- fix \poll ->
-        runWeb3 connection.provider (eth_getTransactionReceipt txHash) >>= case _ of
-          Left _ -> liftAff (delay $ Milliseconds 3000.0) *> poll
-          Right txRec -> pure txRec
-      case status of
-        Succeeded -> liftEffect $ cb $ MiningFinished txHash
-        Failed -> liftEffect $ cb $ MiningFailed txReceipt
-
+send' process connection cb = fiberCanceler <$> launchAff do
+  let
+    computations = process connection.userAddress (un Contracts connection.contracts)
+    total = NonEmptyList.length computations
+    {head, tail} = NonEmptyList.uncons computations
+  go {total, finished: []} head tail
+  where
+    go p computation computations = do
+      let emit current = liftEffect $ cb {current, total: p.total,finished: p.finished}
+      emit $ Submitting
+      sendRes <- runWeb3 connection.provider computation
+      case sendRes of
+        Left err -> emit $ SubmittingFailed err
+        Right txHash -> do
+          emit $ MiningStart txHash
+          txReceipt@(TransactionReceipt {status}) <- fix \poll ->
+            runWeb3 connection.provider (eth_getTransactionReceipt txHash) >>= case _ of
+              Left _ -> liftAff (delay $ Milliseconds 1000.0) *> poll
+              Right txRec -> pure txRec
+          case status of
+            Failed -> emit $ MiningFailed txReceipt
+            Succeeded ->
+              case computations of
+                List.Nil -> emit $ MiningFinished txHash
+                List.Cons computation' computations' ->
+                  go (p{ finished = [txHash] <> p.finished }) computation' computations'
