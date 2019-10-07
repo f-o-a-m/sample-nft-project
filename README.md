@@ -6,12 +6,16 @@ A sample NFT marketplace for buying and selling FOAM Signals.
 ## Install Requirements
 Requires `npm` and `stack`. This project uses [`chanterelle`](https://github.com/f-o-a-m/chanterelle) for deploying contracts and generating Purescript FFI bindings.
 
-You'll also need `libpq` bindings. On Ubuntu run `apt-get install -y libpq-dev`
+You'll also need `libpq` bindings. On Ubuntu run
+
+```sh
+apt-get install -y libpq-dev
+```
 
 ## Makefile
 There is a `Makefile` with commands for building different stages of the project and setting default environment variables. You can do
 
-```bash
+```sh
 make help
 ```
 
@@ -20,28 +24,58 @@ to see a help menu.
 ## Deploying
 
 ### 1. Install dependencies
-`> make install`
+
+```sh
+make install
+```
 
 ### 2. Compile smart contracts and generate bindings
-`> make compile-contracts`
+
+```sh
+make compile-contracts
+`
 
 ### 3. Start services
-`> docker-compose up -d`
+
+```sh
+docker-compose up -d
+```
 
 ### 4. Deploy contracts to ethereum
-`> make deploy-contracts`
+
+```sh
+make deploy-contracts
+```
 
 ### 5. Build the backend
-`> make build-server build-indexer`
+
+```sh
+make build-server build-indexer
+```
 
 ### 6. Build the frontend
-`> make build-purs build-dapp frontend-build`
+
+```sh
+make build-purs build-dapp frontend-build
+```
 
 ### 7. Start the app
 In three separate terminals, run
-- `> make run-indexer`
-- `> make run-server`
-- `> make frontend-start`
+a.
+
+```sh
+make run-indexer
+```
+b.
+
+```sh
+make run-server
+```
+c.
+
+```sh
+`make frontend-start
+```
 
 ## Detailed documentation
 
@@ -49,4 +83,30 @@ More detailed documentation are available for the following components:
 - [server](https://github.com/f-o-a-m/sample-nft-project/blob/master/server/README.md)
 - [indexer](https://github.com/f-o-a-m/sample-nft-project/blob/master/indexer/README.md)
 
+## Testing
 
+The application comes with both a unit and an end-to-end test suite.
+
+### Unit tests
+To run the unit-tests, make sure that the docker services are running:
+
+```sh
+docker-compose up -d
+```
+
+Then run:
+
+```sh
+make test-dapp
+```
+
+This will create an _ephemeral_ deployment of the smart contracts and run tests against them.
+
+### End-to-end tests
+The end-to-end tests demonstrate the full lifecycle of the different components of the stack. To run them, you should have a deployment already by following steps 1-7 above (you can skip 7c). Once the contracts are deployed and the indexer and the server are running, run:
+
+```sh
+make test-e2e
+```
+
+The tests are written in PureScript and will set up listeners from Ethereum, the server as websockets (via the indexer) and will trigger contract interactions and test the pipeline by anticipating the correct response from the services. It can also compare the data from the services with that emitted as events from Ethereum itself.
