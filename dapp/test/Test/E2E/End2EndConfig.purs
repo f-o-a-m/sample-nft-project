@@ -6,6 +6,7 @@ module Test.E2E.End2EndConfig
 
 import Prelude
 
+import Chanterelle.Test (assertWeb3)
 import Data.Array ((!!), drop)
 import Data.Maybe (fromJust, fromMaybe)
 import Effect.Aff (Aff, Milliseconds(..), delay)
@@ -18,7 +19,6 @@ import Partial.Unsafe (unsafePartial)
 import Servant.Client (ClientEnv(..))
 import Test.MarketClient.Client as API
 import Test.Websocket (createWebSocket, WebSocket)
-import Test.Utils (expectWeb3)
 
 type End2EndConfig =
   { provider :: Provider
@@ -40,10 +40,11 @@ mkEnd2EndConfig = do
   provider <- liftEffect do
     url <- fromMaybe "http://localhost:8545" <$> NP.lookupEnv "NODE_URL"
     httpProvider url
-  clientEnv@(ClientEnv{baseURL}) <- liftEffect getClientEnv
-  accounts <- liftAff $ expectWeb3 "eth_getAccounts" provider eth_getAccounts
+  clientEnv@(ClientEnv{baseURL, protocol}) <- liftEffect getClientEnv
+  accounts <- liftAff $ assertWeb3 provider eth_getAccounts
   contractAddresses <- getContractAddresses clientEnv
-  ws <- createWebSocket baseURL <* delay (Milliseconds 5000.0)
+  let apiURL = protocol <> ":" <> baseURL
+  ws <- createWebSocket apiURL <* delay (Milliseconds 5000.0)
   pure { provider
        , clientEnv
        , contractAddresses

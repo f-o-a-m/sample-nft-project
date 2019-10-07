@@ -116,6 +116,10 @@ subscriptionC = awaitForever $ \rc -> do
   ks <- lift . liftIO $ readIORef subscriptionRef
   let matchingSubscriptions = filterSubscriptionKeys rc ks
       outgoingMessages = map (mkWSMessage rc) matchingSubscriptions
+  flip mapM_ outgoingMessages $ \WebSocketMsg{webSocketMsgContents} ->
+    flip mapM_ matchingSubscriptions $ \(SubscriptionID sid,_,_) -> lift $ do
+      K.katipAddContext webSocketMsgContents $
+        K.logFM K.DebugS $ fromString ("Outgoing WS Message -- " <> sid)
   sourceList outgoingMessages
   where
 
