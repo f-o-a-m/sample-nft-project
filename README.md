@@ -4,7 +4,7 @@
 A sample NFT marketplace for buying and selling FOAM Signals.
 
 ## Install Requirements
-Requires `npm` and `stack`. This project uses [`chanterelle`](https://github.com/f-o-a-m/chanterelle) for deploying contracts and generating Purescript FFI bindings.
+Requires `npm`, `node` and [`stack`](http://haskellstack.org). This project uses [`chanterelle`](https://github.com/f-o-a-m/chanterelle) for deploying contracts and generating Purescript FFI bindings.
 
 You'll also need `libpq` bindings. On Ubuntu run
 
@@ -33,12 +33,14 @@ make install
 
 ```sh
 make compile-contracts
-`
+```
 
-### 3. Start services
+### 3. Start services and run migrations
+Note that both table creation and migration runs from within docker, to avoid having to install `psql` and `flyway` on the host machine.
 
 ```sh
 docker-compose up -d
+make migrate
 ```
 
 ### 4. Deploy contracts to ethereum
