@@ -61,17 +61,14 @@ make build-purs build-dapp frontend-build
 
 ### 7. Start the app
 In three separate terminals, run
-a.
 
 ```sh
 make run-indexer
 ```
-b.
 
 ```sh
 make run-server
 ```
-c.
 
 ```sh
 `make frontend-start
@@ -103,7 +100,7 @@ make test-dapp
 This will create an _ephemeral_ deployment of the smart contracts and run tests against them.
 
 ### End-to-end tests
-The end-to-end tests demonstrate the full lifecycle of the different components of the stack. To run them, you should have a deployment already by following steps 1-7 above (you can skip 7c). Once the contracts are deployed and the indexer and the server are running, run:
+The end-to-end tests demonstrate the full lifecycle of the different components of the stack. To run them, you should have a deployment already by following steps 1-7 above (you can skip `make frontend-start`). Once the contracts are deployed and the indexer and the server are running, run:
 
 ```sh
 make test-e2e
