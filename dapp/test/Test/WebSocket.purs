@@ -128,7 +128,7 @@ changeWSProducer sId busR = do
           if msg.subscriptionID /= sId
             then pure unit
             else AVar.put msg.contents changeVar
-      changeProducer = fromProducer $ producer $ Left <$> AVar.read changeVar
+      changeProducer = fromProducer $ producer $ Left <$> AVar.take changeVar
   f <- forkAff writeLoop
   let writeLoopCanceler = do
         killFiber (error "producer ended") f
