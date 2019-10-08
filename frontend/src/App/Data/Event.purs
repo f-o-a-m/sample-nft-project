@@ -8,7 +8,6 @@ import App.Data.Signal (Signal(..))
 import App.Data.SignalActivity (SignalActivity(..))
 import App.Data.SignalId (SignalId(..))
 import App.Data.Token (Token(..))
-import Contracts.FoamToken as FoamToken
 import Contracts.SignalMarket as SignalMarket
 import Contracts.SignalToken as SignalToken
 import Control.MonadZero (guard)
