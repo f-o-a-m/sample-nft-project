@@ -12,16 +12,18 @@ import Contracts.SignalMarket as SignalMarket
 import Contracts.SignalToken as SignalToken
 import Control.Lazy (fix)
 import Data.Either (Either(..))
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Show (genericShow)
 import Data.List as List
 import Data.List.NonEmpty as NonEmptyList
 import Data.List.Types (NonEmptyList)
 import Data.Newtype (un)
 import Effect (Effect)
-import Effect.Aff (Canceler, Milliseconds(..), delay, fiberCanceler, launchAff)
+import Effect.Aff (Aff, Canceler, Milliseconds(..), delay, fiberCanceler, launchAff)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Etherium.TxOpts (txOpts, txOpts')
-import Network.Ethereum.Web3 (Address, HexString, TransactionReceipt(..), TransactionStatus(..), Web3, Web3Error, fromMinorUnit, runWeb3, unUIntN)
+import Network.Ethereum.Web3 (Address, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), Web3, Web3Error, fromMinorUnit, runWeb3, unUIntN)
 import Network.Ethereum.Web3.Api (eth_getTransactionReceipt)
 import Network.Ethereum.Web3.Types (ETHER)
 
@@ -42,6 +44,9 @@ data Status
   | MiningStart HexString
   | MiningFailed TransactionReceipt
   | MiningFinished HexString
+
+derive instance genericStatus :: Generic Status _
+instance showStatus :: Show Status where show = genericShow
 
 send
   :: Tx
@@ -77,14 +82,20 @@ send' process connection cb = fiberCanceler <$> launchAff do
         Left err -> emit $ SubmittingFailed err
         Right txHash -> do
           emit $ MiningStart txHash
-          txReceipt@(TransactionReceipt {status}) <- fix \poll ->
-            runWeb3 connection.provider (eth_getTransactionReceipt txHash) >>= case _ of
-              Left _ -> liftAff (delay $ Milliseconds 1000.0) *> poll
-              Right txRec -> pure txRec
-          case status of
-            Failed -> emit $ MiningFailed txReceipt
-            Succeeded ->
-              case computations of
-                List.Nil -> emit $ MiningFinished txHash
-                List.Cons computation' computations' ->
-                  go (p{ finished = [txHash] <> p.finished }) computation' computations'
+          awaitMined txHash connection.provider >>= case _ of
+            Left err -> emit $ MiningFailed err
+            Right _ -> case computations of
+              List.Nil -> emit $ MiningFinished txHash
+              List.Cons computation' computations' ->
+                go (p{ finished = [txHash] <> p.finished }) computation' computations'
+
+
+awaitMined :: HexString -> Provider -> Aff (Either TransactionReceipt Unit)
+awaitMined txHash provider = do
+  txReceipt@(TransactionReceipt {status}) <- fix \poll ->
+    runWeb3 provider (eth_getTransactionReceipt txHash) >>= case _ of
+      Left _ -> liftAff (delay $ Milliseconds 1000.0) *> poll
+      Right txRec -> pure txRec
+  case status of
+    Failed -> pure $ Left txReceipt
+    Succeeded -> pure $ Right unit
