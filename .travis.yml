@@ -49,6 +49,7 @@ install:
 script:
 - PGHOST=localhost make run-indexer &
 - PGHOST=localhost make run-server &
+- PGHOST=localhost make run-gql-server &
 - make test-e2e
 - make test-dapp
 - make hlint
