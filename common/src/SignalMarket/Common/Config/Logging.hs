@@ -6,6 +6,7 @@ module SignalMarket.Common.Config.Logging
   ( LogConfig(..)
   , HasLogConfig(..)
   , mkLogConfig
+  , LoggingM
   ) where
 
 import           Control.Lens           (Lens', over, view)
@@ -39,6 +40,8 @@ instance (MonadIO m, MonadReader config m, HasLogConfig config) => K.KatipContex
   localKatipContext f m = local (over (logConfig . logContext) f) m
   getKatipNamespace = view (logConfig . logNamespace)
   localKatipNamespace f m = local (over (logConfig . logNamespace) f) m
+
+type LoggingM m = (K.Katip m, K.KatipContext m)
 
 mkLogConfig :: Text -> IO LogConfig
 mkLogConfig processName = do
