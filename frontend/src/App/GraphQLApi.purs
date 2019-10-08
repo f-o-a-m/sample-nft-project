@@ -1,6 +1,5 @@
 module App.GraphQLApi
   ( getSignalOwnerStats
-  , SignalOwnerStats(..)
   ) where
 
 import Prelude
@@ -11,20 +10,17 @@ import Affjax.RequestBody (RequestBody(..))
 import Affjax.RequestHeader (RequestHeader(..))
 import Affjax.ResponseFormat as ResponseFormat
 import App.Data.Collections (Cursor, Collection)
-import App.Data.SignalOwnerStats (SignalOwnerStats(..))
+import App.Data.SignalOwnerStats (SignalOwnerStats)
 import Control.Monad.Error.Class (throwError)
-import Data.Argonaut (class DecodeJson, class EncodeJson, JCursor(..), Json, cursorGet, decodeJson, downField, encodeJson, stringify, (.:), (:=), (~>))
+import Data.Argonaut (class DecodeJson, class EncodeJson, JCursor(..), Json, cursorGet, decodeJson, downField, encodeJson, stringify, (.:))
 import Data.Either (Either(..), either)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Eq (genericEq)
-import Data.Generic.Rep.Show (genericShow)
 import Data.HTTP.Method (Method(..))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Time.Duration (Minutes(..), fromDuration)
 import Effect.Aff (Aff)
 import Effect.Exception (error)
-import Network.Ethereum.Core.BigNumber (BigNumber)
-import Network.Ethereum.Core.Signatures (Address)
 import Record.Extra (sequenceRecord)
 
 
