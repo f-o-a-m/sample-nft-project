@@ -31,7 +31,7 @@ swaggerServer :: Server SwaggerAPI
 swaggerServer = pure $ toSwagger api
   & info.title   .~ "FOAM Signal Market"
   & info.version .~ "0.1.0"
-  & schemes ?~ [Http]
+  & schemes ?~ [Http, Http]
 --  & tags .~ fromList ["foam"]
 --  & host ?~ Host (indexHost swConfig) (Just . fromIntegral $ indexPort swConfig)
 
