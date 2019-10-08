@@ -1,5 +1,6 @@
 -- This is a repeated migration that will run whenever a change is detected in the file.
 -- We will define roles, some user defined functions, and use postgraphile's smart comments to customize our graphql api.
+-- For more details on working with Postgraphile see: https://www.graphile.org/postgraphile/introduction.
 
 
 -------------------------------------------------------------------------
@@ -41,6 +42,7 @@ BEGIN
     GRANT graphql_api_user to postgres;
 END
 $do$;
+
 
 -- Grant usage for public schema.
 GRANT USAGE ON SCHEMA public to graphql_api_user;
