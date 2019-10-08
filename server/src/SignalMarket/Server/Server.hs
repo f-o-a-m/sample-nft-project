@@ -1,11 +1,11 @@
 module SignalMarket.Server.Server (server, mkApplication) where
 
-import           Control.Lens                          ((&), (.~), (?~))
+import           Control.Lens                            ((&), (.~), (?~))
 import           Data.Proxy
+import           Data.Swagger
 import           Servant.API                             ((:<|>) (..))
 import           Servant.Server
 import           Servant.Swagger
-import Data.Swagger
 import           SignalMarket.Server.API
 import           SignalMarket.Server.API.Types           ()
 import           SignalMarket.Server.Application         (runAppHandler)
