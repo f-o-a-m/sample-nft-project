@@ -2,6 +2,7 @@ module Test.E2E.Main where
 
 import Prelude
 
+import Data.Array (cons)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Aff (Milliseconds(..), launchAff)
@@ -19,7 +20,7 @@ main = void <<< launchAff $ do
       tempConfig = { foamToken
                    , signalToken
                    , signalMarket
-                   , accounts: e2eConfig.accounts
+                   , accounts: e2eConfig.faucetAddress `cons` e2eConfig.accounts
                    , provider: e2eConfig.provider
                    }
   join $ runSpecT specConfig [consoleReporter] do
