@@ -4,6 +4,11 @@ module SignalMarket.Common.Models.RawChange where
 
 import qualified Data.Aeson                     as A
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
+import           Data.Swagger                   (SwaggerType (..),
+                                                 ToParamSchema (..),
+                                                 ToSchema (..),
+                                                 defaultSchemaOptions,
+                                                 genericDeclareNamedSchema)
 import           GHC.Generics                   (Generic)
 import qualified Katip                          as K
 import           Opaleye                        (Field, SqlArray, SqlBool,
@@ -31,6 +36,10 @@ $(makeAdaptorAndInstance "pRawChange" ''RawChange')
 
 type RawChangePG = RawChange' (Field SqlNumeric) (Field SqlNumeric) (Field SqlText) (Field SqlBool) (Field SqlText) (Field SqlNumeric) (Field SqlText) (Field SqlText) (Field (SqlArray SqlText)) (Field SqlText)
 type RawChange = RawChange' HexInteger HexInteger HexString Bool HexString HexInteger EthAddress HexString [HexString] EventID
+
+instance ToSchema RawChange where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
 
 rawChangeTable :: Table RawChangePG RawChangePG
 rawChangeTable = table "raw_change"

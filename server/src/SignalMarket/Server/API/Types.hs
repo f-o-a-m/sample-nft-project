@@ -40,7 +40,7 @@ data WithMetadata a = WithMetadata
   } deriving Generic
 
 instance (ToSchema a) => ToSchema (WithMetadata a) where
-  declareNamedSchema _ = undefined --genericDeclareNamedSchema defaultSchemaOptions proxy
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
 instance A.ToJSON a => A.ToJSON (WithMetadata a) where
   toJSON = A.genericToJSON (defaultAesonOptions "withMetadata")
@@ -82,6 +82,10 @@ data SignalWithSaleSummary = SignalWithSaleSummary
   , signalWithSaleResponseSale   :: Maybe SaleSummary
   } deriving Generic
 
+instance ToSchema SignalWithSaleSummary where
+    declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
+
 instance A.ToJSON SignalWithSaleSummary where
   toJSON = A.genericToJSON (defaultAesonOptions "signalWithSaleSummary")
 
@@ -89,6 +93,10 @@ data SaleSummary = SaleSummary
   { saleSummarySaleID :: SaleID
   , saleSummaryPrice  :: Value
   } deriving Generic
+
+instance ToSchema SaleSummary where
+    declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
 
 instance A.ToJSON SaleSummary where
   toJSON = A.genericToJSON (defaultAesonOptions "saleSummary")
@@ -98,6 +106,10 @@ data SignalWithMarketHistoryResponse = SignalWithMarketHistoryResponse
   , signalWithMarketHistoryResponseHistory :: [WithMetadata MarketHistory]
   } deriving Generic
 
+instance ToSchema SignalWithMarketHistoryResponse where
+    declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
+
 instance A.ToJSON SignalWithMarketHistoryResponse where
   toJSON = A.genericToJSON (defaultAesonOptions "signalWithMarketHistoryResponse")
 
@@ -106,6 +118,10 @@ data MarketHistory =
   | Sold Sold.SignalSold
   | Unlisted Unlisted.SignalUnlisted
   deriving Generic
+
+instance ToSchema MarketHistory where
+    declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
 
 instance A.ToJSON MarketHistory where
   toJSON = A.genericToJSON (defaultAesonOptions  "")

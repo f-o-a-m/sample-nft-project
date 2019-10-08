@@ -10,9 +10,9 @@ import           Control.Lens                     ((^?))
 import           Control.Monad.IO.Class
 import qualified Data.Aeson                       as AE
 import qualified Data.Aeson.Lens                  as AEL
-import           Data.ByteArray.HexString         (HexString)
+--import           Data.ByteArray.HexString         (HexString)
 import           Data.Proxy
-import           Data.Solidity.Prim.Address       (Address)
+--import           Data.Solidity.Prim.Address       (Address)
 import           Data.String.Conversions          (cs)
 import           Data.Swagger                     (SwaggerType (..),
                                                    ToParamSchema (..),
@@ -23,8 +23,8 @@ import           Data.Text                        (Text)
 import           GHC.Generics                     (Generic)
 import           SignalMarket.Common.Aeson
 import           SignalMarket.Common.Config.Utils
-import           SignalMarket.Common.EventTypes   (HexInteger)
-import           SignalMarket.Common.EventTypes   (EthAddress)
+import           SignalMarket.Common.EventTypes   (EthAddress, HexInteger,
+                                                   HexString)
 
 -- | A record of the contracts used in the nft-market DApp.
 data Contracts = Contracts

@@ -5,6 +5,11 @@ module SignalMarket.Common.Models.SignalMarketSignalUnlisted where
 
 import qualified Data.Aeson                     as A
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
+import           Data.Swagger                   (SwaggerType (..),
+                                                 ToParamSchema (..),
+                                                 ToSchema (..),
+                                                 defaultSchemaOptions,
+                                                 genericDeclareNamedSchema)
 import           GHC.Generics                   (Generic)
 import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
@@ -23,6 +28,10 @@ $(makeAdaptorAndInstance "pSignalUnlisted" ''SignalUnlisted')
 
 type SignalUnlistedPG = SignalUnlisted' (Field SqlNumeric) (Field SqlNumeric) (Field SqlText)
 type SignalUnlisted = SignalUnlisted' SaleID TokenID EventID
+
+instance ToSchema SignalUnlisted where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
 
 signalUnlistedTable :: Table SignalUnlistedPG SignalUnlistedPG
 signalUnlistedTable = table "signal_unlisted"
