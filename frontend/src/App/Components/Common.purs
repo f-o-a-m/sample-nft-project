@@ -166,8 +166,7 @@ txOrElse tx btn = classy R.div "Transaction" case tx of
             [R.text $ progress <> " MiningFailed " <> show transactionReceipt]
         ]
       Tx.MiningFinished txHash ->
-        [ btn
-        , classy R.div "Transaction-status"
+        [ classy R.div "Transaction-status"
             [R.text $ progress <> " MiningFinished " <> show txHash]
         ]
 

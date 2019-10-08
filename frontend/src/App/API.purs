@@ -242,6 +242,7 @@ getSignal' sid = do
 
 getActivity :: Cursor -> Aff (Collection Activity)
 getActivity c = do
+  -- TODO actually load activity
   delay $ Milliseconds 1000.0
   pure
     { items:
