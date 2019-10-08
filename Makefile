@@ -25,9 +25,11 @@ PGPASSWORD ?= password
 PGUSER ?= postgres
 
 GRAPHQL_PORT ?= 3003
+GRAPHQL_API ?= 3003
 GRAPHQL_PATH ?= /
 GRAPHQL_PG_SCHEMAS ?= public
 GRAPHQL_SIMPLE_AUTH_TOKEN ?= super_secret_token
+GRAPHQL_API_URL ?= http://localhost:3003/graphql
 
 PSQL ?= docker-compose run postgis psql
 FLYWAY ?= docker-compose run flyway

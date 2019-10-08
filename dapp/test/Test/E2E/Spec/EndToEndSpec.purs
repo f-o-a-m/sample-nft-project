@@ -2,12 +2,14 @@ module Test.E2E.Spec.End2EndSpec where
 
 import Prelude
 
+import App.GraphQLApi (getSignalOwnerStats)
 import Chanterelle.Test (assertWeb3)
 import Contracts.FoamToken as FoamToken
 import Control.Coroutine as C
 import Control.Monad.Error.Class (class MonadError)
 import Control.Monad.Reader (ask)
 import Data.Array (filter, head, (!!))
+import Data.Foldable (length)
 import Data.Lens ((?~))
 import Data.Maybe (Maybe(..), fromJust)
 import Deploy.Utils (mkUIntN)
@@ -59,12 +61,10 @@ spec' cfg@{provider, clientEnv, accounts, contractAddresses, faucetAddress} env@
   beforeAll_ (faucetTokens env { foamToken,  tokenFaucet: faucetAddress, provider, account1, account2 }) $ do
     describe "indexer/server interaction" $ parallel do
       it "can track foam token transfers" do
-        sendTokens cfg env {to: account1, from: account2, amount: 1}
-      it "can track signal token creation" do
-        pure unit
-      it "can track signals for sale" do
-        pure unit
-      it "can track signals sold" do
+       sendTokens cfg env {to: account1, from: account2, amount: 1}
+      it "can get the signal owner stats via graphql api" $ void $ liftAff $ do
+        {items} <- getSignalOwnerStats {limit:100, offset: 0}
+        (length items > 0) `shouldEqual` true
         pure unit
 
 monitorUntilEvent

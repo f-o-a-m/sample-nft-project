@@ -11,12 +11,14 @@ import Affjax.RequestBody (RequestBody(..))
 import Affjax.RequestHeader (RequestHeader(..))
 import Affjax.ResponseFormat as ResponseFormat
 import App.Data.Collections (Cursor, Collection)
+import App.Data.SignalOwnerStats (SignalOwnerStats(..))
 import Control.Monad.Error.Class (throwError)
 import Data.Argonaut (class DecodeJson, class EncodeJson, JCursor(..), Json, cursorGet, decodeJson, downField, encodeJson, stringify, (.:), (:=), (~>))
 import Data.Either (Either(..), either)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Eq (genericEq)
 import Data.Generic.Rep.Show (genericShow)
+import Data.HTTP.Method (Method(..))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Time.Duration (Minutes(..), fromDuration)
 import Effect.Aff (Aff)
@@ -33,7 +35,7 @@ newtype GraphQLBody = GraphQLBody
 derive instance genericGraphQLBody :: Generic GraphQLBody  _
 instance eqGraphQLBody :: Eq GraphQLBody where eq = genericEq
 instance encodeJsonGraphQLBody :: EncodeJson GraphQLBody where
-  encodeJson (GraphQLBody {query, variables}) = "query" := query ~> "variables" := variables
+  encodeJson (GraphQLBody {query, variables}) = encodeJson {query, variables}
 
 
 newtype Nodes a = Nodes { nodes :: Array a }
@@ -47,8 +49,8 @@ mkGraphQLQuery :: GraphQLBody
                -> Aff Json
 mkGraphQLQuery gbod = do
   let
-    headers = AJ.defaultRequest.headers <> (maybe [] (\key -> [RequestHeader "Authorization" ("Bearer" <> key)]) graphQLApiKey)
-    request = AJ.defaultRequest { url = graphQLApiUrl, responseFormat = ResponseFormat.json, content = Just (Json $ encodeJson gbod)}
+    headers = AJ.defaultRequest.headers <> ([RequestHeader "Authorization" ("Bearer " <> graphQLApiKey)])
+    request = AJ.defaultRequest { url = graphQLApiUrl, responseFormat = ResponseFormat.json, content = Just (Json $ encodeJson gbod), method = Left POST, headers = headers}
     retryPolicy = AJ.defaultRetryPolicy {timeout = Just $ fromDuration $ Minutes 0.4}
   resp <- AJ.retry retryPolicy AJ.request request
   case resp.body of
@@ -69,71 +71,28 @@ mkGraphQLQuery gbod = do
     }
 
 foreign import graphQLApiUrl :: String
-foreign import graphQLApiKey :: Maybe String
+foreign import graphQLApiKey :: String
 
-newtype SignalOwnerStats = SignalOwnerStats
-    { ethAddress            :: Address
-    , numberOwned           :: BigNumber
-    , numberOfPurchases     :: BigNumber
-    , averagePurchasePrice  :: BigNumber
-    , totalPurchases        :: BigNumber
-    , numberOfSales         :: BigNumber
-    , averageSalePrice      :: BigNumber
-    , totalSales            :: BigNumber
-    }
-derive instance genericSignalOwnerStats :: Generic SignalOwnerStats _
-instance eqSignalOwnerStats :: Eq SignalOwnerStats where eq = genericEq
-instance showSignalOwnerStats :: Show SignalOwnerStats where show = genericShow
-instance decodeJsonSignalOwnerStats :: DecodeJson SignalOwnerStats where
-  decodeJson = decodeJson >=> \obj -> SignalOwnerStats <$> sequenceRecord
-    { ethAddress: obj .: "ethAddress"
-    , numberOwned: obj .: "numberOwned"
-    , numberOfPurchases: obj .: "numberOfPurchases"
-    , averagePurchasePrice: obj .: "averagePurchasePrice"
-    , totalPurchases: obj .: "totalPurchases"
-    , numberOfSales: obj .: "numberOfSales"
-    , averageSalePrice: obj .: "averageSalePrice"
-    , totalSales: obj .: "totalSales"
-    }
+getSignalOwnerStats :: Cursor -> Aff (Collection SignalOwnerStats)
+getSignalOwnerStats c = do
+  res <- mkGraphQLQuery $ soldStatsQuery c
+  let failInvalidJson err = throwError $ error $ err <> " "  <> stringify res
+  { signalOwnerStats: Nodes { nodes: stats  } } :: {signalOwnerStats :: Nodes SignalOwnerStats} <- either failInvalidJson pure (decodeJson res)
+  pure {items: stats, next: Just {limit: c.limit, offset:c.offset + c.limit}}
 
-type BlockRange =
-  { startBlock :: Int
-  , endBlock   :: Int
-  }
-
-getSignalOwnerStats :: BlockRange -> Cursor -> Aff (Collection SignalOwnerStats)
-getSignalOwnerStats br c = do
-  res <- mkGraphQLQuery $ soldStatsQuery br c
-  let
-    field = "signalOwnerStats"
-    failMissingField = throwError $ error $ "missing " <> field <> " from " <> stringify res
-    failInvalidJson = throwError $ error $ "Invalid JSON structure: " <> stringify res
-  case cursorGet (downField field JCursorTop) res of
-    Nothing -> failMissingField
-    Just jsonStats -> do
-      Nodes {nodes: stats} <- either (const failInvalidJson) pure (decodeJson jsonStats)
-      pure {items: stats, next: Just {limit: c.limit, offset:c.offset + c.limit}}
-
-soldStatsQuery :: BlockRange -> Cursor -> GraphQLBody
-soldStatsQuery {startBlock, endBlock} {limit, offset} = GraphQLBody { query, variables }
+soldStatsQuery :: Cursor -> GraphQLBody
+soldStatsQuery cursor = GraphQLBody { query, variables }
  where
-  variables = "startBlock" := startBlock
-           ~> "endBlock"   := endBlock
-           ~> "limit"      := limit
-           ~> "offset"     := offset
+  variables = encodeJson cursor
   query =
     """
       query SignalOwnerStats(
         $limit: Int!
         $offset: Int!
-        $startBlock: BigFloat
-        $endBlock: BigFloat
       ) {
         signalOwnerStats(
           first: $limit
           offset: $offset
-          startBlock: $startBlock
-          endBlock: $endBlock
         ) {
           nodes {
             ethAddress
