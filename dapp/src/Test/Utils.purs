@@ -89,11 +89,10 @@ monitorUntil
      MonadAff m
   => DecodeEvent i ni e
   => Provider
-  -> Logger m
   -> Web3 HexString
   -> Filter e
   -> m e
-monitorUntil provider logger action filter = liftAff do
+monitorUntil provider action filter = liftAff do
   valueV <- AVar.empty
   txHashV <- AVar.empty
   -- find the right trx via its hash
