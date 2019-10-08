@@ -10,9 +10,7 @@ import           Control.Lens                     ((^?))
 import           Control.Monad.IO.Class
 import qualified Data.Aeson                       as AE
 import qualified Data.Aeson.Lens                  as AEL
---import           Data.ByteArray.HexString         (HexString)
 import           Data.Proxy
---import           Data.Solidity.Prim.Address       (Address)
 import           Data.String.Conversions          (cs)
 import           Data.Swagger                     (SwaggerType (..),
                                                    ToParamSchema (..),
