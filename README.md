@@ -35,6 +35,8 @@ make install
 make compile-contracts
 ```
 
+This generates a `Contracts` directory in `dapp/src`, as specified in `chanterelle.json`.
+
 ### 3. Start services and run migrations
 Note that both table creation and migration runs from within docker, to avoid having to install `psql` and `flyway` on the host machine.
 
@@ -73,7 +75,7 @@ make run-server
 ```
 
 ```sh
-`make frontend-start
+make frontend-start
 ```
 
 ## Detailed documentation

@@ -15,6 +15,11 @@ import           Data.Solidity.Prim.Bytes             (BytesN)
 import           Data.Solidity.Prim.Int               (UIntN)
 import           Data.String                          (fromString)
 import           Data.String.Conversions              (cs)
+import           Data.Swagger                         (SwaggerType (..),
+                                                       ToParamSchema (..),
+                                                       ToSchema (..),
+                                                       defaultSchemaOptions,
+                                                       genericDeclareNamedSchema)
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 import qualified Data.Text.Lazy                       as TL (toStrict)
@@ -22,6 +27,7 @@ import qualified Data.Text.Lazy.Builder               as B
 import qualified Data.Text.Lazy.Builder.Int           as B
 import qualified Data.Text.Read                       as R
 import qualified Database.PostgreSQL.Simple.FromField as FF
+import qualified GHC.Generics                         as GHC (Generic)
 import           GHC.TypeLits
 import           Opaleye                              (Column, Constant,
                                                        SqlNumeric, SqlText,
@@ -37,7 +43,9 @@ import           Opaleye.Column                       (unsafeCast)
 -- | The basic type for any integer like data in Ethereum (e.g. block number, uint245, int8, etc.)
 -- | It serializes in JSON to a string representation of a hex encoded integer,
 -- | making it safe to return to Javascript clients.
-newtype HexInteger = HexInteger Integer deriving (Eq, Show, Ord, Num, Enum, Real, Integral)
+newtype HexInteger = HexInteger Integer deriving (Eq, Show, Ord, GHC.Generic, Num, Enum, Real, Integral)
+
+instance ToParamSchema HexInteger
 
 hexIntegerToText :: HexInteger -> Text
 hexIntegerToText (HexInteger n) = TL.toStrict . (<>) "0x" . B.toLazyText $ B.hexadecimal n
@@ -51,6 +59,9 @@ hexIntegerFromText t = case R.hexadecimal . maybeTrim $ t of
 
 instance A.ToJSON HexInteger where
     toJSON = A.toJSON . hexIntegerToText
+
+instance ToSchema HexInteger where
+    declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
 instance A.FromJSON HexInteger where
     parseJSON (A.String v) = either fail pure . hexIntegerFromText $ v
@@ -69,7 +80,10 @@ _HexInteger = iso (HexInteger . toInteger) (\(HexInteger n) -> fromInteger n)
 --------------------------------------------------------------------------------
 
 -- | Represents some quantity of tokens
-newtype Value = Value HexInteger deriving (Eq, Ord, Show, Num, Enum, Real, Integral, A.ToJSON, A.FromJSON)
+newtype Value = Value HexInteger deriving (Eq, Ord, Show, GHC.Generic, Num, Enum, Real, Integral, A.ToJSON, A.FromJSON)
+
+instance ToSchema Value where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
 instance D.Default ToFields Value (Column SqlNumeric) where
   def = lmap (\(Value a) -> a) D.def
@@ -83,7 +97,12 @@ instance IQ.QueryRunnerColumnDefault SqlNumeric Value where
 --------------------------------------------------------------------------------
 
 -- | Represents the unique identifier of a sale in the marketplace contract.
-newtype SaleID = SaleID HexInteger deriving (Eq, Ord, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
+newtype SaleID = SaleID HexInteger deriving (Eq, Ord, Show, GHC.Generic, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
+
+instance ToParamSchema SaleID
+instance ToSchema SaleID where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
 
 _SaleID :: (KnownNat n, n <= 256) => Iso' (UIntN n) SaleID
 _SaleID = iso (view $ _HexInteger . to SaleID) (view $ to (\(SaleID v) -> v) . from _HexInteger)
@@ -94,7 +113,12 @@ instance D.Default ToFields SaleID (Column SqlNumeric) where
 --------------------------------------------------------------------------------
 
 -- | Represents the unique identifier of a Signal Token
-newtype TokenID = TokenID HexInteger deriving (Eq, Ord, Show, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
+newtype TokenID = TokenID HexInteger deriving (Eq, Ord, Show, GHC.Generic, IQ.QueryRunnerColumnDefault SqlNumeric, A.ToJSON, A.FromJSON)
+
+instance ToParamSchema TokenID
+instance ToSchema TokenID where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
 
 _TokenID :: (KnownNat n, n <= 256) => Iso' (UIntN n) TokenID
 _TokenID = iso (view $ _HexInteger . to TokenID) (view $ to (\(TokenID v) -> v) . from _HexInteger)
@@ -106,7 +130,12 @@ instance D.Default ToFields TokenID (Column SqlNumeric) where
 
 -- | The base type for anyting stringlike in Ethereum (including address, bytes, hashes, etc.)
 newtype HexString = HexString Text
-  deriving (Eq, Read, Show, Ord)
+  deriving (Eq, Read, Show, Ord, GHC.Generic)
+
+instance ToParamSchema HexString
+instance ToSchema HexString where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
 
 instance A.FromJSON HexString where
   parseJSON = A.withText "HexString" $ \txt ->
@@ -147,7 +176,11 @@ _HexString = iso (unsafeParseHexString . Hx.toText)
 
 --------------------------------------------------------------------------------
 -- | A unique identifier for an EVM log entry, hash(blockHash,logIndex)
-newtype EventID = EventID HexString deriving (Eq, Ord, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+newtype EventID = EventID HexString deriving (Eq, Ord, Show, GHC.Generic, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+
+instance ToSchema EventID where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
 
 instance D.Default ToFields EventID (Column SqlText) where
   def = lmap (\(EventID a) -> a) D.def
@@ -155,7 +188,10 @@ instance D.Default ToFields EventID (Column SqlText) where
 --------------------------------------------------------------------------------
 
 -- | Represents any size bytes in solidity.
-newtype ByteNValue = ByteNValue HexString deriving (Eq, Ord, Show, IQ.QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+newtype ByteNValue = ByteNValue HexString deriving (Eq, Ord, Show, GHC.Generic, IQ.QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+instance ToSchema ByteNValue where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
 
 instance D.Default ToFields ByteNValue (Column SqlText) where
   def = lmap (\(ByteNValue a) -> a) D.def
@@ -170,8 +206,12 @@ displayByteNValue (ByteNValue v) = displayHexString v
 --------------------------------------------------------------------------------
 
 -- | Represents an ethereum address
-newtype EthAddress = EthAddress HexString deriving (Eq, Ord, Show, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+newtype EthAddress = EthAddress HexString deriving (Eq, Ord, Show, GHC.Generic, QueryRunnerColumnDefault SqlText, A.ToJSON, A.FromJSON)
+instance ToSchema EthAddress where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
+
+instance ToParamSchema EthAddress
 instance D.Default ToFields EthAddress (Column SqlText) where
   def = lmap (\(EthAddress a) -> a) D.def
 
@@ -188,7 +228,11 @@ zeroAddress = either (error . ("Failed to create the zero address: " ++)) id $ E
 
 -- | Represents the sale status of a signal in the marketplace. Note that in case
 -- | of SSComplete or SSUnlisted, the sale is actually no longer in the marketplace.
-data SaleStatus = SSActive | SSComplete | SSUnlisted
+data SaleStatus = SSActive | SSComplete | SSUnlisted deriving (Eq, Show, GHC.Generic)
+
+instance ToParamSchema SaleStatus
+instance ToSchema SaleStatus where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
 data SqlSaleStatus
 

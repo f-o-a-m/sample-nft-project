@@ -50,6 +50,7 @@ script:
 - PGHOST=localhost make run-indexer &
 - PGHOST=localhost make run-server &
 - make test-e2e
+- make test-dapp
 - make hlint
 # When branch is `master` we run `haskell-stylish` and fail if git working directory becomes dirty
 - if [ "$TRAVIS_BRANCH" == "master" ]; then make stylish && git diff-index --quiet HEAD; fi

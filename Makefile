@@ -68,7 +68,7 @@ deploy-contracts: build-dapp ## Deploy contracts in dapp project
 	chanterelle deploy ./output/Deploy.Main/index.js
 
 test-dapp: ## Run the dapp unit test suite
-	pulp test --src-path dapp/src --test-path dapp/test -m Test.Unit.Main
+	pulp test --src-path dapp/src --test-path dapp/test -m Test.Unit.Main -I frontend
 
 test-e2e: ## Run the dapp unit test suite
 	pulp test --src-path dapp/src --test-path dapp/test -m Test.E2E.Main -I frontend

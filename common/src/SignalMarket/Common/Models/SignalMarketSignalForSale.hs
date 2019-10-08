@@ -4,6 +4,9 @@ module SignalMarket.Common.Models.SignalMarketSignalForSale where
 
 import qualified Data.Aeson                     as A
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
+import           Data.Swagger                   (ToSchema (..),
+                                                 defaultSchemaOptions,
+                                                 genericDeclareNamedSchema)
 import           GHC.Generics                   (Generic)
 import qualified Katip                          as K
 import           Opaleye                        (Field, SqlNumeric, SqlText,
@@ -27,6 +30,9 @@ $(makeAdaptorAndInstance "pSignalForSale" ''SignalForSale')
 
 type SignalForSalePG = SignalForSale' (Field SqlNumeric) (Field SqlNumeric) (Field SqlNumeric) (Field SqlSaleStatus) (Field SqlText) (Field SqlText)
 type SignalForSale = SignalForSale' SaleID TokenID Value SaleStatus EthAddress EventID
+
+instance ToSchema SignalForSale where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
 signalForSaleTable :: Table SignalForSalePG SignalForSalePG
 signalForSaleTable = table "signal_market_signal_for_sale"

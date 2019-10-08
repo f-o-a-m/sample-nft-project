@@ -5,6 +5,7 @@ module SignalMarket.Indexer.Utils
  ) where
 
 import           Control.Arrow                               (returnA)
+import           Control.Lens                                (from, (^.))
 import           Control.Monad.Catch                         (MonadThrow, catch,
                                                               throwM)
 import           Control.Monad.IO.Class                      (liftIO)
@@ -14,6 +15,8 @@ import qualified Data.Default                                as D
 import           Data.Maybe                                  (fromJust)
 import           Data.Profunctor.Product.Default             (Default)
 import           Data.Proxy
+import           Data.Solidity.Prim.Address                  (fromHexString,
+                                                              toHexString)
 import           Data.String                                 (fromString)
 import           Data.String.Conversions                     (cs)
 import           Data.Text                                   (Text)
@@ -43,7 +46,8 @@ import           SignalMarket.Common.Class
 import           SignalMarket.Common.Config.Types            (DeployReceipt (..),
                                                               HasEventName (..))
 import           SignalMarket.Common.EventTypes              (EventID,
-                                                              HexInteger (..))
+                                                              HexInteger (..),
+                                                              _EthAddress)
 import qualified SignalMarket.Common.Models.Checkpoint       as Checkpoint
 import qualified SignalMarket.Common.Models.RawChange        as RawChange
 import           SignalMarket.Common.Orphans                 ()
@@ -111,7 +115,7 @@ makeFilter
   -> DeployReceipt
   -> Filter e
 makeFilter _ DeployReceipt{..} =
-   (D.def :: Filter e) { filterAddress = Just [deployReceiptAddress]
+   (D.def :: Filter e) { filterAddress = Just [deployReceiptAddress ^. from _EthAddress]
                        , filterFromBlock = mkFromBlock deployReceiptBlockNumber
                        }
 
