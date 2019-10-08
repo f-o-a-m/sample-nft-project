@@ -1,24 +1,23 @@
-module App.Components.Common where
+module App.Components.Common
+  ( renderToken
+  , renderSignal
+  , SignalState
+  ) where
 
 import Prelude
 
 import App.Components.Avatar (avatar)
-import App.Data.Collections (Cursor, LinkedCollection)
 import App.Data.ProviderState (ConnectedState)
 import App.Data.Radius (Radius(..))
 import App.Data.Signal (Signal(..))
 import App.Data.Token (class TokenName, Token(..), tokenFromBigNumber, tokenName)
 import App.Data.User (User(..))
 import App.Error (printWeb3Error)
-import App.HTML (classy, maybeHtml, whenHtml)
+import App.HTML (classy, maybeHtml)
 import App.Route as Route
-import Control.MonadZero as MZ
 import Data.Array (length)
-import Data.DateTime (DateTime)
-import Data.Formatter.DateTime as DF
 import Data.Geohash (Geohash, geohashToLngLat)
 import Data.Int as Int
-import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect (Effect)
 import Etherium.Tx as Tx
@@ -33,18 +32,6 @@ import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture_, targetValue)
 import React.Basic.Events (handler)
 import Type.Proxy (Proxy(..))
-
-fullDateFormat :: DF.Formatter
-fullDateFormat
-  = DF.MonthFull
-  : DF.Placeholder " "
-  : DF.DayOfMonth
-  : DF.Placeholder ", "
-  : DF.YearFull
-  : Nil
-
-renderDateTime :: DateTime -> String
-renderDateTime = DF.format fullDateFormat
 
 renderToken :: forall t. TokenName (Token t) => (Token t) -> JSX
 renderToken (Token t) =
@@ -169,21 +156,3 @@ txOrElse tx btn = classy R.div "Transaction" case tx of
         [ classy R.div "Transaction-status"
             [R.text $ progress <> " MiningFinished " <> show txHash]
         ]
-
-
-renderLinkedCollection
-  :: forall a
-   . LinkedCollection a
-  -> (Cursor -> Effect Unit)
-  -> (Array a -> JSX)
-  -> JSX
-renderLinkedCollection {items, next, loading} loadMore renderItems = React.fragment
-  [ renderItems items
-  , classy R.div "LoadingMore"
-      [ maybeHtml (MZ.guard (not loading) *> next) \cursor -> R.button
-          { onClick: capture_ $ loadMore cursor
-          , children: [ R.text "Load more" ]
-          }
-      , whenHtml loading \_ -> R.text "Loading ..."
-      ]
-  ]

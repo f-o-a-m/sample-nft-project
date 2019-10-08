@@ -3,7 +3,6 @@ module App.Components.Root where
 import Prelude
 
 import App.API (getContracts)
-import App.Components.Activity (activity)
 import App.Components.Header (header)
 import App.Components.Signal (signal)
 import App.Components.Signals (signals)
@@ -18,7 +17,6 @@ import App.HTML (classy)
 import App.HTML.Canceler (pushCanceler, pushCanceler', runCancelers, runCancelers')
 import App.Route (Route)
 import App.Route as Route
-import Contracts.FoamToken as FoamToken
 import Contracts.SignalMarket as SignalMarket
 import Contracts.SignalToken as SignalToken
 import Control.Alt ((<|>))
@@ -148,10 +146,6 @@ root = React.make component
       , navigation state.route
       , classy R.div "Content" $ pure case state.route of
           Left err -> classy R.h1 "Content-404" [ R.text "404" ]
-          Right (Route.Activity) -> activity
-            { events: fst self.props.events
-            , user
-            }
           Right (Route.Signals) -> signals
             { events: fst self.props.events
             , user
@@ -165,24 +159,21 @@ root = React.make component
       where
         user = maybe UserGuest UserConnected $ ProviderState.viewConnectedState state.providerState
 
-    navigation activeRoute = classy R.div "Navigation" $
-      [ Route.Signals, Route.Activity] <#> \r -> if Right r == activeRoute
+    navigation activeRoute = classy R.div "Navigation" $ pure $
+      if Right Route.Signals == activeRoute
         then R.span
-          { children: [ R.text $ show r ]
+          { children: [ R.text "Home" ]
           , className: "Navigation-item Navigation-item--active"
           }
         else R.a
-          { href: Route.href r
-          , children: [ R.text $ show r ]
+          { href: Route.href Route.Signals
+          , children: [ R.text $ "Home" ]
           , className: "Navigation-item"
           }
 
 pullEvents :: (BusW Event) -> ConnectedState -> Aff Unit
 pullEvents bus {provider, contracts: (Contracts c)} = parSequence_
   [ eventPoll
-      (eventFilter (Proxy :: Proxy FoamToken.Transfer) c.foamToken)
-      (V.inj (SProxy :: SProxy "transfer"))
-  , eventPoll
       (eventFilter (Proxy :: Proxy SignalMarket.SignalForSale) c.signalMarket)
       (V.inj (SProxy :: SProxy "signalForSale"))
   , eventPoll

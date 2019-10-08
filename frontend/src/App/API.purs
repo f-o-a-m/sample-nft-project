@@ -2,7 +2,6 @@ module App.API
   ( getContracts
   , getSignals
   , getSignal
-  , getActivity
   ) where
 
 import Prelude
@@ -10,7 +9,6 @@ import Prelude
 import Affjax (printResponseFormatError)
 import Affjax as AJ
 import Affjax.ResponseFormat as ResponseFormat
-import App.Data.Activity (Activity(..))
 import App.Data.Collections (Cursor, Collection)
 import App.Data.Contracts (Contracts)
 import App.Data.Radius (Radius, radiusFromBigNumber)
@@ -239,35 +237,6 @@ getSignal' sid = do
             }
         ]
     }
-
-getActivity :: Cursor -> Aff (Collection Activity)
-getActivity c = do
-  -- TODO actually load activity
-  delay $ Milliseconds 1000.0
-  pure
-    { items:
-        [ TokenTransfer
-            { from: address3
-            , to: address3
-            , amount: zeroToken
-            }
-        , SignalListedForSale
-            { owner: address2
-            , saleId: saleId2
-            , signal: signal1
-            , price: zeroToken
-            }
-        , SignalSold
-            { owner: address2
-            , saleId: saleId3
-            , buyer: address1
-            , signal: signal1
-            , price: zeroToken
-            }
-        ]
-    , next: Just c
-    }
-
 
 decodeGeoHash :: String -> Either String Geohash
 decodeGeoHash str = note "Invalid GeoHash" (H.mkHexString str) <#> geohashFromHex
