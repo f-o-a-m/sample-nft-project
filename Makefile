@@ -65,7 +65,7 @@ build-dapp: ## Build the deploy script
 	pulp build --src-path dapp/src
 
 deploy-contracts: build-dapp ## Deploy contracts in dapp project
-	chanterelle deploy ./output/Deploy.Main/index.js
+	chanterelle deploy ./output/Deploy.Main/index.js --node-url "$(NODE_URL)"
 
 test-dapp: ## Run the dapp unit test suite
 	pulp test --src-path dapp/src --test-path dapp/test -m Test.Unit.Main
