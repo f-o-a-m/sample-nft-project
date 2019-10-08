@@ -21,6 +21,15 @@ make help
 
 to see a help menu.
 
+## Rinkeby deployment
+
+The app is deployed [here](https://signal-market-rinkeby.foam.space/#/)
+
+The contracts are deployed here:
+- `FoamToken`: https://rinkeby.etherscan.io/address/0xd800f4550c2c1382430a5d47c8fc75abb58fc90e
+- `SignalToken`: https://rinkeby.etherscan.io/address/0x018e8506b3feea6823c2b6d7218a31453aa5c874
+- `SignalMarket`: https://rinkeby.etherscan.io/address/0xc09a7e600a8f9993223e718c74d5d5bcf98efbdf
+
 ## Deploying
 
 ### 1. Install dependencies
