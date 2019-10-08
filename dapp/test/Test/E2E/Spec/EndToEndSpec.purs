@@ -63,8 +63,7 @@ spec' cfg@{provider, clientEnv, accounts, contractAddresses, faucetAddress} env@
       it "can track foam token transfers" do
        sendTokens cfg env {to: account1, from: account2, amount: 1}
       it "can get the signal owner stats via graphql api" $ void $ liftAff $ do
-        {items} <- getSignalOwnerStats {limit:100, offset: 0}
-        (length items > 0) `shouldEqual` true
+        void $ getSignalOwnerStats {limit:100, offset: 0}
         pure unit
 
 monitorUntilEvent
