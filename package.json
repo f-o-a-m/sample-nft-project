@@ -8,7 +8,7 @@
     },
     "dependencies": {
         "bn.js": "^4.11.0",
-        "chanterelle": "github:f-o-a-m/chanterelle#late-linking-wip",
+        "chanterelle": "github:f-o-a-m/chanterelle#v4.0.0",
         "ethjs-provider-http": "^0.1.6",
         "jazzicon": "^1.5.0",
         "keccak": "^1.0.2",
