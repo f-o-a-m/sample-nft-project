@@ -1,6 +1,8 @@
 # sample-nft-project
 [![Build Status](https://travis-ci.com/f-o-a-m/sample-nft-project.svg?token=qCHTaxpXTk53j8Cxixyq&branch=master)](https://travis-ci.com/f-o-a-m/sample-nft-project)
 
+![App screenshot](https://raw.githubusercontent.com/f-o-a-m/sample-nft-project/master/sample-nft-project_screenshot.png)
+
 A sample NFT marketplace for buying and selling FOAM Signals.
 
 ## Install Requirements
