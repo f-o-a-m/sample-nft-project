@@ -33,6 +33,7 @@ default-extensions:
   - DefaultSignatures
   - ScopedTypeVariables
   - RecordWildCards
+  - ConstraintKinds
 
 dependencies:
 - aeson
