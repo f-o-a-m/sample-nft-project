@@ -2,8 +2,7 @@ module Test.Websocket where
 
 import Prelude
 
-import Control.Coroutine (Consumer, consumer, producer, pullFrom, runProcess)
-import Control.Coroutine.Transducer (Transducer, awaitForever, fromProducer, toProducer, yieldT, (=>=))
+import Control.Coroutine (Consumer, Producer, Transformer, consumer, producer, pullFrom, runProcess, transform, ($~))
 import Control.Monad.Except (runExcept)
 import Control.Monad.Rec.Class (forever)
 import Data.Either (Either(..))
@@ -116,7 +115,7 @@ createWebSocket url' = do
 changeWSProducer
   :: SubscriptionID
   -> Bus.BusR WebSocketMsg
-  -> Aff { changeProducer :: Transducer Void Web3.Change Aff Unit
+  -> Aff { changeProducer :: Producer Web3.Change Aff Unit
          , writeLoopCanceler :: Aff Unit
          }
 changeWSProducer sId busR = do
@@ -127,7 +126,7 @@ changeWSProducer sId busR = do
           if msg.subscriptionID /= sId
             then pure unit
             else AVar.put msg.contents changeVar
-      changeProducer = fromProducer $ producer $ Left <$> AVar.read changeVar
+      changeProducer = producer $ Left <$> AVar.take changeVar
   f <- forkAff writeLoop
   let writeLoopCanceler = do
         killFiber (error "producer ended") f
@@ -156,13 +155,12 @@ mkMonitor { send, receive } fltr consumer = do
           { subscriptionID
           , filter: FilterE $ mkExists fltr
           }
-      eventMapper = awaitForever \change ->
+      eventMapper = transform \change ->
         unsafePartial $ case decodeEvent change of
-          Just (event :: e) -> do
-            yieldT $ {change, event}
+          Just (event :: e) -> {event, change}
   {changeProducer, writeLoopCanceler} <- changeWSProducer subscriptionID receive
   let process = runProcess $
-          (consumer `pullFrom` void (toProducer (changeProducer =>= eventMapper)))
+          (consumer `pullFrom` void (changeProducer $~ eventMapper))
       cancelWithServer = Bus.write (Cancel subscriptionID) send
   Bus.write initSubscriptionMsg send
   f <- forkAff process

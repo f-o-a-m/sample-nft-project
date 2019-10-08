@@ -134,3 +134,16 @@ FAUCET_ADDRESS={YOUR_METAMASK_ACCOUNT} make faucet-locally
 ```bash
 FAUCET_ADDRESS={YOUR_METAMASK_ACCOUNT} FAUCET_VALUE=224455 make faucet-locally
 ```
+
+
+### How to create some Signals?
+
+- To create some Signals add your MetaMask address to `FAUCET_ADDRESS` and run
+```bash
+OWNER_ADDRESS={YOUR_METAMASK_ACCOUNT} make signal-locally
+```
+
+- To create more Signals, use `SIGNAL_COUNT` to set custom amount of signals you want, e.g.
+```bash
+SIGNAL_COUNT=4 OWNER_ADDRESS={YOUR_METAMASK_ACCOUNT} make signal-locally
+```

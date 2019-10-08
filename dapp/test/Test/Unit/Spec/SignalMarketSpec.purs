@@ -130,10 +130,10 @@ spec' testCfg env@{ logger, signalAttrGen } = do
                                                                     }
               forSaleFilter = eventFilter (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket
           -- approve minted signal
-          signalApproval <- monitorUntil provider logger signalApproveAction signalApproveFilter
+          signalApproval <- monitorUntil provider signalApproveAction signalApproveFilter
           logger $ "MARK: Signal approved for SignalMarket " <> show signalApproval
           -- mark signal as for sale
-          signalForSale@(SignalMarket.SignalForSale sfs) <- monitorUntil provider logger forSaleAction forSaleFilter
+          signalForSale@(SignalMarket.SignalForSale sfs) <- monitorUntil provider forSaleAction forSaleFilter
           logger $ "MARK: Signal for sale " <> show signalForSale
           liftAff do
             sfs.seller `shouldEqual` account1
@@ -157,7 +157,7 @@ spec' testCfg env@{ logger, signalAttrGen } = do
               acc2BuyFilter = eventFilter (Proxy :: Proxy SignalMarket.SignalSold) signalMarket
           logger $ "BUY: Attempting to buy Signal with saleId " <> show _saleId
           -- make account2 buy the signal from account1
-          sold@(SignalMarket.SignalSold purchase) <- monitorUntil provider logger acc2BuyAction acc2BuyFilter
+          sold@(SignalMarket.SignalSold purchase) <- monitorUntil provider acc2BuyAction acc2BuyFilter
           logger $ "BUY: Signal purchased " <> show sold
           -- check sale details and transfer of ownership
           liftAff do
@@ -181,7 +181,7 @@ spec' testCfg env@{ logger, signalAttrGen } = do
               unlistFilter = eventFilter (Proxy :: Proxy SignalMarket.SignalUnlisted) signalMarket
           -- unlist the signal with account1
           logger $ "UNLIST: Attempting to unlist signal with saleId " <> show _saleId
-          unlisted@(SignalMarket.SignalUnlisted nfs) <- monitorUntil provider logger unlistAction unlistFilter
+          unlisted@(SignalMarket.SignalUnlisted nfs) <- monitorUntil provider unlistAction unlistFilter
           logger $ "UNLIST: Signal unlisted " <> show unlisted
           liftAff $ nfs.saleId `shouldEqual` _saleId
           -- attempting to buy an unlist signal, should result in an error

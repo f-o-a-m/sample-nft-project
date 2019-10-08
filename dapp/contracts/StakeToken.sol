@@ -29,6 +29,7 @@ contract StakeToken is ERC721 {
   }
 
   function mint(address mintedTokenOwner, uint256 stake) public returns (uint256 tokenID) {
+    // TODO allow mintedTokenOwner to be someone other than msg.sender
     require(msg.sender == mintedTokenOwner, "msg.sender == mintedTokenOwner");
 
     nftNonce += 1;
