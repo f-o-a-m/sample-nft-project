@@ -1,9 +1,7 @@
-module Test.Spec.SignalMarketSpec (spec) where
+module Test.Unit.Spec.SignalMarketSpec (spec) where
 
 import Prelude
 
-import Chanterelle.Internal.Deploy (DeployReceipt)
-import Chanterelle.Internal.Types (NoArgs)
 import Chanterelle.Test (TestConfig)
 import Contracts.FoamToken as FoamToken
 import Contracts.SignalMarket as SignalMarket
@@ -15,7 +13,6 @@ import Data.Either (isLeft)
 import Data.Lens ((?~))
 import Data.Maybe (fromJust)
 import Data.Newtype (unwrap)
-import Deploy.Main (SignalMarket, SignalToken)
 import Deploy.Utils (safeSignalToSale)
 import Effect.AVar as EAVar
 import Effect.Aff (Aff)

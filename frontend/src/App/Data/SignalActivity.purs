@@ -4,16 +4,17 @@ import Prelude
 
 import App.Data.SaleId (SaleId)
 import App.Data.Token (Token)
-import Data.DateTime (DateTime)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Eq (genericEq)
 import Data.Generic.Rep.Ord (genericCompare)
 import Data.Generic.Rep.Show (genericShow)
 import Network.Ethereum.Core.Signatures (Address)
+import Network.Ethereum.Web3.Types (ETHER)
 
 data SignalActivity
   = ListedForSale (ListedForSaleR ())
-  | Soled (SoledR ())
+  | UnlistedFromSale (UnlistedFromSaleR ())
+  | Sold (SoldR ())
 
 derive instance genericSignalActivity :: Generic SignalActivity _
 instance eqSignalId :: Eq SignalActivity where eq = genericEq
@@ -23,17 +24,21 @@ instance showSignalId :: Show SignalActivity where show = genericShow
 
 type ListedForSaleR r =
   { owner :: Address
-  , saleID :: SaleId
-  , timestamp :: DateTime
-  , price :: Token
+  , saleId :: SaleId
+  , price :: Token ETHER
   | r
   }
 
-type SoledR r =
+type UnlistedFromSaleR r =
   { owner :: Address
-  , saleID :: SaleId
-  , timestamp :: DateTime
+  , saleId :: SaleId
+  | r
+  }
+
+type SoldR r =
+  { owner :: Address
+  , saleId :: SaleId
   , buyer :: Address
-  , price :: Token
+  , price :: Token ETHER
   | r
   }

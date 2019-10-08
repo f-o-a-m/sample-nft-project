@@ -109,3 +109,17 @@ make test-e2e
 ```
 
 The tests are written in PureScript and will set up listeners from Ethereum, the server as websockets (via the indexer) and will trigger contract interactions and test the pipeline by anticipating the correct response from the services. It can also compare the data from the services with that emitted as events from Ethereum itself.
+
+
+## Other
+
+### How to get some ETH locally?
+
+- To get some ETH and FOAM add your MetaMask address to `FAUCET_ADDRESS` and run
+```bash
+FAUCET_ADDRESS={YOUR_METAMASK_ACCOUNT} make faucet-locally
+```
+- To get more FOAM, use `FAUCET_VALUE` to add any value you want, e.g.
+```bash
+FAUCET_ADDRESS={YOUR_METAMASK_ACCOUNT} FAUCET_VALUE=224455 make faucet-locally
+```

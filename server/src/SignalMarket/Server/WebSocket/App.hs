@@ -1,8 +1,10 @@
 module SignalMarket.Server.WebSocket.App where
 
 import           Control.Arrow                           (returnA)
+import           Control.Concurrent                      (forkIO)
 import           Control.Concurrent.Async                (async)
-import           Control.Monad                           (forever)
+import           Control.Concurrent.MVar                 as MVar
+import           Control.Monad                           (forM_, forever, void)
 import           Control.Monad.Catch                     (MonadThrow)
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader                    (MonadReader (..))
@@ -31,12 +33,13 @@ import           SignalMarket.Server.WebSocket.Types
 mkWebSocketApp
   :: PG.Connection
   -> LogConfig
-  -> WSApplet
+  -> (PG.Connection -> IO WSApplet)
   -> Socket.ServerApp
-mkWebSocketApp pg logCfg WSApplet{clientMsgHandler, msgConduit} pendingConn = do
+mkWebSocketApp pg logCfg mkWebSocketApplet pendingConn = do
   socket <- Socket.acceptRequest pendingConn
   Socket.forkPingThread socket 10
   env <- mkWebSocketEnv pg logCfg
+  WSApplet{clientMsgHandler, msgConduit} <- mkWebSocketApplet pg
   _ <- async . forever $ do
     subsBS <- Socket.receiveData socket
     runWebSocketM env $ clientMsgHandler subsBS
@@ -51,8 +54,8 @@ mkWebSocketApp pg logCfg WSApplet{clientMsgHandler, msgConduit} pendingConn = do
       in lift $ Socket.sendTextData socket payload
 
 
-defaultWSApplet :: WSApplet
-defaultWSApplet =
+defaultWSApplet :: PG.Connection -> IO WSApplet
+defaultWSApplet conn = do
   let clientH subsBS = case A.eitherDecode $ cs subsBS of
         Left err ->
           K.logFM K.ErrorS (fromString $ "Failed to decode subscription message! " <> err)
@@ -69,28 +72,36 @@ defaultWSApplet =
             WebSocketEnv{subscriptionRef} <- ask
             let p (_subsID, _, _) = subsID /= _subsID
             liftIO $ modifyIORef subscriptionRef $ filter p
-      msgC = listenerC .| rawChangeC .| subscriptionC
-  in WSApplet
+  var <- writeLoop conn
+  let msgC = listenerC var .| rawChangeC .| subscriptionC
+  pure $ WSApplet
        { clientMsgHandler = clientH
        , msgConduit = msgC
        }
 
+writeLoop :: PG.Connection -> IO (MVar (Either String EventID))
+writeLoop conn = do
+  var <- liftIO MVar.newEmptyMVar
+  _ <- PG.execute_ conn "LISTEN raw_change_channel"
+  void $ forkIO $ forever $ do
+    notification <- PG.getNotification conn
+    void $ forkIO $ do
+      let _data = PG.notificationData notification
+          eeid = fmap EventID . parseHexString $ cs _data :: Either String EventID
+      MVar.putMVar var eeid
+  pure var
+
 listenerC
   :: MonadPG m
-  => ConduitT () EventID m ()
-listenerC = do
-  _ <- lift $ runDB $ \conn -> PG.execute_ conn "LISTEN raw_change_channel"
-  forever $ do
-    notification <- lift $ runDB $ \conn -> PG.getNotification conn
-    let channel = cs $ PG.notificationChannel notification
-        _data = PG.notificationData notification
-    lift $ K.logFM K.InfoS (fromString $ "Received notification on channel " <> channel <> " -- " <> cs _data)
-    let eeid =  fmap EventID . parseHexString $ cs _data :: Either String EventID
-    case eeid of
-      Left e ->
-        let msg = "ParseError in channel " <> channel <> ", " <> "couldn't parse as EventID: " <> show e
-        in lift (K.logFM K.ErrorS $ fromString msg) *> error msg
-      Right eid -> yield eid
+  => MVar (Either String EventID)
+  -> ConduitT () EventID m ()
+listenerC var = forever $ do
+  eeid <- liftIO $ MVar.takeMVar var
+  case eeid of
+    Left e ->
+      let msg = "ParseError in raw_change_channel, couldn't parse as EventID: " <> show e
+      in lift (K.logFM K.ErrorS $ fromString msg) *> error msg
+    Right eid -> yield eid
 
 
 rawChangeC :: (MonadThrow m, MonadPG m) => ConduitT EventID RC.RawChange m ()
@@ -116,6 +127,10 @@ subscriptionC = awaitForever $ \rc -> do
   ks <- lift . liftIO $ readIORef subscriptionRef
   let matchingSubscriptions = filterSubscriptionKeys rc ks
       outgoingMessages = map (mkWSMessage rc) matchingSubscriptions
+  forM_ outgoingMessages $ \WebSocketMsg{webSocketMsgContents} ->
+    forM_ matchingSubscriptions $ \(SubscriptionID sid,_,_) -> lift $ do
+      K.katipAddContext webSocketMsgContents $
+        K.logFM K.DebugS $ fromString ("Outgoing WS Message -- " <> sid)
   sourceList outgoingMessages
   where
 

@@ -3,16 +3,14 @@ module Test.Unit.Main where
 import Prelude
 
 import Chanterelle.Test (buildTestConfig)
-import Data.Array ((!!))
 import Data.Maybe (Maybe(..))
 import Debug.Trace (traceM)
 import Deploy.Main (deployScript)
 import Effect (Effect)
 import Effect.Aff (launchAff, Milliseconds(..))
-import React.Basic (provider)
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (runSpecT, defaultConfig)
-import Test.Spec.SignalMarketSpec as SignalMarketSpec
+import Test.Unit.Spec.SignalMarketSpec as SignalMarketSpec
 
 -- @TODO: make the options for deploy config env vars
 main :: Effect Unit

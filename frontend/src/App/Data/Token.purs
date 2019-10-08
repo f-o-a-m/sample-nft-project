@@ -14,31 +14,41 @@ import Data.Newtype (class Newtype, un)
 import Network.Ethereum.Web3 (BigNumber, UIntN, uIntNFromBigNumber, unUIntN)
 import Network.Ethereum.Web3 as BN
 import Network.Ethereum.Web3.Solidity.Sizes (S256, s256)
+import Network.Ethereum.Web3.Types (ETHER)
+import Network.Ethereum.Web3.Types.TokenUnit (kind Token) as T
+import Type.Proxy (Proxy)
 import Unsafe (unsafeFromJust)
 
-newtype Token = Token (UIntN S256)
-derive instance newtypeToken :: Newtype Token _
-derive instance genericToken :: Generic Token _
-instance eqToken :: Eq Token where eq = genericEq
-instance ordToken :: Ord Token where compare = genericCompare
-instance showToken :: Show Token where show = genericShow
+foreign import data FOAM :: T.Token
 
-instance encodeJsonToken :: EncodeJson Token where
+class TokenName t where
+  tokenName :: (Proxy t) -> String
+instance ethTokenName :: TokenName (Token ETHER) where tokenName _ = "ETH"
+instance foamTokenName :: TokenName (Token FOAM) where tokenName _ = "FOAM"
+
+newtype Token (t :: T.Token) = Token (UIntN S256)
+derive instance newtypeToken :: Newtype (Token t) _
+derive instance genericToken :: Generic (Token t) _
+instance eqToken :: Eq (Token t) where eq = genericEq
+instance ordToken :: Ord (Token t) where compare = genericCompare
+instance showToken :: Show (Token t) where show = genericShow
+
+instance encodeJsonToken :: EncodeJson (Token t) where
   encodeJson = encodeJson <<< tokenToBigNumber
 
-instance decodeJsonToken :: DecodeJson Token where
+instance decodeJsonToken :: DecodeJson (Token t) where
   decodeJson = decodeJson >=> \bn -> note'
     (\_ -> "Expected To get valid Token but got: " <> show bn)
       $ tokenFromBigNumber bn
 
-zeroToken :: Token
+zeroToken :: forall t. (Token t)
 zeroToken = unsafeFromJust "0 is valid Token" $ tokenFromBigNumber $ BN.embed 0
 
-tokenToBigNumber :: Token -> BigNumber
+tokenToBigNumber :: forall t. Token t -> BigNumber
 tokenToBigNumber = un Token >>> unUIntN
 
-tokenFromBigNumber :: BigNumber -> Maybe Token
+tokenFromBigNumber :: forall t. BigNumber -> Maybe (Token t)
 tokenFromBigNumber = uIntNFromBigNumber s256 >>> map Token
 
-addTokens :: Token -> Token -> Maybe Token
+addTokens :: forall t. Token t -> Token t -> Maybe (Token t)
 addTokens a b = tokenFromBigNumber $ on (+) tokenToBigNumber a b

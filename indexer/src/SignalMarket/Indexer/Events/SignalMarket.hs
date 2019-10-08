@@ -86,6 +86,7 @@ signalMarketSignalUnlistedH Event{eventEventID, eventData} =
             { Unlisted.saleID = signalUnlistedSaleId_ ^. _SaleID
             , Unlisted.tokenID = signalUnlistedTokenId_ ^. _TokenID
             , Unlisted.eventID = eventEventID
+            , Unlisted.owner = signalUnlistedOwner_ ^. _EthAddress
             }
           -- update complete sale status into for sale table
           let updateSaleStatus :: ForSale.SignalForSalePG -> ForSale.SignalForSalePG

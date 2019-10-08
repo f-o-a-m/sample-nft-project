@@ -1,93 +1,74 @@
-module Test.E2E.End2EndConfig where
+module Test.E2E.End2EndConfig
+  ( End2EndConfig
+  , ContractAddresses
+  , mkEnd2EndConfig
+  ) where
 
 import Prelude
 
-import Affjax as AX
-import Affjax.ResponseFormat as ResponseFormat
-import Data.Argonaut (class DecodeJson, decodeJson, (.:))
-import Data.Either (Either(..), either)
-import Data.EitherR (fmapL)
-import Data.HTTP.Method (Method(..))
-import Data.Maybe (fromMaybe)
-import Effect.Aff (Aff, error, throwError)
+import Chanterelle.Test (assertWeb3)
+import Data.Array ((!!), drop)
+import Data.Maybe (fromJust, fromMaybe)
+import Effect.Aff (Aff, Milliseconds(..), delay)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
-import Effect.Class.Console (log)
 import Network.Ethereum.Web3 (Address, Provider, httpProvider)
-import Network.Ethereum.Web3.Api (eth_getAccounts, net_version)
+import Network.Ethereum.Web3.Api (eth_getAccounts)
 import Node.Process as NP
-import Test.Utils (expectWeb3)
-
-data Protocol = HTTP | HTTPS
-
-newtype BaseURL = BaseURL String
-
-type ApiSettings = { protocol :: Protocol, baseURL :: BaseURL }
-
-mkURL :: ApiSettings -> String
-mkURL { protocol: p, baseURL: BaseURL s} =
-  case p of
-    HTTP -> s
-    HTTPS -> s
-
-newtype Contracts = Contracts
-  { foamToken :: Address
-  , signalToken :: Address
-  , signalMarket :: Address
-  }
-
-instance showContracts :: Show Contracts where
-  show (Contracts c) = show c
-
-instance decodeJsonContracts :: DecodeJson Contracts where
-  decodeJson j = do
-    obj <- decodeJson j
-    foamTokenReceipt <- obj .: "foamToken"
-    foamToken <- foamTokenReceipt .: "address"
-
-    signalTokenReceipt <- obj .: "signalToken"
-    signalToken <- signalTokenReceipt .: "address"
-
-    signalMarketReceipt <- obj .: "signalMarket"
-    signalMarket <- signalMarketReceipt .: "address"
-
-    pure $ Contracts { foamToken, signalToken, signalMarket }
-
-newtype NetworkId = NetworkId String
+import Partial.Unsafe (unsafePartial)
+import Servant.Client (ClientEnv(..))
+import Test.MarketClient.Client as API
+import Test.Websocket (createWebSocket, WebSocket)
 
 type End2EndConfig =
   { provider :: Provider
-  , apiSettings :: ApiSettings
-  , contractAddresses :: Contracts
-  , networkId :: NetworkId
+  , clientEnv :: ClientEnv
+  , ws :: WebSocket
+  , contractAddresses :: ContractAddresses
   , accounts :: Array Address
+  , faucetAddress :: Address
   }
 
-getContractAddresses :: BaseURL -> Aff Contracts
-getContractAddresses (BaseURL baseUrl) = do
-  res <- AX.request (AX.defaultRequest { url = baseUrl <> "/config/contracts"
-                                       , method = Left GET
-                                       , responseFormat = ResponseFormat.json
-                                       }
-                    )
-  eRes <- pure $ do
-    body <- fmapL (const $ "Couldn't load /config/contracts") res.body
-    decodeJson body
-  either (throwError <<< error <<< (append "Couldn't load contracts: ")) pure eRes
+type ContractAddresses =
+  { foamToken :: Address
+  , signalToken :: Address
+  , signalMarket  :: Address
+  }
 
 mkEnd2EndConfig :: Aff End2EndConfig
 mkEnd2EndConfig = do
   provider <- liftEffect do
     url <- fromMaybe "http://localhost:8545" <$> NP.lookupEnv "NODE_URL"
     httpProvider url
-  baseURL <- liftEffect $ fromMaybe "http://localhost:9000" <$> NP.lookupEnv "BASE_URL"
-  log $ "Using BASE URL: " <> show baseURL
-  accounts <- liftAff $ expectWeb3 "eth_getAccounts" provider eth_getAccounts
-  nId <- liftAff $ expectWeb3 "net_version" provider net_version
-  let apiSettings = { protocol: HTTP
-                    , baseURL: BaseURL baseURL
-                    }
-      networkId = NetworkId nId
-  contractAddresses <- getContractAddresses apiSettings.baseURL
-  log $ "Using addresses: " <> show contractAddresses
-  pure { provider, apiSettings, contractAddresses, networkId, accounts }
+  clientEnv@(ClientEnv{baseURL, protocol}) <- liftEffect getClientEnv
+  accounts <- liftAff $ assertWeb3 provider eth_getAccounts
+  contractAddresses <- getContractAddresses clientEnv
+  let apiURL = protocol <> ":" <> baseURL
+  ws <- createWebSocket apiURL <* delay (Milliseconds 5000.0)
+  pure { provider
+       , clientEnv
+       , contractAddresses
+       , accounts: drop 1 accounts
+       , faucetAddress: unsafePartial fromJust $ accounts !! 0
+       , ws
+       }
+  where
+
+  getClientEnv = do
+    mbaseURL <- NP.lookupEnv "API_BASE_URL"
+    let protocol = "http"
+        baseURL = fromMaybe "//localhost:9000/" mbaseURL
+    pure $ ClientEnv {baseURL, protocol: "http"}
+
+  getContractAddresses clientEnv = do
+    API.Contracts contracts <- API.assertClientM clientEnv API.getContracts
+    let
+      { foamToken: API.Receipt {address: ft}
+      , signalToken: API.Receipt {address: st}
+      , signalMarket: API.Receipt {address: sm}
+      } = contracts
+    pure { foamToken: ft
+         , signalToken: st
+         , signalMarket: sm
+         }
+

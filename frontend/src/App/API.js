@@ -10,7 +10,7 @@ exports.apiBaseURL = (function() {
       apiBaseURL = window.location.protocol + apiBaseURL
     }
   } catch (_){
-    apiBaseURL = "https://" + apiBaseURL
+    apiBaseURL = "http:" + apiBaseURL
   }
   return apiBaseURL
 }());

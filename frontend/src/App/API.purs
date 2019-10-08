@@ -13,36 +13,39 @@ import Affjax.ResponseFormat as ResponseFormat
 import App.Data.Activity (Activity(..))
 import App.Data.Collections (Cursor, Collection)
 import App.Data.Contracts (Contracts)
-import App.Data.Radius (Radius(..))
+import App.Data.Radius (Radius, radiusFromBigNumber)
 import App.Data.SaleId (SaleId, saleIdFromBigNumber)
 import App.Data.Signal (Signal(..))
 import App.Data.SignalActivity (SignalActivity(..))
 import App.Data.SignalDetails (SignalDetails(..))
-import App.Data.SignalId (SignalId, signalIdFromBigNumber)
+import App.Data.SignalId (SignalId(..), signalIdFromBigNumber)
 import App.Data.Token (zeroToken)
+import Control.Error.Util (note)
 import Control.Monad.Error.Class (throwError)
-import Data.Argonaut (class DecodeJson, decodeJson)
-import Data.DateTime (adjust)
+import Data.Argonaut (Json, decodeJson, getField, (.:))
+import Data.Array as Array
 import Data.Either (Either(..))
-import Data.Geohash (geohashFromLngLat)
+import Data.Geohash (Geohash, geohashFromHex, geohashFromLngLat)
 import Data.Maybe (Maybe(..))
-import Data.Time.Duration (Days(..), Milliseconds(..), Minutes(..), fromDuration)
+import Data.Time.Duration (Milliseconds(..), Minutes(..), fromDuration)
+import Data.Traversable (for)
 import Deploy.Utils (unsafeFromJust)
 import Effect.Aff (Aff, delay)
 import Effect.Exception (error)
-import Effect.Now (nowDateTime)
-import Effect.Unsafe (unsafePerformEffect)
+import Foreign.Object (Object)
 import Network.Ethereum.Core.BigNumber as BN
 import Network.Ethereum.Core.HexString (mkHexString)
+import Network.Ethereum.Core.HexString as H
 import Network.Ethereum.Core.Signatures (Address, mkAddress)
+import Record.Extra (sequenceRecord)
 
 getContracts :: Aff Contracts
-getContracts = get "config/contracts"
+getContracts = get "config/contracts" decodeJson
 
 type URLPath = String
 
-get :: forall a. DecodeJson a => URLPath -> Aff a
-get path = do
+get :: forall a. URLPath -> (Json -> Either String a) -> Aff a
+get path decode = do
   let
     request = AJ.defaultRequest { url = apiBaseURL <> path, responseFormat = ResponseFormat.json }
     retryPolicy = AJ.defaultRetryPolicy {timeout = Just $ fromDuration $ Minutes 0.4}
@@ -50,7 +53,7 @@ get path = do
   -- resp <- AJ.request request
   case resp.body of
     Left err -> throwAPIError resp "AffJax error" $ printResponseFormatError err
-    Right json -> case decodeJson json of
+    Right json -> case decode json of
       Left err -> throwAPIError resp "DecodeJson error" err
       Right res -> pure res
   where
@@ -83,15 +86,23 @@ address6 = unsafeFromJust "Must be valid Address 000...6"
   $ mkAddress =<< mkHexString "0x0000000000000000000000000000000000000006"
 
 signalId1 :: SignalId
-signalId1 = unsafeFromJust "SignalId of 1" $ signalIdFromBigNumber $ BN.embed 1
+signalId1 = unsafeFromJust "SignalId of 1" $ signalIdFromBigNumber $ BN.embed 101
 
 signalId2 :: SignalId
-signalId2 = unsafeFromJust "SignalId of 2" $ signalIdFromBigNumber $ BN.embed 2
+signalId2 = unsafeFromJust "SignalId of 2" $ signalIdFromBigNumber $ BN.embed 102
+
+signalId3 :: SignalId
+signalId3 = unsafeFromJust "SignalId of 3" $ signalIdFromBigNumber $ BN.embed 103
 
 saleId2 :: SaleId
-saleId2 = unsafeFromJust "SaleId of 2" $ saleIdFromBigNumber $ BN.embed 2
+saleId2 = unsafeFromJust "SaleId of 2" $ saleIdFromBigNumber $ BN.embed 102
 saleId3 :: SaleId
-saleId3 = unsafeFromJust "SaleId of 3" $ saleIdFromBigNumber $ BN.embed 3
+saleId3 = unsafeFromJust "SaleId of 3" $ saleIdFromBigNumber $ BN.embed 103
+
+radius2 :: Radius
+radius2 = unsafeFromJust "Radius of 2" $ radiusFromBigNumber $ BN.embed 13
+radius3 :: Radius
+radius3 = unsafeFromJust "Radius of 3" $ radiusFromBigNumber $ BN.embed 16
 
 signal1 :: Signal
 signal1 = Signal
@@ -99,7 +110,7 @@ signal1 = Signal
   , stake: zeroToken
   , owner: address1
   , geohash: geohashFromLngLat 10 {lng: 12.0, lat:41.0}
-  , radius: Radius 11.0
+  , radius: radius2
   , sale: Nothing
   }
 
@@ -109,32 +120,114 @@ signal2 = Signal
   , stake: zeroToken
   , owner: address2
   , geohash: geohashFromLngLat 10 {lng: 12.0, lat:42.0}
-  , radius: Radius 12.0
+  , radius: radius2
+  , sale: Nothing
+  }
+
+signal3 :: Signal
+signal3 = Signal
+  { id: signalId3
+  , stake: zeroToken
+  , owner: address1
+  , geohash: geohashFromLngLat 10 {lng: 19.0, lat:22.0}
+  , radius: radius3
   , sale: Nothing
   }
 
 getSignals :: Cursor -> Aff (Collection Signal)
-getSignals c = do
+getSignals cursor = get
+  ("signal_token/with_sales?limit=" <> show (cursor.limit + 1) <> "&offset=" <> show cursor.offset)
+  \json -> do
+    (jsonArr :: Array (Object Json)) <- decodeJson json
+    (items :: Array Signal) <- for jsonArr \itemJson -> do
+      signalJson <- itemJson .: "data"
+      eSignal <- getField signalJson "eSignal"
+      eSaleMb <- getField signalJson "eSale"
+      Signal <$> sequenceRecord
+        { id: eSignal .: "tokenID"
+        , stake: eSignal .: "staked"
+        , owner: eSignal .: "owner"
+        , geohash: eSignal .: "geohash" >>= decodeGeoHash
+        , radius: eSignal .: "radius"
+        , sale: for eSaleMb \eSale -> sequenceRecord
+            { id: eSale .: "saleID"
+            , price: eSale .: "price"
+            }
+        }
+    pure if Array.length items > cursor.limit
+      then
+        { items: Array.take cursor.limit items
+        , next: Just $ cursor{offset = cursor.limit + cursor.offset}
+        }
+      else
+        { items
+        , next: Nothing
+        }
+
+getSignals' :: Cursor -> Aff (Collection Signal)
+getSignals' c = do
   delay $ Milliseconds 1000.0
-  pure {items: [signal1, signal2], next: Just c}
+  pure {items: [signal1, signal2, signal3], next: Just c}
 
 getSignal :: SignalId -> Aff SignalDetails
-getSignal sid = do
+getSignal (SignalId sid) = get
+  ("signal_market/" <> show sid)
+  \json -> do
+    jsonObj :: Object Json <- decodeJson json
+    jsonSignal <- jsonObj .: "signal"
+    jsonHistory :: Array (Object Json) <- jsonObj .: "history"
+    jsonSignalData <- jsonSignal .: "data"
+    activity <- for jsonHistory \itemJson -> do
+      jsonData <- itemJson .: "data"
+      tag <- jsonData .: "tag"
+      contents <- jsonData .: "contents"
+      case tag of
+        "ListedForSale" ->
+          ListedForSale <$> sequenceRecord
+            { owner: contents .: "seller"
+            , saleId: contents .: "saleID"
+            , price: contents .: "price"
+            }
+        "Sold" -> Sold <$> sequenceRecord
+          { owner: contents .: "soldFrom"
+          , saleId: contents .: "saleID"
+          , price: contents .: "price"
+          , buyer: contents .: "soldTo"
+          }
+        "Unlisted" -> UnlistedFromSale <$> sequenceRecord
+          { owner: contents .: "owner"
+          , saleId: contents .: "saleID"
+          }
+        _ -> throwError $ "Invalid tag: " <> show tag
+    signal <- Signal <$> sequenceRecord
+      { id: jsonSignalData .: "tokenID"
+      , stake: jsonSignalData .: "staked"
+      , owner: jsonSignalData .: "owner"
+      , geohash: jsonSignalData .: "geohash" >>= decodeGeoHash
+      , radius: jsonSignalData .: "radius"
+      , sale: pure $ Array.head activity >>= case _ of
+          ListedForSale { saleId, price } -> Just { id: saleId, price }
+          Sold _ -> Nothing
+          UnlistedFromSale _ -> Nothing
+      }
+    pure $ SignalDetails {signal, activity}
+
+
+getSignal' :: SignalId -> Aff SignalDetails
+getSignal' sid = do
   delay $ Milliseconds 1000.0
   pure $ SignalDetails
     { signal: signal1
     , activity:
         [ ListedForSale
             { owner: address2
-            , saleID: saleId2
+            , saleId: saleId2
             , price: zeroToken
-            , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-3.0)) (unsafePerformEffect nowDateTime)
             }
-        , Soled
+        , Sold
             { owner: address2
-            , saleID: saleId3
+            , saleId: saleId3
             , price: zeroToken
-            , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-2.0)) (unsafePerformEffect nowDateTime)
             , buyer: address1
             }
         ]
@@ -149,23 +242,24 @@ getActivity c = do
             { from: address3
             , to: address3
             , amount: zeroToken
-            , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-6.0)) (unsafePerformEffect nowDateTime)
             }
         , SignalListedForSale
             { owner: address2
-            , saleID: saleId2
-            , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-3.0)) (unsafePerformEffect nowDateTime)
+            , saleId: saleId2
             , signal: signal1
             , price: zeroToken
             }
-        , SignalSoled
+        , SignalSold
             { owner: address2
-            , saleID: saleId3
-            , timestamp: unsafeFromJust "adjust is good" $ adjust (Days (-2.0)) (unsafePerformEffect nowDateTime)
+            , saleId: saleId3
             , buyer: address1
             , signal: signal1
             , price: zeroToken
             }
         ]
-    , next: Nothing
+    , next: Just c
     }
+
+
+decodeGeoHash :: String -> Either String Geohash
+decodeGeoHash str = note "Invalid GeoHash" (H.mkHexString str) <#> geohashFromHex
