@@ -26,9 +26,10 @@ import Data.Argonaut (Json, decodeJson, getField, (.:))
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Geohash (Geohash, geohashFromHex, geohashFromLngLat)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Time.Duration (Milliseconds(..), Minutes(..), fromDuration)
 import Data.Traversable (for)
+import Data.Tuple (Tuple(..), fst, snd)
 import Deploy.Utils (unsafeFromJust)
 import Effect.Aff (Aff, delay)
 import Effect.Exception (error)
@@ -143,16 +144,20 @@ getSignals cursor = get
       signalJson <- itemJson .: "data"
       eSignal <- getField signalJson "eSignal"
       eSaleMb <- getField signalJson "eSale"
+      saleInfo <- for eSaleMb \eSale -> do
+        owner <- eSale .: "owner"
+        sale <- sequenceRecord
+          { id: eSale .: "saleID"
+          , price: eSale .: "price"
+          }
+        pure (Tuple owner sale)
       Signal <$> sequenceRecord
         { id: eSignal .: "tokenID"
         , stake: eSignal .: "staked"
-        , owner: eSignal .: "owner"
+        , owner: maybe (eSignal .: "owner") (fst >>> pure) saleInfo
         , geohash: eSignal .: "geohash" >>= decodeGeoHash
         , radius: eSignal .: "radius"
-        , sale: for eSaleMb \eSale -> sequenceRecord
-            { id: eSale .: "saleID"
-            , price: eSale .: "price"
-            }
+        , sale: pure $ map snd saleInfo
         }
     pure if Array.length items > cursor.limit
       then
@@ -199,16 +204,18 @@ getSignal (SignalId sid) = get
           , saleId: contents .: "saleID"
           }
         _ -> throwError $ "Invalid tag: " <> show tag
+    let
+      saleInfo = Array.head activity >>= case _ of
+        ListedForSale { owner, saleId, price } -> Just $ Tuple owner { id: saleId, price }
+        Sold _ -> Nothing
+        UnlistedFromSale _ -> Nothing
     signal <- Signal <$> sequenceRecord
       { id: jsonSignalData .: "tokenID"
       , stake: jsonSignalData .: "staked"
-      , owner: jsonSignalData .: "owner"
+      , owner: maybe (jsonSignalData .: "owner") (fst >>> pure) saleInfo
       , geohash: jsonSignalData .: "geohash" >>= decodeGeoHash
       , radius: jsonSignalData .: "radius"
-      , sale: pure $ Array.head activity >>= case _ of
-          ListedForSale { saleId, price } -> Just { id: saleId, price }
-          Sold _ -> Nothing
-          UnlistedFromSale _ -> Nothing
+      , sale: pure $ map snd saleInfo
       }
     pure $ SignalDetails {signal, activity}
 

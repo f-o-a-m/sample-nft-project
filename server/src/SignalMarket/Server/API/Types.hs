@@ -78,6 +78,7 @@ instance A.ToJSON SignalWithSaleSummary where
 data SaleSummary = SaleSummary
   { saleSummarySaleID :: SaleID
   , saleSummaryPrice  :: Value
+  , saleSummaryOwner  :: EthAddress
   } deriving Generic
 
 instance A.ToJSON SaleSummary where
