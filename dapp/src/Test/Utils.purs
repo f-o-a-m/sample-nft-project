@@ -69,7 +69,7 @@ expectRight
 expectRight = case _ of
   Left l -> throwError $ error $ "Expected Right but got (Left " <> show l <>")"
   Right r -> pure r
-  
+
 assertStorageCall
   :: forall m a.
      MonadAff m

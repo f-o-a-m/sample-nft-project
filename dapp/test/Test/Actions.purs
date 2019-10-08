@@ -86,7 +86,7 @@ trackMintSignal { logger } { geohash, radius, foamToken, signalToken, provider, 
                                                , value: approvalAmount
                                                }
       approvalFilter = eventFilter (Proxy :: Proxy FoamToken.Approval) foamToken
-  approval@(FoamToken.Approval ft) <- monitorUntil provider logger approveAction approvalFilter
+  approval@(FoamToken.Approval ft) <- monitorUntil provider approveAction approvalFilter
   logger $ "AUX: Approved FOAM tokens " <> show approval
   -- generate unique attributes
   let stake = mkUIntN s256 1
@@ -94,7 +94,7 @@ trackMintSignal { logger } { geohash, radius, foamToken, signalToken, provider, 
       mintAction = SignalToken.mintSignal (txOpts # _to ?~ signalToken)
                                           { owner, stake, geohash, radius }
       trackedTokenFilter = eventFilter (Proxy :: Proxy SignalToken.TrackedToken) signalToken
-  trackMint@(SignalToken.TrackedToken tm) <- monitorUntil provider logger mintAction trackedTokenFilter
+  trackMint@(SignalToken.TrackedToken tm) <- monitorUntil provider mintAction trackedTokenFilter
   logger $ "AUX: Signal token minted " <> show trackMint
   pure { trackMint }
 
@@ -129,9 +129,9 @@ markSignalForSale { logger } { signalToken, signalMarket, trackMint, provider, a
                                                             }
       forSaleFilter = eventFilter (Proxy :: Proxy SignalMarket.SignalForSale) signalMarket
   -- approve minted signal
-  signalApproval <- monitorUntil provider logger signalApproveAction signalApproveFilter
+  signalApproval <- monitorUntil provider signalApproveAction signalApproveFilter
   logger $ "AUX: Signal approved for SignalMarket " <> show signalApproval
   -- mark signal as for sale
-  signalForSale <- monitorUntil provider logger forSaleAction forSaleFilter
+  signalForSale <- monitorUntil provider forSaleAction forSaleFilter
   logger $ "AUX: Signal for sale " <> show signalForSale
   pure { trackMint, signalForSale }

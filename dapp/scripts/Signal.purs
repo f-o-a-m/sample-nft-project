@@ -30,11 +30,13 @@ import Effect.Exception (throw)
 import Effect.Random (randomRange)
 import Etherium.Tx (awaitMined)
 import Etherium.TxOpts (txOpts)
-import Network.Ethereum.Web3 (Value, httpProvider, mkAddress, mkHexString, mkValue, toMinorUnit, uIntNFromBigNumber)
+import Network.Ethereum.Web3 (Value, eventFilter, httpProvider, mkAddress, mkHexString, mkValue, toMinorUnit, uIntNFromBigNumber)
 import Network.Ethereum.Web3 as BN
 import Network.Ethereum.Web3.Solidity.Sizes (s256)
 import Network.Ethereum.Web3.Types.EtherUnit (Ether)
 import Node.Process (lookupEnv)
+import Test.Utils (monitorUntil)
+import Type.Proxy (Proxy(..))
 import Unsafe (unsafeFromJust)
 
 main :: Effect Unit
@@ -63,16 +65,24 @@ main = void <<< launchAff $ do
     log "approve mining"
     expectRight =<< liftAff (awaitMined txHash provider)
     signals # parTraverse_ \signal -> do
-      log $ "mintSignal submitting " <> show signal
-      txHash' <- SignalToken.mintSignal
+      log $ "mintSignal " <> show signal
+      SignalToken.TrackedToken {tokenID} <- monitorUntil provider (SignalToken.mintSignal
         (txOpts {from, to: signalToken})
-        { owner
+        { owner: from
         , geohash: signal.geohash
         , radius: unsafeFromJust "invalid radius" $ uIntNFromBigNumber s256 $ BN.embed signal.radius
         , stake: unsafeFromJust "invalid stake" $ uIntNFromBigNumber s256 $ toMinorUnit (mkValue (BN.embed signal.stake) :: Value Ether)
+        })
+        (eventFilter (Proxy :: Proxy SignalToken.TrackedToken) signalToken)
+      log $ "transfer submitting " <> show signal
+      txHash' <- SignalToken.transferFrom
+        (txOpts {from, to: signalToken})
+        { from
+        , to: owner
+        , tokenId: tokenID
         }
-      log $ "mintSignal mining " <> show signal
       expectRight =<< liftAff (awaitMined txHash' provider)
+      log $ "transfer mining " <> show signal
 
 
 expectRight
