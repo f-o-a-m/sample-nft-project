@@ -3,6 +3,12 @@
 
 module SignalMarket.Common.Models.SignalMarketSignalSold where
 
+import           Data.Swagger                   (SwaggerType (..),
+                                                 ToParamSchema (..),
+                                                 ToSchema (..),
+                                                 defaultSchemaOptions,
+                                                 genericDeclareNamedSchema)
+
 import qualified Data.Aeson                     as A
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
 import           GHC.Generics                   (Generic)
@@ -38,6 +44,9 @@ signalSoldTable = table "signal_market_signal_sold"
                                                 , eventID = tableField "event_id"
                                                 }
                         )
+
+instance ToSchema SignalSold where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
 instance A.ToJSON SignalSold where
   toJSON = A.genericToJSON (defaultAesonOptions "")
