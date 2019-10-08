@@ -19,12 +19,7 @@ import Data.Maybe (Maybe(..))
 import Data.Variant as V
 import Network.Ethereum.Web3 (unBytesN)
 
--- TODO we can flatten this
-type Event =
-  { raw :: EventRaw
-  }
-
-type EventRaw = V.Variant
+type Event = V.Variant
   ( transfer :: FoamToken.Transfer
   , signalForSale :: SignalMarket.SignalForSale
   , signalUnlisted :: SignalMarket.SignalUnlisted
@@ -33,7 +28,7 @@ type EventRaw = V.Variant
   )
 
 eventToSignalId :: Event -> Maybe SignalId
-eventToSignalId = _.raw >>> V.match
+eventToSignalId = V.match
   { transfer: \(FoamToken.Transfer e) -> Nothing
   , trackedToken: \(SignalToken.TrackedToken e) -> Nothing
   , signalForSale: \(SignalMarket.SignalForSale e) -> Just $ SignalId e.tokenId
@@ -42,7 +37,7 @@ eventToSignalId = _.raw >>> V.match
   }
 
 eventToSignal :: Event -> Maybe Signal
-eventToSignal = _.raw >>> V.match
+eventToSignal = V.match
   { transfer: \(FoamToken.Transfer e) -> Nothing
   , trackedToken: \(SignalToken.TrackedToken e) -> Just $ Signal
       { id: SignalId e.tokenID
@@ -59,7 +54,7 @@ eventToSignal = _.raw >>> V.match
 
 
 eventToSignalUpdate :: Event -> Signal -> Maybe Signal
-eventToSignalUpdate = _.raw >>> V.match
+eventToSignalUpdate = V.match
   { transfer: \(FoamToken.Transfer e) -> const Nothing
   , trackedToken: \(SignalToken.TrackedToken e) -> const Nothing
   , signalForSale: \(SignalMarket.SignalForSale e) -> \(Signal s) -> do
@@ -74,7 +69,7 @@ eventToSignalUpdate = _.raw >>> V.match
   }
 
 eventToSignalActivity :: Event -> Maybe SignalActivity
-eventToSignalActivity { raw } = raw # V.match
+eventToSignalActivity = V.match
   { transfer: \(FoamToken.Transfer e) -> Nothing
   , trackedToken: \(SignalToken.TrackedToken e) -> Nothing
   , signalForSale: \(SignalMarket.SignalForSale e) ->
@@ -86,7 +81,7 @@ eventToSignalActivity { raw } = raw # V.match
   }
 
 eventToActivity :: forall m . Monad m => Event -> ReaderT (SignalId -> m Signal) m (Maybe Activity)
-eventToActivity { raw } = raw # V.match
+eventToActivity = V.match
   { transfer: \(FoamToken.Transfer e) -> pure $ Just $ TokenTransfer {from:e.from, to: e.to, amount: Token e.value}
   , trackedToken: \(SignalToken.TrackedToken e) -> pure Nothing
   , signalForSale: \(SignalMarket.SignalForSale e) -> ask >>= \getter -> do
