@@ -45,8 +45,8 @@ getSignalH mlimit moffset owners tokens = do
     withLimitAndOffset $
       withMetadata (\(tt, _) -> TrackedToken.eventID tt) $
           trackedTokenWithSaleQ >>> ownersF >>> tokenF
-  pure . flip map as $ \((t,ss), rc) ->
-    let saleSummary = SaleSummary <$> fst ss <*> snd ss
+  pure . flip map as $ \((t,(saleId, salePrice, saleOwner)), rc) ->
+    let saleSummary = SaleSummary <$> saleId <*> salePrice <*> saleOwner
         apiSignal = SignalWithSaleSummary
           { signalWithSaleResponseSignal = t
           , signalWithSaleResponseSale = saleSummary

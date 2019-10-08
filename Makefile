@@ -142,3 +142,6 @@ build-purs-editor: ## Same as `make build-purs` but with json output, it's used 
 
 faucet-locally: ## Faucet some ETH locally
 	pulp run --jobs 8 --src-path dapp/scripts -I dapp/src:frontend/src -m Faucet
+
+signal-locally: ## Create signal locally
+	pulp run --jobs 8 --src-path dapp/scripts -I dapp/src:frontend/src -m Signal
