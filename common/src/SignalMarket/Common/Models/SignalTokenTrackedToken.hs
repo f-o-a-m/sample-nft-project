@@ -3,6 +3,12 @@
 
 module SignalMarket.Common.Models.SignalTokenTrackedToken where
 
+import           Data.Swagger                   (SwaggerType (..),
+                                                 ToParamSchema (..),
+                                                 ToSchema (..),
+                                                 defaultSchemaOptions,
+                                                 genericDeclareNamedSchema)
+
 import qualified Data.Aeson                     as A
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
 import           GHC.Generics                   (Generic)
@@ -33,6 +39,9 @@ $(makeAdaptorAndInstance "pTrackedToken" ''TrackedToken')
 type TrackedTokenPG =
   TrackedToken' (Field SqlText) (Field SqlText) (Field SqlText) (Field SqlNumeric) (Field SqlNumeric) (Field SqlText) (Field SqlNumeric) (Field SqlBool) (Field SqlText)
 type TrackedToken = TrackedToken' EthAddress ByteNValue ByteNValue HexInteger TokenID EthAddress Value Bool EventID
+
+instance ToSchema TrackedToken where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
 trackedTokenTable :: Table TrackedTokenPG TrackedTokenPG
 trackedTokenTable = table "signal_token_tracked_token"

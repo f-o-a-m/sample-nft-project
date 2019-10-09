@@ -24,6 +24,13 @@ PGPORT ?= 5555
 PGPASSWORD ?= password
 PGUSER ?= postgres
 
+GRAPHQL_PORT ?= 3003
+GRAPHQL_API ?= 3003
+GRAPHQL_PATH ?= /
+GRAPHQL_PG_SCHEMAS ?= public
+GRAPHQL_SIMPLE_AUTH_TOKEN ?= super_secret_token
+GRAPHQL_API_URL ?= http://localhost:3003/graphql
+
 PSQL ?= docker-compose run postgis psql
 FLYWAY ?= docker-compose run flyway
 
@@ -43,6 +50,8 @@ install: ## Runs npm and bower install
 	bower install
 	# hack to build purs deps only
 	pulp build --src-path dapp/contracts
+
+	cd graphql-server && npm install
 
 ############
 # postgres
@@ -70,7 +79,7 @@ deploy-contracts: build-dapp ## Deploy contracts in dapp project
 	chanterelle deploy ./output/Deploy.Main/index.js --node-url "$(NODE_URL)"
 
 test-dapp: ## Run the dapp unit test suite
-	pulp test --src-path dapp/src --test-path dapp/test -m Test.Unit.Main
+	pulp test --src-path dapp/src --test-path dapp/test -m Test.Unit.Main -I frontend
 
 test-e2e: ## Run the dapp unit test suite
 	pulp test --src-path dapp/src --test-path dapp/test -m Test.E2E.Main -I frontend
@@ -144,3 +153,15 @@ build-purs-editor: ## Same as `make build-purs` but with json output, it's used 
 
 faucet-locally: ## Faucet some ETH locally
 	pulp run --jobs 8 --src-path dapp/scripts -I dapp/src:frontend/src -m Faucet
+
+signal-locally: ## Create signal locally
+	pulp run --jobs 8 --src-path dapp/scripts -I dapp/src:frontend/src -m Signal
+####################
+# GraphQL Server #
+####################
+
+run-gql-server: ## run the graphql server
+	cd graphql-server && npm run start
+
+run-gql-dev: ## run the graphql server in dev mode
+	cd graphql-server && npm run dev

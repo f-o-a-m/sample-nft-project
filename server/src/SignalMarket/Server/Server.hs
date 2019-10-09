@@ -1,8 +1,11 @@
 module SignalMarket.Server.Server (server, mkApplication) where
 
+import           Control.Lens                            ((&), (.~), (?~))
 import           Data.Proxy
+import           Data.Swagger
 import           Servant.API                             ((:<|>) (..))
 import           Servant.Server
+import           Servant.Swagger
 import           SignalMarket.Server.API
 import           SignalMarket.Server.API.Types           ()
 import           SignalMarket.Server.Application         (runAppHandler)
@@ -24,6 +27,17 @@ server cfg = hoistServerWithContext api (Proxy :: Proxy '[]) (runAppHandler cfg)
   :<|> signalMarketServer
   :<|> wsServer cfg
 
+swaggerServer :: Server SwaggerAPI
+swaggerServer = pure $ toSwagger api
+  & info.title   .~ "FOAM Signal Market"
+  & info.version .~ "0.1.0"
+  & schemes ?~ [Http, Http]
+--  & tags .~ fromList ["foam"]
+--  & host ?~ Host (indexHost swConfig) (Just . fromIntegral $ indexPort swConfig)
+
+fullServer :: AppConfig -> Server FullAPI
+fullServer cfg = server cfg
+            :<|> swaggerServer
 
 mkApplication :: AppConfig -> Application
-mkApplication cfg = serveWithContext api EmptyContext $ server cfg
+mkApplication cfg = serveWithContext fullApi EmptyContext $ fullServer cfg

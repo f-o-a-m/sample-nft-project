@@ -1,16 +1,21 @@
 module SignalMarket.Server.API
  ( API
  , api
+ , FullAPI
+ , fullApi
  , FoamTokenAPI
  , SignalAPI
  , SignalTokenAPI
  , SignalMarketAPI
  , ConfigAPI
  , WebSocketAPI
+ , SwaggerAPI
  ) where
 
 import           Data.Proxy
+import           Data.Swagger
 import           Servant
+import           Servant.Swagger
 import           SignalMarket.Common.EventTypes                       (EthAddress,
                                                                        SaleID,
                                                                        SaleStatus,
@@ -30,8 +35,14 @@ type API =
   :<|> SignalMarketAPI
   :<|> WebSocketAPI
 
+type FullAPI = API
+  :<|> SwaggerAPI
+
 api :: Proxy API
 api = Proxy
+
+fullApi :: Proxy FullAPI
+fullApi = Proxy
 
 --------------------------------------------------------------------------------
 -- /config
@@ -134,4 +145,8 @@ type GetSignalMarketHistory =
 
 --------------------------------------------------------------------------------
 type WebSocketAPI = "ws" :> Raw
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+type SwaggerAPI = "swagger.json" :> Get '[JSON] Swagger
 --------------------------------------------------------------------------------

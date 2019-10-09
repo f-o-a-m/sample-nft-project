@@ -3,6 +3,12 @@
 
 module SignalMarket.Common.Models.SignalTokenTransfer where
 
+import           Data.Swagger                   (SwaggerType (..),
+                                                 ToParamSchema (..),
+                                                 ToSchema (..),
+                                                 defaultSchemaOptions,
+                                                 genericDeclareNamedSchema)
+
 import qualified Data.Aeson                     as A
 import           Data.Profunctor.Product.TH     (makeAdaptorAndInstance)
 import           GHC.Generics                   (Generic)
@@ -24,6 +30,10 @@ $(makeAdaptorAndInstance "pTransfer" ''Transfer')
 
 type TransferPG = Transfer' (Field SqlText) (Field SqlText) (Field SqlNumeric) (Field SqlText)
 type Transfer = Transfer' EthAddress EthAddress TokenID EventID
+
+instance ToSchema Transfer where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
 
 transferTable :: Table TransferPG TransferPG
 transferTable = table "signal_token_transfer"

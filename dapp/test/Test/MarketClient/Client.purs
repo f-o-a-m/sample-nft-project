@@ -19,8 +19,7 @@ import Network.Ethereum.Web3 (Address)
 import Servant.API (type (:>))
 import Servant.API as API
 import Servant.Client as Client
-import Test.MarketClient.Types (BlockNumberOrdering(..), Contracts(..), FoamTokenTransfer(..), Receipt(..)) as ReExport
-import Test.MarketClient.Types as Types
+import Test.MarketClient.Types (BlockNumberOrdering(..), Contracts(..), FoamTokenTransfer(..), MetaData(..), Receipt(..), WithMetaData(..)) as Types
 
 -- ClientM
 newtype ClientM a = ClientM (ReaderT Client.ClientEnv (ExceptT Client.AjaxError Aff) a)

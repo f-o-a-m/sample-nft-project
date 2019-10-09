@@ -9,7 +9,7 @@ You can test the server running
 
 ```bash
 > make run-server
-> curl localhost:9000
+> curl localhost:9000/config/contracts
 ```
 
 you should get a response like

@@ -1,10 +1,9 @@
 module SignalMarket.Server.WebSocket.App where
 
 import           Control.Arrow                           (returnA)
-import           Control.Concurrent                      (forkIO)
 import           Control.Concurrent.Async                (async)
 import           Control.Concurrent.MVar                 as MVar
-import           Control.Monad                           (forM_, forever, void)
+import           Control.Monad                           (forM_, forever)
 import           Control.Monad.Catch                     (MonadThrow)
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader                    (MonadReader (..))
@@ -12,7 +11,6 @@ import           Control.Monad.Trans                     (lift)
 import qualified Data.Aeson                              as A
 import           Data.Conduit
 import           Data.Conduit.List                       (sourceList)
-import           Data.IORef
 import qualified Data.List                               as L
 import           Data.String                             (fromString)
 import           Data.String.Conversions                 (cs)
@@ -45,6 +43,7 @@ mkWebSocketApp pg logCfg mkWebSocketApplet pendingConn = do
     runWebSocketM env $ clientMsgHandler subsBS
   runConduit
     (transPipe (runWebSocketM env) msgConduit .| socketSink socket)
+  error "conduit terminated"
   where
     socketSink
       :: Socket.Connection
@@ -66,47 +65,37 @@ defaultWSApplet conn = do
               Just s@(SubscriptionID sid,_,_) -> do
                 K.logFM K.DebugS (fromString $ "Received subscription update with SubscriptionID " <> sid)
                 WebSocketEnv{subscriptionRef} <- ask
-                liftIO $ modifyIORef subscriptionRef (s : )
+                liftIO $ MVar.modifyMVar_ subscriptionRef (pure . (s : ))
           Cancel subsID@(SubscriptionID sid) -> do
             K.logFM K.DebugS (fromString $ "Cancelling SubscriptionID " <> sid)
             WebSocketEnv{subscriptionRef} <- ask
             let p (_subsID, _, _) = subsID /= _subsID
-            liftIO $ modifyIORef subscriptionRef $ filter p
-  var <- writeLoop conn
-  let msgC = listenerC var .| rawChangeC .| subscriptionC
+            liftIO $ MVar.modifyMVar_ subscriptionRef $ pure . filter p
+  _ <- PG.execute_ conn "LISTEN raw_change_channel"
+  let msgC = listenerC conn .| rawChangeC .| subscriptionC
   pure $ WSApplet
        { clientMsgHandler = clientH
        , msgConduit = msgC
        }
 
-writeLoop :: PG.Connection -> IO (MVar (Either String EventID))
-writeLoop conn = do
-  var <- liftIO MVar.newEmptyMVar
-  _ <- PG.execute_ conn "LISTEN raw_change_channel"
-  void $ forkIO $ forever $ do
-    notification <- PG.getNotification conn
-    void $ forkIO $ do
-      let _data = PG.notificationData notification
-          eeid = fmap EventID . parseHexString $ cs _data :: Either String EventID
-      MVar.putMVar var eeid
-  pure var
-
 listenerC
   :: MonadPG m
-  => MVar (Either String EventID)
+  => PG.Connection
   -> ConduitT () EventID m ()
-listenerC var = forever $ do
-  eeid <- liftIO $ MVar.takeMVar var
+listenerC conn = forever $ do
+  notification <- liftIO $ PG.getNotification conn
+  let _data = PG.notificationData notification
+      eeid = fmap EventID . parseHexString $ cs _data :: Either String EventID
   case eeid of
     Left e ->
       let msg = "ParseError in raw_change_channel, couldn't parse as EventID: " <> show e
       in lift (K.logFM K.ErrorS $ fromString msg) *> error msg
     Right eid -> yield eid
 
-
-rawChangeC :: (MonadThrow m, MonadPG m) => ConduitT EventID RC.RawChange m ()
+rawChangeC :: (MonadThrow m, LoggingM m, MonadPG m) => ConduitT EventID RC.RawChange m ()
 rawChangeC = awaitForever $ \eid -> do
     res <- lift $ getRawChange eid
+    lift $ K.logFM K.DebugS $ fromString ("Received event --  " <> show eid)
     yield res
   where
     getRawChange :: (MonadThrow m, MonadPG m) => EventID -> m RC.RawChange
@@ -124,7 +113,7 @@ subscriptionC
   => ConduitT RC.RawChange WebSocketMsg m ()
 subscriptionC = awaitForever $ \rc -> do
   WebSocketEnv{subscriptionRef} <- lift ask
-  ks <- lift . liftIO $ readIORef subscriptionRef
+  ks <- lift . liftIO $ MVar.readMVar subscriptionRef
   let matchingSubscriptions = filterSubscriptionKeys rc ks
       outgoingMessages = map (mkWSMessage rc) matchingSubscriptions
   forM_ outgoingMessages $ \WebSocketMsg{webSocketMsgContents} ->

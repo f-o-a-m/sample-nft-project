@@ -68,25 +68,6 @@ header = React.make component
 
     pollUserBalance self con = do
       reloadUserBalance
-      -- void $ liftEffect do
-      --   lng <- randomRange 2.0 20.0
-      --   lat <- randomRange 2.0 20.0
-      --   radius <- map round $ randomRange 1.0 25.0
-      --   stake' <- map round $ randomRange 1.0 4.0
-      --   let stake = unsafeFromJust "invalid stake" $ uIntNFromBigNumber s256 $ toMinorUnit (mkValue (BN.embed stake') :: Value Ether)
-      --   Tx.send' (\from {foamToken,signalToken} -> NonEmptyList.cons
-      --     (FoamToken.approve (txOpts {from, to: foamToken}) { spender: signalToken, value: stake})
-      --     (NonEmptyList.singleton $ SignalToken.mintSignal
-      --       (txOpts {from, to: signalToken})
-      --       { owner: from
-      --       , geohash: geohashToBS32 $ geohashFromLngLat 5 {lng, lat}
-      --       , radius: unsafeFromJust "invalid radius" $ uIntNFromBigNumber s256 $ BN.embed radius
-      --       , stake
-      --       })
-      --     )
-      --     con
-      --     traceM
-
       fix \loop -> do
         res <- runWeb3 con.provider
           $ void

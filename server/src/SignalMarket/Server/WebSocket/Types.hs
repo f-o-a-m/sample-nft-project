@@ -1,5 +1,6 @@
 module SignalMarket.Server.WebSocket.Types where
 
+import           Control.Concurrent.MVar              (MVar, newMVar)
 import           Control.Lens                         (lens)
 import           Control.Monad.Catch                  (MonadCatch, MonadThrow,
                                                        try)
@@ -10,7 +11,6 @@ import           Control.Monad.Reader                 (MonadReader (..),
 import qualified Data.Aeson                           as A
 import           Data.ByteString                      (ByteString)
 import           Data.Conduit
-import           Data.IORef
 import qualified Database.PostgreSQL.Simple           as PG
 import           GHC.Generics                         (Generic)
 import           SignalMarket.Common.Aeson            (defaultAesonOptions)
@@ -65,7 +65,7 @@ mkSubscriptionKey Subscription{..} = do
 
 data WebSocketEnv = WebSocketEnv
   { pgConnection    :: PG.Connection
-  , subscriptionRef :: IORef [SubscriptionKey]
+  , subscriptionRef :: MVar [SubscriptionKey]
   , logEnv          :: LogConfig
   }
 
@@ -74,7 +74,7 @@ mkWebSocketEnv
   -> LogConfig
   -> IO WebSocketEnv
 mkWebSocketEnv pg le = do
-  subs <- newIORef []
+  subs <- newMVar []
   pure $ WebSocketEnv pg subs le
 
 instance HasLogConfig WebSocketEnv where

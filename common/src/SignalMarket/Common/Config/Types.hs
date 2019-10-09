@@ -10,15 +10,19 @@ import           Control.Lens                     ((^?))
 import           Control.Monad.IO.Class
 import qualified Data.Aeson                       as AE
 import qualified Data.Aeson.Lens                  as AEL
-import           Data.ByteArray.HexString         (HexString)
 import           Data.Proxy
-import           Data.Solidity.Prim.Address       (Address)
 import           Data.String.Conversions          (cs)
+import           Data.Swagger                     (SwaggerType (..),
+                                                   ToParamSchema (..),
+                                                   ToSchema (..),
+                                                   defaultSchemaOptions,
+                                                   genericDeclareNamedSchema)
 import           Data.Text                        (Text)
 import           GHC.Generics                     (Generic)
 import           SignalMarket.Common.Aeson
 import           SignalMarket.Common.Config.Utils
-import           SignalMarket.Common.EventTypes   (HexInteger)
+import           SignalMarket.Common.EventTypes   (EthAddress, HexInteger,
+                                                   HexString)
 
 -- | A record of the contracts used in the nft-market DApp.
 data Contracts = Contracts
@@ -27,6 +31,10 @@ data Contracts = Contracts
   , contractsSignalMarket :: DeployReceipt
   , contractsNetworkId    :: String
   } deriving (Eq, Show, Generic)
+
+instance ToSchema Contracts where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
 
 contractsAesonOptions :: AE.Options
 contractsAesonOptions = defaultAesonOptions "contracts"
@@ -52,11 +60,16 @@ mkContracts networkID = do
 -- | Matches up with the deployment information written to the
 -- | chanterelle deploy artifact.
 data DeployReceipt = DeployReceipt
-  { deployReceiptAddress         :: Address
+  { deployReceiptAddress         :: EthAddress
   , deployReceiptBlockHash       :: HexString
   , deployReceiptBlockNumber     :: HexInteger
   , deployReceiptTransactionHash :: HexString
   } deriving (Eq, Show, Generic)
+
+instance ToSchema DeployReceipt where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
+
 
 deployReceiptAesonOptions :: AE.Options
 deployReceiptAesonOptions = defaultAesonOptions "deployReceipt"
