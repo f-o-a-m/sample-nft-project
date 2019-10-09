@@ -9,7 +9,7 @@ import Control.Monad.Reader.Class (ask)
 import Data.Lens ((?~))
 import Data.Maybe (fromJust)
 import Network.Ethereum.Core.BigNumber (decimal, parseBigNumber)
-import Network.Ethereum.Web3 (Address, _from, _gas, defaultTransactionOptions)
+import Network.Ethereum.Web3 (Address, _from, _gas, _gasPrice, defaultTransactionOptions)
 import Contracts.SignalMarket as SignalMarket
 import Partial.Unsafe (unsafePartial)
 import Contracts.SignalToken as SignalToken
@@ -78,8 +78,10 @@ deployScript :: DeployM (Record DeployResults)
 deployScript = do
   deployCfg@(DeployConfig {primaryAccount, provider}) <- ask
   let bigGasLimit = unsafePartial fromJust $ parseBigNumber decimal "6712388"
+      bigGasPrice = unsafePartial fromJust $ parseBigNumber decimal "10000000000"
       txOpts = defaultTransactionOptions # _from ?~ primaryAccount
                                          # _gas ?~ bigGasLimit
+                                         # _gasPrice ?~ bigGasPrice
   -- deploy simple storage
   simpleStorage <- deployContract txOpts simpleStorageConfig
   -- deploy the FoamToken contract
