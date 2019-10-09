@@ -24,6 +24,6 @@ main = void <<< launchAff $ do
                    , provider: e2eConfig.provider
                    }
   join $ runSpecT specConfig [consoleReporter] do
-    SignalMarketSpec.spec tempConfig
+    -- SignalMarketSpec.spec tempConfig
     E2E.spec e2eConfig
 

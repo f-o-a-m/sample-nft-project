@@ -31,6 +31,9 @@ GRAPHQL_PG_SCHEMAS ?= public
 GRAPHQL_SIMPLE_AUTH_TOKEN ?= super_secret_token
 GRAPHQL_API_URL ?= http://localhost:3003/graphql
 
+REDIS_HOST ?= localhost
+REDIS_PORT ?= 6379
+
 PSQL ?= docker-compose run postgis psql
 FLYWAY ?= docker-compose run flyway
 

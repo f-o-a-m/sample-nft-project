@@ -1,60 +1,49 @@
 module SignalMarket.Server.WebSocket.App where
 
-import           Control.Arrow                           (returnA)
-import           Control.Concurrent.Async                (async)
-import           Control.Concurrent.MVar                 as MVar
-import           Control.Monad                           (forM_, forever)
-import           Control.Monad.Catch                     (MonadThrow)
+import           Control.Concurrent.Async             (async)
+import           Control.Concurrent.MVar              as MVar
+import           Control.Monad                        (forM_, forever)
 import           Control.Monad.IO.Class
-import           Control.Monad.Reader                    (MonadReader (..))
-import           Control.Monad.Trans                     (lift)
-import qualified Data.Aeson                              as A
+import           Control.Monad.Reader                 (MonadReader (..))
+import           Control.Monad.Trans                  (lift)
+import qualified Data.Aeson                           as A
+import           Data.ByteString                      (ByteString)
 import           Data.Conduit
-import           Data.Conduit.List                       (sourceList)
-import qualified Data.List                               as L
-import           Data.String                             (fromString)
-import           Data.String.Conversions                 (cs)
-import           Data.Text                               (Text)
-import qualified Database.PostgreSQL.Simple              as PG
-import qualified Database.PostgreSQL.Simple.Notification as PG
-import qualified Katip                                   as K
-import qualified Network.WebSockets                      as Socket
-import qualified Opaleye                                 as O
-import           SignalMarket.Common.Class               (MonadPG (..),
-                                                          queryExact)
+import           Data.Conduit.List                    (sourceList)
+import qualified Data.List                            as L
+import           Data.String                          (fromString)
+import           Data.String.Conversions              (cs)
+import           Data.Text                            (Text)
+import qualified Database.Redis                       as Redis
+import qualified Katip                                as K
+import qualified Network.WebSockets                   as Socket
 import           SignalMarket.Common.Config.Logging
-import           SignalMarket.Common.EventTypes          (EventID (..),
-                                                          parseHexString)
-import qualified SignalMarket.Common.Models.RawChange    as RC
+import           SignalMarket.Common.Config.Redis
+import qualified SignalMarket.Common.Models.RawChange as RC
 import           SignalMarket.Server.WebSocket.Types
 
 mkWebSocketApp
-  :: PG.Connection
+  :: Redis.Connection
   -> LogConfig
-  -> (PG.Connection -> IO WSApplet)
+  -> WSApplet
   -> Socket.ServerApp
-mkWebSocketApp pg logCfg mkWebSocketApplet pendingConn = do
+mkWebSocketApp redis logCfg webSocketApplet pendingConn = do
   socket <- Socket.acceptRequest pendingConn
   Socket.forkPingThread socket 10
-  env <- mkWebSocketEnv pg logCfg
-  WSApplet{clientMsgHandler, msgConduit} <- mkWebSocketApplet pg
+  env <- mkWebSocketEnv logCfg
+  let WSApplet{clientMsgHandler, msgConduit} = webSocketApplet
   _ <- async . forever $ do
     subsBS <- Socket.receiveData socket
     runWebSocketM env $ clientMsgHandler subsBS
-  runConduit
-    (transPipe (runWebSocketM env) msgConduit .| socketSink socket)
-  error "conduit terminated"
-  where
-    socketSink
-      :: Socket.Connection
-      -> ConduitT WebSocketMsg Void IO ()
-    socketSink socket = awaitForever $ \msg ->
-      let payload = cs @_ @Text . A.encode $ msg
-      in lift $ Socket.sendTextData socket payload
+  let subs =
+        [ (rawChangeChannel, \bs -> runConduit $
+             transPipe (runWebSocketM env) (yield bs .| msgConduit socket))
+        ]
+  controllers <- Redis.newPubSubController subs []
+  Redis.pubSubForever redis controllers mempty
 
-
-defaultWSApplet :: PG.Connection -> IO WSApplet
-defaultWSApplet conn = do
+defaultWSApplet :: WSApplet
+defaultWSApplet =
   let clientH subsBS = case A.eitherDecode $ cs subsBS of
         Left err ->
           K.logFM K.ErrorS (fromString $ "Failed to decode subscription message! " <> err)
@@ -71,49 +60,37 @@ defaultWSApplet conn = do
             WebSocketEnv{subscriptionRef} <- ask
             let p (_subsID, _, _) = subsID /= _subsID
             liftIO $ MVar.modifyMVar_ subscriptionRef $ pure . filter p
-  _ <- PG.execute_ conn "LISTEN raw_change_channel"
-  let msgC = listenerC conn .| rawChangeC .| subscriptionC
-  pure $ WSApplet
+  in WSApplet
        { clientMsgHandler = clientH
-       , msgConduit = msgC
+       , msgConduit = pubsubHandler
        }
 
-listenerC
-  :: MonadPG m
-  => PG.Connection
-  -> ConduitT () EventID m ()
-listenerC conn = forever $ do
-  notification <- liftIO $ PG.getNotification conn
-  let _data = PG.notificationData notification
-      eeid = fmap EventID . parseHexString $ cs _data :: Either String EventID
-  case eeid of
-    Left e ->
-      let msg = "ParseError in raw_change_channel, couldn't parse as EventID: " <> show e
-      in lift (K.logFM K.ErrorS $ fromString msg) *> error msg
-    Right eid -> yield eid
+pubsubHandler
+  :: ( LoggingM m
+     , MonadReader WebSocketEnv m
+     )
+  => Socket.Connection
+  -> ConduitT ByteString Void m ()
+pubsubHandler conn = decodeC .| subscriptionC .| socketSink conn
 
-rawChangeC :: (MonadThrow m, LoggingM m, MonadPG m) => ConduitT EventID RC.RawChange m ()
-rawChangeC = awaitForever $ \eid -> do
-    res <- lift $ getRawChange eid
-    lift $ K.logFM K.DebugS $ fromString ("Received event --  " <> show eid)
-    yield res
-  where
-    getRawChange :: (MonadThrow m, MonadPG m) => EventID -> m RC.RawChange
-    getRawChange eid = queryExact $ \conn -> O.runQuery conn q
-      where
-        q = proc () -> do
-          rc <- O.queryTable RC.rawChangeTable -< ()
-          O.restrict -< RC.eventID rc  O..== O.constant eid
-          returnA -< rc
+decodeC
+  :: LoggingM m
+  => ConduitT ByteString RC.RawChange m ()
+decodeC = awaitForever $ \bs -> do
+  case A.eitherDecode $ cs bs of
+    Right a -> yield a
+    Left err -> lift $
+      K.logFM K.ErrorS $ fromString $ "Error decoding pubsub message: " <> cs err
 
 subscriptionC
-  :: ( MonadPG m
-     , MonadReader WebSocketEnv m
+  :: ( MonadReader WebSocketEnv m
+     , LoggingM m
+     , MonadIO m
      )
   => ConduitT RC.RawChange WebSocketMsg m ()
 subscriptionC = awaitForever $ \rc -> do
   WebSocketEnv{subscriptionRef} <- lift ask
-  ks <- lift . liftIO $ MVar.readMVar subscriptionRef
+  ks <- liftIO $ MVar.readMVar subscriptionRef
   let matchingSubscriptions = filterSubscriptionKeys rc ks
       outgoingMessages = map (mkWSMessage rc) matchingSubscriptions
   forM_ outgoingMessages $ \WebSocketMsg{webSocketMsgContents} ->
@@ -139,3 +116,11 @@ subscriptionC = awaitForever $ \rc -> do
       -> SubscriptionKey
       -> WebSocketMsg
     mkWSMessage rc (_id,_,_) = WebSocketMsg _id rc
+
+socketSink
+  :: MonadIO m
+  => Socket.Connection
+  -> ConduitT WebSocketMsg Void m ()
+socketSink socket = awaitForever $ \msg ->
+  let payload = cs @_ @Text . A.encode $ msg
+  in liftIO $ Socket.sendTextData socket payload

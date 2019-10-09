@@ -36,8 +36,9 @@ dependencies:
 - bytestring
 - common
 - cryptonite
-- data-default 
+- data-default
 - exceptions
+- hedis
 - http-client
 - http-client-tls
 - katip
