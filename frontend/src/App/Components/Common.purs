@@ -17,6 +17,7 @@ import App.HTML (classy, maybeHtml)
 import App.Route as Route
 import Data.Array (length)
 import Data.Geohash (Geohash, geohashToLngLat)
+import Data.Int (decimal)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect (Effect)
@@ -35,7 +36,7 @@ import Type.Proxy (Proxy(..))
 
 renderToken :: forall t. TokenName (Token t) => (Token t) -> JSX
 renderToken (Token t) =
-  let num = show $ unUIntN t `divide` divider (ProxyTU :: ProxyTU (MinorUnitE18 t))
+  let num = show $ divide (unUIntN t) (divider (ProxyTU :: ProxyTU (MinorUnitE18 t)))
   in R.text $ num <> " " <> tokenName (Proxy:: Proxy (Token t))
 
 renderRadius :: Radius -> JSX
@@ -132,7 +133,7 @@ txOrElse :: Maybe Tx.Progress -> JSX -> JSX
 txOrElse tx btn = classy R.div "Transaction" case tx of
   Nothing -> [btn]
   Just { finished, total, current } ->
-    let progress = (show (length finished + 1) <> "/" <> show total)
+    let progress = Int.toStringAs decimal (length finished + 1) <> "/" <> Int.toStringAs decimal total
     in case current of
       Tx.Submitting ->
         [ classy R.div "Transaction-status"

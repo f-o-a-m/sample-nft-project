@@ -13,66 +13,74 @@ import Contracts.SignalToken as SignalToken
 import Control.MonadZero (guard)
 import Data.Geohash (geohashFromBS)
 import Data.Maybe (Maybe(..))
-import Data.Variant as V
 import Network.Ethereum.Web3 (unBytesN)
 
--- TODO we can flatten this
-type Event =
-  { raw :: EventRaw
-  }
 
-type EventRaw = V.Variant
-  ( signalForSale :: SignalMarket.SignalForSale
-  , signalUnlisted :: SignalMarket.SignalUnlisted
-  , signalSold :: SignalMarket.SignalSold
-  , trackedToken :: SignalToken.TrackedToken
-  )
+data Event
+  = SignalForSale SignalMarket.SignalForSale
+  | SignalUnlisted SignalMarket.SignalUnlisted
+  | SignalSold SignalMarket.SignalSold
+  | TrackedToken SignalToken.TrackedToken
 
 eventToSignalId :: Event -> Maybe SignalId
-eventToSignalId = _.raw >>> V.match
-  { trackedToken: \(SignalToken.TrackedToken e) -> Nothing
-  , signalForSale: \(SignalMarket.SignalForSale e) -> Just $ SignalId e.tokenId
-  , signalUnlisted: \(SignalMarket.SignalUnlisted e) -> Just $ SignalId e.tokenId
-  , signalSold: \(SignalMarket.SignalSold e) -> Just $ SignalId e.tokenId
-  }
+eventToSignalId = case _ of
+  TrackedToken (SignalToken.TrackedToken e) -> Nothing
+  SignalForSale (SignalMarket.SignalForSale e) -> Just $ SignalId e.tokenId
+  SignalUnlisted (SignalMarket.SignalUnlisted e) -> Just $ SignalId e.tokenId
+  SignalSold (SignalMarket.SignalSold e) -> Just $ SignalId e.tokenId
 
 eventToSignal :: Event -> Maybe Signal
-eventToSignal = _.raw >>> V.match
-  { trackedToken: \(SignalToken.TrackedToken e) -> Just $ Signal
-      { id: SignalId e.tokenID
-      , stake: Token e.stake
-      , owner: e.owner
-      , geohash: geohashFromBS $ unBytesN e.geohash
-      , radius: Radius e.radius
-      , sale: Nothing
-      }
-  , signalForSale: \(SignalMarket.SignalForSale e) -> Nothing
-  , signalUnlisted: \(SignalMarket.SignalUnlisted e) -> Nothing
-  , signalSold: \(SignalMarket.SignalSold e) -> Nothing
-  }
+eventToSignal = case _ of
+  TrackedToken (SignalToken.TrackedToken e) -> Just $ Signal
+    { id: SignalId e.tokenID
+    , stake: Token e.stake
+    , owner: e.owner
+    , geohash: geohashFromBS $ unBytesN e.geohash
+    , radius: Radius e.radius
+    , sale: Nothing
+    }
+  SignalForSale (SignalMarket.SignalForSale e) -> Nothing
+  SignalUnlisted (SignalMarket.SignalUnlisted e) -> Nothing
+  SignalSold (SignalMarket.SignalSold e) -> Nothing
 
 
 eventToSignalUpdate :: Event -> Signal -> Maybe Signal
-eventToSignalUpdate = _.raw >>> V.match
-  { trackedToken: \(SignalToken.TrackedToken e) -> const Nothing
-  , signalForSale: \(SignalMarket.SignalForSale e) -> \(Signal s) -> do
-      guard $ s.id == SignalId e.tokenId
-      pure $ Signal s { sale = Just {price: Token e.price, id: SaleId e.saleId} }
-  , signalUnlisted: \(SignalMarket.SignalUnlisted e) -> \(Signal s) -> do
-      guard $ s.id == SignalId e.tokenId
-      pure $ Signal s { sale = Nothing }
-  , signalSold: \(SignalMarket.SignalSold e) -> \(Signal s) -> do
-      guard $ s.id == SignalId e.tokenId
-      pure $ Signal s { owner = e.newOwner, sale = Nothing }
-  }
+eventToSignalUpdate = case _ of
+  TrackedToken (SignalToken.TrackedToken e) -> \_ -> Nothing
+  SignalForSale (SignalMarket.SignalForSale e) -> \(Signal s) -> do
+    guard $ s.id == SignalId e.tokenId
+    pure $ Signal s
+      { sale = Just {price: Token e.price, id: SaleId e.saleId}
+      }
+  SignalUnlisted (SignalMarket.SignalUnlisted e) -> \(Signal s) -> do
+    guard $ s.id == SignalId e.tokenId
+    pure $ Signal s
+      { sale = Nothing
+      }
+  SignalSold (SignalMarket.SignalSold e) -> \(Signal s) -> do
+    guard $ s.id == SignalId e.tokenId
+    pure $ Signal s
+      { owner = e.newOwner, sale = Nothing
+      }
 
 eventToSignalActivity :: Event -> Maybe SignalActivity
-eventToSignalActivity { raw } = raw # V.match
-  { trackedToken: \(SignalToken.TrackedToken e) -> Nothing
-  , signalForSale: \(SignalMarket.SignalForSale e) ->
-      Just $ ListedForSale { owner: e.seller, price: Token e.price, saleId: SaleId e.saleId }
-  , signalUnlisted: \(SignalMarket.SignalUnlisted e) ->
-      Just $ UnlistedFromSale { owner: e.owner, saleId: SaleId e.saleId }
-  , signalSold: \(SignalMarket.SignalSold e) ->
-      Just $ Sold { owner: e.owner, buyer: e.newOwner, saleId: SaleId e.saleId, price: Token e.price }
-  }
+eventToSignalActivity = case _ of
+  TrackedToken (SignalToken.TrackedToken e) -> Nothing
+  SignalForSale (SignalMarket.SignalForSale e) ->
+    Just $ ListedForSale
+      { owner: e.seller
+      , price: Token e.price
+      , saleId: SaleId e.saleId
+      }
+  SignalUnlisted (SignalMarket.SignalUnlisted e) ->
+    Just $ UnlistedFromSale
+      { owner: e.owner
+      , saleId: SaleId e.saleId
+      }
+  SignalSold (SignalMarket.SignalSold e) ->
+    Just $ Sold
+      { owner: e.owner
+      , buyer: e.newOwner
+      , saleId: SaleId e.saleId
+      , price: Token e.price
+      }

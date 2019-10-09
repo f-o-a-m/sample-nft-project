@@ -7,7 +7,8 @@ import App.Components.Header (header)
 import App.Components.Signal (signal)
 import App.Components.Signals (signals)
 import App.Data.Contracts (Contracts(..))
-import App.Data.Event (Event, EventRaw)
+import App.Data.Event (Event)
+import App.Data.Event as Event
 import App.Data.ProviderState (ConnectedState)
 import App.Data.ProviderState as ProviderState
 import App.Data.User (User(..))
@@ -30,8 +31,6 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple (Tuple(..), fst, snd)
-import Data.Variant (SProxy(..))
-import Data.Variant as V
 import Effect (Effect)
 import Effect.Aff (Aff, effectCanceler, fiberCanceler, joinFiber, launchAff, never)
 import Effect.Aff.BRef as BRef
@@ -173,29 +172,21 @@ root = React.make component
 
 pullEvents :: (BusW Event) -> ConnectedState -> Aff Unit
 pullEvents bus {provider, contracts: (Contracts c)} = parSequence_
-  [ eventPoll
-      (eventFilter (Proxy :: Proxy SignalMarket.SignalForSale) c.signalMarket)
-      (V.inj (SProxy :: SProxy "signalForSale"))
-  , eventPoll
-      (eventFilter (Proxy :: Proxy SignalMarket.SignalUnlisted) c.signalMarket)
-      (V.inj (SProxy :: SProxy "signalUnlisted"))
-  , eventPoll
-      (eventFilter (Proxy :: Proxy SignalMarket.SignalSold) c.signalMarket)
-      (V.inj (SProxy :: SProxy "signalSold"))
-  , eventPoll
-      (eventFilter (Proxy :: Proxy SignalToken.TrackedToken) c.signalToken)
-      (V.inj (SProxy :: SProxy "trackedToken"))
+  [ eventPoll (eventFilter (Proxy :: Proxy SignalMarket.SignalForSale) c.signalMarket) Event.SignalForSale
+  , eventPoll (eventFilter (Proxy :: Proxy SignalMarket.SignalUnlisted) c.signalMarket) Event.SignalUnlisted
+  , eventPoll (eventFilter (Proxy :: Proxy SignalMarket.SignalSold) c.signalMarket) Event.SignalSold
+  , eventPoll (eventFilter (Proxy :: Proxy SignalToken.TrackedToken) c.signalToken) Event.TrackedToken
   ]
   where
     eventPoll
       :: forall i ni e
       . DecodeEvent i ni e
       => Filter e
-      -> (e -> EventRaw)
+      -> (e -> Event)
       -> Aff Void
     eventPoll filter f = fix \loop -> do
       res <- runWeb3 provider $ void $ event filter \t -> do
-        liftAff $ Bus.write { raw: f t } bus
+        liftAff $ Bus.write (f t) bus
         pure ContinueEvent
       either (log <<< printWeb3Error) pure res
       loop
