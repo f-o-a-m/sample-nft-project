@@ -108,7 +108,8 @@ root = React.make component
           pushCanceler self $ fiberCanceler connectivityFiber
           let
             storeConnectivityChange = traverse_ \s ->
-              setProviderState $ ProviderState.Enabled s (EthProvider.toWeb3Provider provider) contracts
+              setProviderState $ ProviderState.Enabled
+                { connectivity: s, provider: EthProvider.toWeb3Provider provider, contracts }
           BRef.read connectivityBRef >>= storeConnectivityChange
           providerUpdateFiber <- launchAff $ forever $ BRef.readOnUpdate connectivityBRef
             >>= storeConnectivityChange
