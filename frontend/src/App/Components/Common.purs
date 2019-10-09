@@ -16,10 +16,12 @@ import App.Error (printWeb3Error)
 import App.HTML (classy, maybeHtml)
 import App.Route as Route
 import Data.Array (length)
-import Data.Geohash (Geohash, geohashToLngLat)
+import Data.Geohash (Geohash(..), geohashToLngLat)
 import Data.Int (decimal)
 import Data.Int as Int
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Newtype (un)
+import Data.String (Pattern(..), stripSuffix)
 import Effect (Effect)
 import Etherium.Tx as Tx
 import Network.Ethereum.Core.BigNumber (divide)
@@ -43,7 +45,11 @@ renderRadius :: Radius -> JSX
 renderRadius (Radius n) = R.text $ show n <> " km"
 
 renderGeoHash :: Geohash -> String
-renderGeoHash = geohashToLngLat >>> \{lat, lng} -> show lat <> ", " <> show lng
+renderGeoHash g = case geohashToLngLat g of
+  Nothing ->
+    let strip s = maybe s strip $ stripSuffix (Pattern "0") s
+    in "0x" <> strip (un Geohash g)
+  Just {lat, lng} -> show lat <> ", " <> show lng
 
 renderBaseSignal :: Boolean -> Signal -> JSX
 renderBaseSignal addLink (Signal s) = classy R.div "SignalContent"
