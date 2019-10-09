@@ -1,25 +1,27 @@
-module App.Components.Common where
+module App.Components.Common
+  ( renderToken
+  , renderSignal
+  , SignalState
+  ) where
 
 import Prelude
 
 import App.Components.Avatar (avatar)
-import App.Data.Collections (Cursor, LinkedCollection)
 import App.Data.ProviderState (ConnectedState)
 import App.Data.Radius (Radius(..))
 import App.Data.Signal (Signal(..))
 import App.Data.Token (class TokenName, Token(..), tokenFromBigNumber, tokenName)
 import App.Data.User (User(..))
 import App.Error (printWeb3Error)
-import App.HTML (classy, maybeHtml, whenHtml)
+import App.HTML (classy, maybeHtml)
 import App.Route as Route
-import Control.MonadZero as MZ
 import Data.Array (length)
-import Data.DateTime (DateTime)
-import Data.Formatter.DateTime as DF
-import Data.Geohash (Geohash, geohashToLngLat)
+import Data.Geohash (Geohash(..), geohashToLngLat)
+import Data.Int (decimal)
 import Data.Int as Int
-import Data.List (List(..), (:))
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Newtype (un)
+import Data.String (Pattern(..), stripSuffix)
 import Effect (Effect)
 import Etherium.Tx as Tx
 import Network.Ethereum.Core.BigNumber (divide)
@@ -34,28 +36,20 @@ import React.Basic.DOM.Events (capture_, targetValue)
 import React.Basic.Events (handler)
 import Type.Proxy (Proxy(..))
 
-fullDateFormat :: DF.Formatter
-fullDateFormat
-  = DF.MonthFull
-  : DF.Placeholder " "
-  : DF.DayOfMonth
-  : DF.Placeholder ", "
-  : DF.YearFull
-  : Nil
-
-renderDateTime :: DateTime -> String
-renderDateTime = DF.format fullDateFormat
-
 renderToken :: forall t. TokenName (Token t) => (Token t) -> JSX
 renderToken (Token t) =
-  let num = show $ unUIntN t `divide` divider (ProxyTU :: ProxyTU (MinorUnitE18 t))
+  let num = show $ divide (unUIntN t) (divider (ProxyTU :: ProxyTU (MinorUnitE18 t)))
   in R.text $ num <> " " <> tokenName (Proxy:: Proxy (Token t))
 
 renderRadius :: Radius -> JSX
 renderRadius (Radius n) = R.text $ show n <> " km"
 
 renderGeoHash :: Geohash -> String
-renderGeoHash = geohashToLngLat >>> \{lat, lng} -> show lat <> ", " <> show lng
+renderGeoHash g = case geohashToLngLat g of
+  Nothing ->
+    let strip s = maybe s strip $ stripSuffix (Pattern "0") s
+    in "0x" <> strip (un Geohash g)
+  Just {lat, lng} -> show lat <> ", " <> show lng
 
 renderBaseSignal :: Boolean -> Signal -> JSX
 renderBaseSignal addLink (Signal s) = classy R.div "SignalContent"
@@ -145,7 +139,7 @@ txOrElse :: Maybe Tx.Progress -> JSX -> JSX
 txOrElse tx btn = classy R.div "Transaction" case tx of
   Nothing -> [btn]
   Just { finished, total, current } ->
-    let progress = (show (length finished + 1) <> "/" <> show total)
+    let progress = Int.toStringAs decimal (length finished + 1) <> "/" <> Int.toStringAs decimal total
     in case current of
       Tx.Submitting ->
         [ classy R.div "Transaction-status"
@@ -169,21 +163,3 @@ txOrElse tx btn = classy R.div "Transaction" case tx of
         [ classy R.div "Transaction-status"
             [R.text $ progress <> " MiningFinished " <> show txHash]
         ]
-
-
-renderLinkedCollection
-  :: forall a
-   . LinkedCollection a
-  -> (Cursor -> Effect Unit)
-  -> (Array a -> JSX)
-  -> JSX
-renderLinkedCollection {items, next, loading} loadMore renderItems = React.fragment
-  [ renderItems items
-  , classy R.div "LoadingMore"
-      [ maybeHtml (MZ.guard (not loading) *> next) \cursor -> R.button
-          { onClick: capture_ $ loadMore cursor
-          , children: [ R.text "Load more" ]
-          }
-      , whenHtml loading \_ -> R.text "Loading ..."
-      ]
-  ]

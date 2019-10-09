@@ -11,7 +11,7 @@ import Network.Ethereum.Core.BigNumber as BN
 import Routing.Duplex (RouteDuplex', as, path, print, root, segment)
 import Routing.Duplex.Generic as G
 
-data Route = Signals | Activity | Signal SignalId
+data Route = Signals | Signal SignalId
 
 derive instance genericRoute :: Generic Route _
 derive instance eqRoute :: Eq Route
@@ -21,7 +21,6 @@ instance showRoute :: Show Route where show = genericShow
 routeCodec :: RouteDuplex' Route
 routeCodec = root $ G.sum
   { "Signals": G.noArgs
-  , "Activity": path "activity" G.noArgs
   , "Signal": path "signal" (signalId segment)
   }
 

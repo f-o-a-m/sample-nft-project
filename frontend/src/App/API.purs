@@ -2,7 +2,6 @@ module App.API
   ( getContracts
   , getSignals
   , getSignal
-  , getActivity
   ) where
 
 import Prelude
@@ -10,7 +9,6 @@ import Prelude
 import Affjax (printResponseFormatError)
 import Affjax as AJ
 import Affjax.ResponseFormat as ResponseFormat
-import App.Data.Activity (Activity(..))
 import App.Data.Collections (Cursor, Collection)
 import App.Data.Contracts (Contracts)
 import App.Data.Radius (Radius, radiusFromBigNumber)
@@ -27,7 +25,7 @@ import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Geohash (Geohash, geohashFromHex, geohashFromLngLat)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Time.Duration (Milliseconds(..), Minutes(..), fromDuration)
+import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for)
 import Data.Tuple (Tuple(..), fst, snd)
 import Deploy.Utils (unsafeFromJust)
@@ -49,7 +47,7 @@ get :: forall a. URLPath -> (Json -> Either String a) -> Aff a
 get path decode = do
   let
     request = AJ.defaultRequest { url = apiBaseURL <> path, responseFormat = ResponseFormat.json }
-    retryPolicy = AJ.defaultRetryPolicy {timeout = Just $ fromDuration $ Minutes 0.4}
+    retryPolicy = AJ.defaultRetryPolicy {timeout = Nothing}
   resp <- AJ.retry retryPolicy AJ.request request
   -- resp <- AJ.request request
   case resp.body of
@@ -239,35 +237,6 @@ getSignal' sid = do
             }
         ]
     }
-
-getActivity :: Cursor -> Aff (Collection Activity)
-getActivity c = do
-  -- TODO actually load activity
-  delay $ Milliseconds 1000.0
-  pure
-    { items:
-        [ TokenTransfer
-            { from: address3
-            , to: address3
-            , amount: zeroToken
-            }
-        , SignalListedForSale
-            { owner: address2
-            , saleId: saleId2
-            , signal: signal1
-            , price: zeroToken
-            }
-        , SignalSold
-            { owner: address2
-            , saleId: saleId3
-            , buyer: address1
-            , signal: signal1
-            , price: zeroToken
-            }
-        ]
-    , next: Just c
-    }
-
 
 decodeGeoHash :: String -> Either String Geohash
 decodeGeoHash str = note "Invalid GeoHash" (H.mkHexString str) <#> geohashFromHex

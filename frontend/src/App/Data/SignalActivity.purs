@@ -12,33 +12,23 @@ import Network.Ethereum.Core.Signatures (Address)
 import Network.Ethereum.Web3.Types (ETHER)
 
 data SignalActivity
-  = ListedForSale (ListedForSaleR ())
-  | UnlistedFromSale (UnlistedFromSaleR ())
-  | Sold (SoldR ())
+  = ListedForSale
+      { owner :: Address
+      , saleId :: SaleId
+      , price :: Token ETHER
+      }
+  | UnlistedFromSale
+      { owner :: Address
+      , saleId :: SaleId
+      }
+  | Sold
+      { owner :: Address
+      , saleId :: SaleId
+      , buyer :: Address
+      , price :: Token ETHER
+      }
 
 derive instance genericSignalActivity :: Generic SignalActivity _
 instance eqSignalId :: Eq SignalActivity where eq = genericEq
 instance ordSignalId :: Ord SignalActivity where compare = genericCompare
 instance showSignalId :: Show SignalActivity where show = genericShow
-
-
-type ListedForSaleR r =
-  { owner :: Address
-  , saleId :: SaleId
-  , price :: Token ETHER
-  | r
-  }
-
-type UnlistedFromSaleR r =
-  { owner :: Address
-  , saleId :: SaleId
-  | r
-  }
-
-type SoldR r =
-  { owner :: Address
-  , saleId :: SaleId
-  , buyer :: Address
-  , price :: Token ETHER
-  | r
-  }
