@@ -2,19 +2,16 @@ module SignalMarket.Server.WebSocket.Types where
 
 import           Control.Concurrent.MVar              (MVar, newMVar)
 import           Control.Lens                         (lens)
-import           Control.Monad.Catch                  (MonadCatch, MonadThrow,
-                                                       try)
+import           Control.Monad.Catch                  (MonadCatch, MonadThrow)
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader                 (MonadReader (..),
-                                                       ReaderT, asks,
-                                                       runReaderT)
+                                                       ReaderT, runReaderT)
 import qualified Data.Aeson                           as A
 import           Data.ByteString                      (ByteString)
 import           Data.Conduit
-import qualified Database.PostgreSQL.Simple           as PG
 import           GHC.Generics                         (Generic)
+import qualified Network.WebSockets                   as Socket
 import           SignalMarket.Common.Aeson            (defaultAesonOptions)
-import           SignalMarket.Common.Class            (MonadPG (..))
 import           SignalMarket.Common.Config.Logging
 import           SignalMarket.Common.EventTypes       (EthAddress, HexString)
 import qualified SignalMarket.Common.Models.RawChange as RC
@@ -64,18 +61,16 @@ mkSubscriptionKey Subscription{..} = do
     _ -> Nothing
 
 data WebSocketEnv = WebSocketEnv
-  { pgConnection    :: PG.Connection
-  , subscriptionRef :: MVar [SubscriptionKey]
+  { subscriptionRef :: MVar [SubscriptionKey]
   , logEnv          :: LogConfig
   }
 
 mkWebSocketEnv
-  :: PG.Connection
-  -> LogConfig
+  :: LogConfig
   -> IO WebSocketEnv
-mkWebSocketEnv pg le = do
+mkWebSocketEnv le = do
   subs <- newMVar []
-  pure $ WebSocketEnv pg subs le
+  pure $ WebSocketEnv subs le
 
 instance HasLogConfig WebSocketEnv where
   logConfig = lens g s
@@ -90,12 +85,7 @@ newtype WebSocketM a = WebSocketM
 runWebSocketM :: WebSocketEnv -> forall a. WebSocketM a -> IO a
 runWebSocketM env action = runReaderT (_runWebSocketM action) env
 
-instance MonadPG WebSocketM where
-    runDB' action = do
-      connection <- asks pgConnection
-      liftIO . try $ action connection
-
 data WSApplet = WSApplet
   { clientMsgHandler :: ByteString -> WebSocketM ()
-  , msgConduit       :: ConduitT () WebSocketMsg WebSocketM ()
+  , msgConduit       :: Socket.Connection -> ConduitT ByteString Void WebSocketM ()
   }

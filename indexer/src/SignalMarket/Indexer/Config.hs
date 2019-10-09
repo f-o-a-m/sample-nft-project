@@ -11,6 +11,7 @@ module SignalMarket.Indexer.Config
 import           Control.Lens                       (lens)
 import           Data.String.Conversions            (cs)
 import           Database.PostgreSQL.Simple         (Connection, connect)
+import qualified Database.Redis                     as Redis
 import           Network.Ethereum.Api.Provider      (Provider (..))
 import           Network.HTTP.Client                (Manager)
 import           Network.HTTP.Client.TLS            (newTlsManager)
@@ -18,14 +19,13 @@ import           SignalMarket.Common.Config.Logging (HasLogConfig (..),
                                                      LogConfig)
 import           SignalMarket.Common.Config.Node    (getNetworkID)
 import           SignalMarket.Common.Config.PG      (mkPGConnectInfo)
+import           SignalMarket.Common.Config.Redis   (makeRedisConnectInfo)
 import           SignalMarket.Common.Config.Types   (Contracts (..),
                                                      DeployReceipt (..),
                                                      mkContracts)
 import           SignalMarket.Common.Config.Utils   (getEnvVarWithDefault,
                                                      makeConfig,
                                                      readEnvVarWithDefault)
-import qualified Database.Redis as Redis
-import SignalMarket.Common.Config.Redis (makeRedisConnectInfo)
 
 data IndexerConfig = IndexerConfig
   { indexerCfgContracts    :: Contracts
@@ -33,7 +33,7 @@ data IndexerConfig = IndexerConfig
   , indexerLogConfig       :: LogConfig
   , indexerPGConnection    :: Connection
   , indexerMultiFilterOpts :: (Integer, Integer) -- (window, lag)
-  , indexerRedis :: Redis.Connection
+  , indexerRedis           :: Redis.Connection
   }
 
 mkIndexerConfig :: LogConfig -> IO IndexerConfig

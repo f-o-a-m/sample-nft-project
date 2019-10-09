@@ -62,9 +62,9 @@ spec' cfg@{provider, clientEnv, accounts, contractAddresses, faucetAddress} env@
     describe "indexer/server interaction" $ parallel do
       it "can track foam token transfers" do
        sendTokens cfg env {to: account1, from: account2, amount: 1}
-      it "can get the signal owner stats via graphql api" $ void $ liftAff $ do
-        void $ getSignalOwnerStats {limit:100, offset: 0}
-        pure unit
+--      it "can get the signal owner stats via graphql api" $ void $ liftAff $ do
+--        void $ getSignalOwnerStats {limit:100, offset: 0}
+--        pure unit
 
 monitorUntilEvent
   :: forall m e i ni.

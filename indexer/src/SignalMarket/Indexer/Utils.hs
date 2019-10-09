@@ -10,7 +10,8 @@ import           Control.Monad.Catch                         (MonadThrow, catch,
                                                               throwM)
 import           Control.Monad.IO.Class                      (liftIO)
 import           Control.Monad.Reader                        (MonadReader,
-                                                              ReaderT, ask, asks)
+                                                              ReaderT, ask,
+                                                              asks)
 import qualified Data.Default                                as D
 import           Data.Maybe                                  (fromJust)
 import           Data.Profunctor.Product.Default             (Default)
@@ -41,6 +42,7 @@ import           Opaleye                                     (Column,
                                                               runUpdateReturning,
                                                               (.==))
 import           SignalMarket.Common.Class
+import           SignalMarket.Common.Config.Redis            (rawChangeChannel)
 import           SignalMarket.Common.Config.Types            (DeployReceipt (..),
                                                               HasEventName (..))
 import           SignalMarket.Common.EventTypes              (EventID,
@@ -49,12 +51,11 @@ import           SignalMarket.Common.EventTypes              (EventID,
 import qualified SignalMarket.Common.Models.Checkpoint       as Checkpoint
 import qualified SignalMarket.Common.Models.RawChange        as RawChange
 import           SignalMarket.Common.Orphans                 ()
-import           SignalMarket.Indexer.Config                 (IndexerConfig(..))
+import           SignalMarket.Indexer.Config                 (IndexerConfig (..))
 import           SignalMarket.Indexer.IndexerM               (IndexerM,
                                                               runIndexerM)
 import           SignalMarket.Indexer.Types                  (Event (..),
                                                               mkEvent)
-import SignalMarket.Common.Config.Redis (rawChangeChannel)
 
 
 -- | A generic function to perform inserts into postgres.

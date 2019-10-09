@@ -1,8 +1,8 @@
 module SignalMarket.Common.Config.Redis where
 
-import Data.ByteString (ByteString)
-import qualified Database.Redis as Redis
-import  SignalMarket.Common.Config.Utils
+import           Data.ByteString                  (ByteString)
+import qualified Database.Redis                   as Redis
+import           SignalMarket.Common.Config.Utils
 
 rawChangeChannel :: ByteString
 rawChangeChannel = "raw_change_channel"
