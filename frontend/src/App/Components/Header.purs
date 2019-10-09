@@ -110,7 +110,7 @@ header = React.make component
             [R.text "Loading network configuration"]
           ProviderState.Rejected _ ->
             [R.text "Web3 Connect Request was declined"]
-          ProviderState.Enabled (Provider.Connected {userAddress}) _ _ ->
+          ProviderState.Enabled {connectivity: Provider.Connected {userAddress}} ->
             [ R.text "Hi "
             , avatar userAddress
             , R.text " you are connected!"
@@ -119,7 +119,7 @@ header = React.make component
                 Nothing -> R.text "Loading balance"
                 Just {foam, eth} -> R.text "Your balance is " <> renderToken foam <> R.text " and " <> renderToken eth
             ]
-          ProviderState.Enabled (Provider.NotConnected {userAddress}) _ (Contracts {networkId}) ->
+          ProviderState.Enabled {connectivity: Provider.NotConnected {userAddress}, contracts: Contracts {networkId}} ->
             [ maybeHtml userAddress \ua -> R.text "Hey " <> avatar ua <> R.text " "
             , R.text $ "please connect to " <> networkName networkId
             ]

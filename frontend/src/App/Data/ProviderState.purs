@@ -13,13 +13,22 @@ data State
   | NotInjected
   | Injected { loading :: Boolean }
   | Rejected (Provider' Unknown)
-  | Enabled Connectivity Provider Contracts
+  | Enabled
+      { connectivity :: Connectivity
+      , provider :: Provider
+      , contracts :: Contracts
+      }
 
 
 type ConnectedState = { userAddress :: Address, provider :: Provider, contracts :: Contracts }
 
 viewConnectedState :: State -> Maybe ConnectedState
-viewConnectedState (Enabled (Connected {userAddress}) provider contracts) = Just {userAddress, provider, contracts}
+viewConnectedState
+  (Enabled
+    { connectivity: (Connected {userAddress})
+    , provider
+    , contracts
+    }) = Just {userAddress, provider, contracts}
 viewConnectedState _ = Nothing
 
 
@@ -33,5 +42,5 @@ partialEq a b = case a, b of
   Injected _, _ -> false
   Rejected _, Rejected _ -> true
   Rejected _, _ -> false
-  Enabled c _ _, Enabled c' _ _ -> c' == c
-  Enabled c _ _, _ -> false
+  Enabled c, Enabled c' -> c'.connectivity == c.connectivity
+  Enabled c, _ -> false
