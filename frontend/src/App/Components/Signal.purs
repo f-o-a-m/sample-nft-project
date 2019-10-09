@@ -65,6 +65,7 @@ signal = React.make component
           self.setState $ map \s -> s
             { activity = maybe [] pure (eventToSignalActivity event) <> s.activity
             , signal = fromMaybe s.signal $ eventToSignalUpdate event s.signal
+            , tx = Nothing
             }
 
       pushCanceler self $ fiberCanceler signalsFiber <> fiberCanceler liveFib

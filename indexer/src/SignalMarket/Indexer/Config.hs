@@ -11,6 +11,7 @@ module SignalMarket.Indexer.Config
 import           Control.Lens                       (lens)
 import           Data.String.Conversions            (cs)
 import           Database.PostgreSQL.Simple         (Connection, connect)
+import qualified Database.Redis                     as Redis
 import           Network.Ethereum.Api.Provider      (Provider (..))
 import           Network.HTTP.Client                (Manager)
 import           Network.HTTP.Client.TLS            (newTlsManager)
@@ -18,6 +19,7 @@ import           SignalMarket.Common.Config.Logging (HasLogConfig (..),
                                                      LogConfig)
 import           SignalMarket.Common.Config.Node    (getNetworkID)
 import           SignalMarket.Common.Config.PG      (mkPGConnectInfo)
+import           SignalMarket.Common.Config.Redis   (makeRedisConnectInfo)
 import           SignalMarket.Common.Config.Types   (Contracts (..),
                                                      DeployReceipt (..),
                                                      mkContracts)
@@ -31,6 +33,7 @@ data IndexerConfig = IndexerConfig
   , indexerLogConfig       :: LogConfig
   , indexerPGConnection    :: Connection
   , indexerMultiFilterOpts :: (Integer, Integer) -- (window, lag)
+  , indexerRedis           :: Redis.Connection
   }
 
 mkIndexerConfig :: LogConfig -> IO IndexerConfig
@@ -45,12 +48,14 @@ mkIndexerConfig lc = do
     lag <- readEnvVarWithDefault "LAG" 6
     pure (window, lag)
   pg <- makeConfig mkPGConnectInfo >>= connect
+  redis <- makeRedisConnectInfo >>= Redis.connect
   return $ IndexerConfig
     { indexerCfgContracts = contracts
     , indexerCfgWeb3Manager = (provider, web3Mgr)
     , indexerLogConfig = lc
     , indexerPGConnection = pg
     , indexerMultiFilterOpts = mfOpts
+    , indexerRedis = redis
     }
 
 instance HasLogConfig IndexerConfig where

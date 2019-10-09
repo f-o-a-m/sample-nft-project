@@ -17,7 +17,7 @@ wsServer cfg =
   Tagged $ wsApplication cfg
 
 wsApplication :: AppConfig -> Application
-wsApplication AppConfig{appCfgLogConfig, appCfgPGConnection} =
-  let wsApp = mkWebSocketApp appCfgPGConnection appCfgLogConfig defaultWSApplet
+wsApplication AppConfig{appCfgLogConfig, appCfgRedis} =
+  let wsApp = mkWebSocketApp appCfgRedis appCfgLogConfig defaultWSApplet
       backupApp _ respond = respond $ responseLBS status400 [] "Not a WebSocket request"
   in websocketsOr Socket.defaultConnectionOptions wsApp backupApp

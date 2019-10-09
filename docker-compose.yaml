@@ -11,6 +11,10 @@ services:
     command: /cliquebait/run.bash --nodiscover --maxpeers=0 --gcmode=archive --targetgaslimit=0x8000000
     ports:
     - 8545:8545
+  redis:
+    image: redis:alpine
+    ports:
+    - 6379:6379
   flyway:
     image: flyway/flyway:latest-alpine
     depends_on:

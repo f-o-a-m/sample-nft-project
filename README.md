@@ -1,6 +1,8 @@
 # sample-nft-project
 [![Build Status](https://travis-ci.com/f-o-a-m/sample-nft-project.svg?token=qCHTaxpXTk53j8Cxixyq&branch=master)](https://travis-ci.com/f-o-a-m/sample-nft-project)
 
+<img src="https://raw.githubusercontent.com/f-o-a-m/sample-nft-project/master/sample-nft-project_screenshot.png?token=AAEPD2HCXIL3WZTIJRF6Y7K5UZLTK" width="50%"/>
+
 A sample NFT marketplace for buying and selling FOAM Signals.
 
 ## Install Requirements
@@ -20,6 +22,15 @@ make help
 ```
 
 to see a help menu.
+
+## Rinkeby deployment
+
+The app is deployed [here](https://signal-market-rinkeby.foam.space/#/)
+
+The contracts are deployed here:
+- `FoamToken`: https://rinkeby.etherscan.io/address/0xd800f4550c2c1382430a5d47c8fc75abb58fc90e
+- `SignalToken`: https://rinkeby.etherscan.io/address/0x018e8506b3feea6823c2b6d7218a31453aa5c874
+- `SignalMarket`: https://rinkeby.etherscan.io/address/0xc09a7e600a8f9993223e718c74d5d5bcf98efbdf
 
 ## Deploying
 

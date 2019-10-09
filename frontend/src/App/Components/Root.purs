@@ -4,7 +4,6 @@ import Prelude
 
 import App.API (getContracts)
 import App.API.WS as WS
-import App.Components.Activity (activity)
 import App.Components.Header (header)
 import App.Components.Signal (signal)
 import App.Components.Signals (signals)
@@ -18,8 +17,8 @@ import App.HTML (classy)
 import App.HTML.Canceler (pushCanceler, pushCanceler', runCancelers, runCancelers')
 import App.Route (Route)
 import App.Route as Route
-import Contracts.FoamToken as FoamToken
 import Contracts.SignalMarket as SignalMarket
+import Contracts.FoamToken as FoamToken
 import Contracts.SignalToken as SignalToken
 import Control.Alt ((<|>))
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
@@ -31,7 +30,6 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple (Tuple(..), fst, snd)
-import Data.Variant (SProxy(..))
 import Data.Variant as V
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, effectCanceler, fiberCanceler, joinFiber, launchAff, launchAff_, never)
@@ -48,6 +46,7 @@ import Routing.Duplex.Parser (RouteError)
 import Routing.Hash (getHash, setHash)
 import Routing.Hash as RoutingHash
 import Type.Proxy (Proxy(..))
+import Data.Symbol (SProxy(..))
 
 type Props =
   { events :: Tuple (BusR Event) (BusW Event)
@@ -109,7 +108,8 @@ root = React.make component
           pushCanceler self $ fiberCanceler connectivityFiber
           let
             storeConnectivityChange = traverse_ \s ->
-              setProviderState $ ProviderState.Enabled s (EthProvider.toWeb3Provider provider) contracts
+              setProviderState $ ProviderState.Enabled
+                { connectivity: s, provider: EthProvider.toWeb3Provider provider, contracts }
           BRef.read connectivityBRef >>= storeConnectivityChange
           providerUpdateFiber <- launchAff $ forever $ BRef.readOnUpdate connectivityBRef
             >>= storeConnectivityChange
@@ -146,10 +146,6 @@ root = React.make component
       , navigation state.route
       , classy R.div "Content" $ pure case state.route of
           Left err -> classy R.h1 "Content-404" [ R.text "404" ]
-          Right (Route.Activity) -> activity
-            { events: fst self.props.events
-            , user
-            }
           Right (Route.Signals) -> signals
             { events: fst self.props.events
             , user
@@ -163,17 +159,18 @@ root = React.make component
       where
         user = maybe UserGuest UserConnected $ ProviderState.viewConnectedState state.providerState
 
-    navigation activeRoute = classy R.div "Navigation" $
-      [ Route.Signals, Route.Activity] <#> \r -> if Right r == activeRoute
+    navigation activeRoute = classy R.div "Navigation" $ pure $
+      if Right Route.Signals == activeRoute
         then R.span
-          { children: [ R.text $ show r ]
+          { children: [ R.text "Home" ]
           , className: "Navigation-item Navigation-item--active"
           }
         else R.a
-          { href: Route.href r
-          , children: [ R.text $ show r ]
+          { href: Route.href Route.Signals
+          , children: [ R.text $ "Home" ]
           , className: "Navigation-item"
           }
+
 
 openFilters :: BusW Event -> ConnectedState -> Aff Canceler
 openFilters bus {provider, contracts: (Contracts c)} = do

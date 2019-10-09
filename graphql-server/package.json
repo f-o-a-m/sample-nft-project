@@ -1,0 +1,24 @@
+{
+  "name": "sample-nft-project-graphql-server",
+  "version": "0.1.0",
+  "description": "GraphQL Server",
+  "main": "index.js",
+  "author": "Charles Crain",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "npx nodemon index.js"
+  },
+  "dependencies": {
+    "babel-eslint": "^10.0.3",
+    "eslint": "^6.4.0",
+    "eslint-config-airbnb": "^18.0.1",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-jsx-a11y": "^6.2.3",
+    "eslint-plugin-react": "^7.14.3",
+    "express": "^4.17.1",
+    "nodemon": "^1.19.2",
+    "postgraphile": "^4.4.4",
+    "prettier-eslint": "^9.0.0"
+  }
+}

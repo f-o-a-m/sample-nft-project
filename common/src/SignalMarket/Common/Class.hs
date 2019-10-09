@@ -1,14 +1,17 @@
 module SignalMarket.Common.Class where
 
+import           Control.Error                 (fmapL)
 import           Control.Exception             (Exception (..), toException)
 import           Control.Monad.Catch           (MonadThrow (..))
 import           Control.Monad.IO.Class        (MonadIO (..))
 import qualified Data.Aeson                    as A
+import           Data.ByteString               (ByteString)
 import           Data.String                   (fromString)
 import           Data.String.Conversions       (cs)
 import           Data.Text                     (Text)
 import           Database.PostgreSQL.Simple    (SqlError (..))
 import qualified Database.PostgreSQL.Simple    as PG
+import qualified Database.Redis                as Redis
 import qualified Katip                         as K
 import           Network.Ethereum.Api.Provider (Web3, Web3Error (..))
 
@@ -115,3 +118,18 @@ class (K.Katip m, K.KatipContext m, MonadIO m) => MonadWeb3 m where
             K.logFM K.ErrorS "Web3 action caused an exception!"
             throwM (toException e)
         Right res   -> return res
+
+type MonadPubSub m = (K.Katip m, K.KatipContext m, MonadIO m)
+
+publish' :: MonadPubSub m => Redis.Connection -> ByteString -> ByteString -> m (Either Text Integer)
+publish' conn channel item = do
+  K.logFM K.DebugS $ fromString $ "Publishing on channel " <> cs channel
+  resp <- liftIO . Redis.runRedis conn $ Redis.publish channel item
+  pure $ fmapL (cs . show) $ resp
+
+publish :: (MonadPubSub m, A.ToJSON a) => Redis.Connection -> ByteString -> a -> m ()
+publish conn channel item = do
+  eRes <- publish' conn channel (cs $ A.encode item)
+  case eRes of
+    Left err -> K.logFM K.ErrorS (fromString  . cs $ "Error in publishing to Redis: " <>  err)
+    Right _ -> pure ()

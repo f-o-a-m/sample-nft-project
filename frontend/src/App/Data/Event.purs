@@ -2,21 +2,19 @@ module App.Data.Event where
 
 import Prelude
 
-import App.Data.Activity (Activity(..))
 import App.Data.Radius (Radius(..))
 import App.Data.SaleId (SaleId(..))
 import App.Data.Signal (Signal(..))
 import App.Data.SignalActivity (SignalActivity(..))
 import App.Data.SignalId (SignalId(..))
 import App.Data.Token (Token(..))
-import Contracts.FoamToken as FoamToken
+import Data.Variant as V
 import Contracts.SignalMarket as SignalMarket
+import Contracts.FoamToken as FoamToken
 import Contracts.SignalToken as SignalToken
-import Control.Monad.Reader (ReaderT, ask, lift)
 import Control.MonadZero (guard)
 import Data.Geohash (geohashFromBS)
 import Data.Maybe (Maybe(..))
-import Data.Variant as V
 import Network.Ethereum.Web3 (unBytesN)
 
 type Event = V.Variant
@@ -78,19 +76,4 @@ eventToSignalActivity = V.match
       Just $ UnlistedFromSale { owner: e.owner, saleId: SaleId e.saleId }
   , signalSold: \(SignalMarket.SignalSold e) ->
       Just $ Sold { owner: e.owner, buyer: e.newOwner, saleId: SaleId e.saleId, price: Token e.price }
-  }
-
-eventToActivity :: forall m . Monad m => Event -> ReaderT (SignalId -> m Signal) m (Maybe Activity)
-eventToActivity = V.match
-  { transfer: \(FoamToken.Transfer e) -> pure $ Just $ TokenTransfer {from:e.from, to: e.to, amount: Token e.value}
-  , trackedToken: \(SignalToken.TrackedToken e) -> pure Nothing
-  , signalForSale: \(SignalMarket.SignalForSale e) -> ask >>= \getter -> do
-      signal <- lift $ getter $ SignalId e.tokenId
-      pure $ Just $ SignalListedForSale { owner: e.seller, price: Token e.price, saleId: SaleId e.saleId, signal }
-  , signalUnlisted: \(SignalMarket.SignalUnlisted e) -> ask >>= \getter -> do
-      signal <- lift $ getter $ SignalId e.tokenId
-      pure $ Just $ SignalUnlistedFromSale { owner: e.owner, saleId: SaleId e.saleId, signal }
-  , signalSold: \(SignalMarket.SignalSold e) -> ask >>= \getter -> do
-      signal <- lift $ getter $ SignalId e.tokenId
-      pure $ Just $ SignalSold { owner: e.owner, buyer: e.newOwner, saleId: SaleId e.saleId, price: Token e.price, signal }
   }

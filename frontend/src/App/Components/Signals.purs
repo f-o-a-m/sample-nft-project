@@ -3,17 +3,18 @@ module App.Components.Signals where
 import Prelude
 
 import App.API (getSignals)
-import App.Components.Common (SignalState, renderLinkedCollection, renderSignal)
-import App.Data.Collections (LinkedCollection, initialCursor, initialLinkedCollection, insertCollection)
+import App.Components.Common (SignalState, renderSignal)
+import App.Data.Collections (LinkedCollection, Cursor, initialCursor, initialLinkedCollection, insertCollection)
 import App.Data.Event (Event, eventToSignal, eventToSignalUpdate)
 import App.Data.Signal (Signal(..), signalId)
 import App.Data.SignalId (SignalId)
 import App.Data.User (User(..), isGuest)
-import App.HTML (whenHtml)
+import App.HTML (classy, maybeHtml, whenHtml)
 import App.HTML.Canceler (pushCanceler, runCancelers)
 import Control.Monad.Rec.Class (forever)
+import Control.MonadZero as MZ
 import Data.Array (filter)
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromMaybe, isJust, maybe)
 import Effect (Effect)
 import Effect.Aff (fiberCanceler, launchAff)
 import Effect.Aff.Bus (BusR)
@@ -68,12 +69,15 @@ signals = React.make component
         let newSignal = eventToSignal event
         in state
           { signals
-              { items = maybe [] (pure <<< injSignal) newSignal <> state.signals.items <#> \signalState -> signalState
-                  {signal = fromMaybe signalState.signal $ eventToSignalUpdate event signalState.signal}
+              { items = maybe [] (pure <<< injSignal) newSignal <> state.signals.items <#> \signalState ->
+                let update = eventToSignalUpdate event signalState.signal
+                in signalState
+                  { signal = fromMaybe signalState.signal update
+                  , tx = if isJust update then Nothing else signalState.tx
+                  }
               , next = state.signals.next <#> \n -> n{offset = maybe 0 (const 1) newSignal + n.offset}
               }
           }
-
       pushCanceler self $ fiberCanceler liveFib
 
     render :: Self -> JSX
@@ -88,7 +92,6 @@ signals = React.make component
                   else "Show My"
               ]
           }
-
       , renderLinkedCollection
           state.signals
           (load self)
@@ -115,3 +118,19 @@ signals = React.make component
           if signalId == id then f signalSt else signalSt
       }}
 
+    renderLinkedCollection
+      :: forall a
+       . LinkedCollection a
+      -> (Cursor -> Effect Unit)
+      -> (Array a -> JSX)
+      -> JSX
+    renderLinkedCollection {items, next, loading} loadMore renderItems = React.fragment
+      [ renderItems items
+      , classy R.div "LoadingMore"
+          [ maybeHtml (MZ.guard (not loading) *> next) \cursor -> R.button
+              { onClick: capture_ $ loadMore cursor
+              , children: [ R.text "Load more" ]
+              }
+          , whenHtml loading \_ -> R.text "Loading ..."
+          ]
+      ]
