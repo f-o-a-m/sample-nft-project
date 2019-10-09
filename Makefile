@@ -1,4 +1,4 @@
-.PHONY: help install watch compile-contracts build-dapp deploy-contracts test-dapp build-server
+.PHONY: build-dapp build-indexer build-purs-editor build-purs-strict build-purs-watch build-purs build-server clean-dapp compile-contracts deploy-contracts faucet-locally frontend-build frontend-start-https frontend-start haskell-deps help hlint install migrate-ext migrate purs-repl run-gql-dev run-gql-server run-indexer run-server show-migrations-ext show-migrations signal-locally stylish test-dapp
 .DEFAULT_GOAL := help
 
 export
@@ -62,8 +62,14 @@ migrate: ## Run the flyway migration suite to setup postgis
 	# the -jarDirs is temporary fix for https://github.com/NixOS/nixpkgs/issues/59687
 	$(FLYWAY) -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://postgis:5432/$(PGDATABASE) -locations=filesystem:/flyway/sql/migrations -baselineOnMigrate=true migrate
 
+migrate-ext: ## Run the flyway migration suite against an external Postgres server
+	$(FLYWAY) -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE) -locations=filesystem:/flyway/sql/migrations -baselineOnMigrate=true migrate
+
 show-migrations: ## Describe the migrations in the current database
 	$(FLYWAY) -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://postgis:5432/$(PGDATABASE) -locations=filesystem:/flyway/sql/migrations -baselineOnMigrate=true info
+
+show-migrations-ext: ## Describe the migrations in the current database on an external Postgres server
+	$(FLYWAY) -user=$(PGUSER) -password=$(PGPASSWORD) -url=jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE) -locations=filesystem:/flyway/sql/migrations -baselineOnMigrate=true info
 
 ####################
 # DAPP       #
