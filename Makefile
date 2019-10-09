@@ -34,6 +34,7 @@ GRAPHQL_API_URL ?= http://localhost:3003/graphql
 PSQL ?= docker-compose run postgis psql
 FLYWAY ?= docker-compose run flyway
 
+NODE_ENV ?= development
 
 # end export
 # please keep that, it helps with autogenerating env wrappers
@@ -75,7 +76,7 @@ build-dapp: ## Build the deploy script
 	pulp build --src-path dapp/src
 
 deploy-contracts: build-dapp ## Deploy contracts in dapp project
-	chanterelle deploy ./output/Deploy.Main/index.js
+	chanterelle deploy ./output/Deploy.Main/index.js --node-url "$(NODE_URL)"
 
 test-dapp: ## Run the dapp unit test suite
 	pulp test --src-path dapp/src --test-path dapp/test -m Test.Unit.Main -I frontend
