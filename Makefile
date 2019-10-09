@@ -27,6 +27,8 @@ PGUSER ?= postgres
 PSQL ?= docker-compose run postgis psql
 FLYWAY ?= docker-compose run flyway
 
+NODE_ENV ?= development
+
 # end export
 # please keep that, it helps with autogenerating env wrappers
 
