@@ -10,7 +10,7 @@ import           Control.Monad.Catch                         (MonadThrow, catch,
                                                               throwM)
 import           Control.Monad.IO.Class                      (liftIO)
 import           Control.Monad.Reader                        (MonadReader,
-                                                              ReaderT, ask)
+                                                              ReaderT, ask, asks)
 import qualified Data.Default                                as D
 import           Data.Maybe                                  (fromJust)
 import           Data.Profunctor.Product.Default             (Default)
@@ -49,11 +49,13 @@ import           SignalMarket.Common.EventTypes              (EventID,
 import qualified SignalMarket.Common.Models.Checkpoint       as Checkpoint
 import qualified SignalMarket.Common.Models.RawChange        as RawChange
 import           SignalMarket.Common.Orphans                 ()
-import           SignalMarket.Indexer.Config                 (IndexerConfig)
+import           SignalMarket.Indexer.Config                 (IndexerConfig(..))
 import           SignalMarket.Indexer.IndexerM               (IndexerM,
                                                               runIndexerM)
 import           SignalMarket.Indexer.Types                  (Event (..),
                                                               mkEvent)
+import SignalMarket.Common.Config.Redis (rawChangeChannel)
+
 
 -- | A generic function to perform inserts into postgres.
 insert
@@ -135,6 +137,8 @@ makeHandler cfg h = H $ \e -> do
       K.katipAddNamespace "RawChange" $ do
         K.katipAddNamespace "ProcessRawChange" $ do
           insert RawChange.rawChangeTable eventRawEvent
+          conn <- asks indexerRedis
+          publish conn rawChangeChannel eventRawEvent
 
 -- | Make an 'open' checkpoint with the event metadata.
 mkOpenCheckpoint

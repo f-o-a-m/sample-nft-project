@@ -119,19 +119,17 @@ class (K.Katip m, K.KatipContext m, MonadIO m) => MonadWeb3 m where
             throwM (toException e)
         Right res   -> return res
 
+type MonadPubSub m = (K.Katip m, K.KatipContext m, MonadIO m)
 
-class (K.Katip m, K.KatipContext m, MonadIO m) => MonadPubSub m where
-  publish' ::  Redis.Connection -> ByteString -> ByteString -> m (Either Text Integer)
-  publish ::  Redis.Connection -> ByteString -> a -> m ()
+publish' :: MonadPubSub m => Redis.Connection -> ByteString -> ByteString -> m (Either Text Integer)
+publish' conn channel item = do
+  K.logFM K.DebugS $ fromString $ "Publishing on channel " <> cs channel
+  resp <- liftIO . Redis.runRedis conn $ Redis.publish channel item
+  pure $ fmapL (cs . show) $ resp
 
-  default publish' :: Redis.Connection -> ByteString -> ByteString -> m (Either Text Integer)
-  publish' conn channel item = do
-    resp <- liftIO . Redis.runRedis conn $ Redis.publish channel item
-    pure $ fmapL (cs . show) $ resp
-
-  default publish :: A.ToJSON a => Redis.Connection -> ByteString -> a -> m ()
-  publish conn channel item = do
-    eRes <- publish' conn channel (cs $ A.encode item)
-    case eRes of
-      Left err -> K.logFM K.ErrorS (fromString  . cs $ "Error in publishing to Redis: " <>  err)
-      Right _ -> pure ()
+publish :: (MonadPubSub m, A.ToJSON a) => Redis.Connection -> ByteString -> a -> m ()
+publish conn channel item = do
+  eRes <- publish' conn channel (cs $ A.encode item)
+  case eRes of
+    Left err -> K.logFM K.ErrorS (fromString  . cs $ "Error in publishing to Redis: " <>  err)
+    Right _ -> pure ()

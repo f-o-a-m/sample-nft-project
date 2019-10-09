@@ -26,6 +26,7 @@ dependencies:
 - conduit
 - errors
 - exceptions
+- hedis
 - http-api-data
 - http-client
 - http-client-tls

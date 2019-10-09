@@ -22,12 +22,15 @@ import           SignalMarket.Common.Config.Types   (Contracts (..),
                                                      mkContracts)
 import           SignalMarket.Common.Config.Utils   (getEnvVarWithDefault,
                                                      makeConfig)
+import qualified Database.Redis as Redis
+import SignalMarket.Common.Config.Redis (makeRedisConnectInfo)
 
 data AppConfig = AppConfig
   { appCfgContracts    :: Contracts
   , appCfgWeb3Manager  :: (Provider, Manager)
   , appCfgLogConfig    :: LogConfig
   , appCfgPGConnection :: Connection
+  , appCfgRedis :: Redis.Connection
   }
 
 mkAppConfig :: LogConfig -> IO AppConfig
@@ -38,11 +41,13 @@ mkAppConfig lc = do
   networkID <- makeConfig $ cs <$> getNetworkID web3Mgr provider
   contracts <- makeConfig $ mkContracts networkID
   pg <- makeConfig mkPGConnectInfo >>= connect
+  redis <- makeRedisConnectInfo  >>= Redis.connect
   return $ AppConfig
     { appCfgContracts = contracts
     , appCfgWeb3Manager = (provider, web3Mgr)
     , appCfgLogConfig = lc
     , appCfgPGConnection = pg
+    , appCfgRedis = redis
     }
 
 instance HasLogConfig AppConfig where

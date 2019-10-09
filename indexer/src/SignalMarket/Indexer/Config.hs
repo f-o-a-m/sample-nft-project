@@ -24,6 +24,8 @@ import           SignalMarket.Common.Config.Types   (Contracts (..),
 import           SignalMarket.Common.Config.Utils   (getEnvVarWithDefault,
                                                      makeConfig,
                                                      readEnvVarWithDefault)
+import qualified Database.Redis as Redis
+import SignalMarket.Common.Config.Redis (makeRedisConnectInfo)
 
 data IndexerConfig = IndexerConfig
   { indexerCfgContracts    :: Contracts
@@ -31,6 +33,7 @@ data IndexerConfig = IndexerConfig
   , indexerLogConfig       :: LogConfig
   , indexerPGConnection    :: Connection
   , indexerMultiFilterOpts :: (Integer, Integer) -- (window, lag)
+  , indexerRedis :: Redis.Connection
   }
 
 mkIndexerConfig :: LogConfig -> IO IndexerConfig
@@ -45,12 +48,14 @@ mkIndexerConfig lc = do
     lag <- readEnvVarWithDefault "LAG" 6
     pure (window, lag)
   pg <- makeConfig mkPGConnectInfo >>= connect
+  redis <- makeRedisConnectInfo >>= Redis.connect
   return $ IndexerConfig
     { indexerCfgContracts = contracts
     , indexerCfgWeb3Manager = (provider, web3Mgr)
     , indexerLogConfig = lc
     , indexerPGConnection = pg
     , indexerMultiFilterOpts = mfOpts
+    , indexerRedis = redis
     }
 
 instance HasLogConfig IndexerConfig where

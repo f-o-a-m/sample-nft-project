@@ -71,7 +71,6 @@ defaultWSApplet conn = do
             WebSocketEnv{subscriptionRef} <- ask
             let p (_subsID, _, _) = subsID /= _subsID
             liftIO $ MVar.modifyMVar_ subscriptionRef $ pure . filter p
-  _ <- PG.execute_ conn "LISTEN raw_change_channel"
   let msgC = listenerC conn .| rawChangeC .| subscriptionC
   pure $ WSApplet
        { clientMsgHandler = clientH
