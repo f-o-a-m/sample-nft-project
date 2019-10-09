@@ -13,14 +13,14 @@ txOpts :: { to :: Address, from :: Address } -> TransactionOptions NoPay
 txOpts { from, to } = defaultTransactionOptions
   # _from ?~ from
   # _to   ?~ to
-  # _gas  ?~ BN.embed 9999999
+  # _gas  ?~ BN.embed 500000
 
 txOpts' :: forall u. { to :: Address, from :: Address, value :: Value (u ETHER) } -> TransactionOptions u
 txOpts' { from, to, value } = TransactionOptions
   { from: Just from
   , to: Just to
   , value: Just value
-  , gas: Just $ BN.embed 9999999
+  , gas: Just $ BN.embed 500000
   , gasPrice: Nothing
   , data: Nothing
   , nonce: Nothing
@@ -30,4 +30,4 @@ txOpts' { from, to, value } = TransactionOptions
 txTo :: Address -> TransactionOptions NoPay
 txTo to = defaultTransactionOptions
   # _to   ?~ to
-  # _gas  ?~ BN.embed 9999999
+  # _gas  ?~ BN.embed 500000
