@@ -25,7 +25,7 @@ import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Geohash (Geohash, geohashFromHex, geohashFromLngLat)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Time.Duration (Milliseconds(..), Minutes(..), fromDuration)
+import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for)
 import Data.Tuple (Tuple(..), fst, snd)
 import Deploy.Utils (unsafeFromJust)
@@ -47,7 +47,7 @@ get :: forall a. URLPath -> (Json -> Either String a) -> Aff a
 get path decode = do
   let
     request = AJ.defaultRequest { url = apiBaseURL <> path, responseFormat = ResponseFormat.json }
-    retryPolicy = AJ.defaultRetryPolicy {timeout = Just $ fromDuration $ Minutes 0.4}
+    retryPolicy = AJ.defaultRetryPolicy {timeout = Nothing}
   resp <- AJ.retry retryPolicy AJ.request request
   -- resp <- AJ.request request
   case resp.body of
