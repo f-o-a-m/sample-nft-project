@@ -15,8 +15,6 @@ import qualified Data.Default                                as D
 import           Data.Maybe                                  (fromJust)
 import           Data.Profunctor.Product.Default             (Default)
 import           Data.Proxy
-import           Data.Solidity.Prim.Address                  (fromHexString,
-                                                              toHexString)
 import           Data.String                                 (fromString)
 import           Data.String.Conversions                     (cs)
 import           Data.Text                                   (Text)

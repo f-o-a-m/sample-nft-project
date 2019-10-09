@@ -52,6 +52,7 @@ dependencies:
 - postgresql-simple
 - product-profunctors
 - profunctors
+- hedis
 - scientific
 - string-conversions
 - swagger2
