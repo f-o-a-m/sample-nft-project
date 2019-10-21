@@ -1,4 +1,4 @@
-module Test.E2E.End2EndConfig
+module E2E.End2EndConfig
   ( End2EndConfig
   , ContractAddresses
   , mkEnd2EndConfig
@@ -18,7 +18,7 @@ import Node.Process as NP
 import Partial.Unsafe (unsafePartial)
 import Servant.Client (ClientEnv(..))
 import Test.MarketClient.Client as API
-import Test.Websocket (createWebSocket, WebSocket)
+import App.Websocket (createWebSocket, WebSocket)
 
 type End2EndConfig =
   { provider :: Provider

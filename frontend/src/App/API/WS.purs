@@ -10,7 +10,7 @@ import Effect.Aff (Aff, Canceler(..))
 import Effect.Class (liftEffect)
 import Network.Ethereum.Web3 (Filter)
 import Network.Ethereum.Web3.Solidity (class DecodeEvent)
-import Test.Websocket (WebSocket, createWebSocket, mkMonitor)
+import App.Websocket (WebSocket, createWebSocket, mkMonitor)
 
 newtype Connection = Connection WebSocket
 

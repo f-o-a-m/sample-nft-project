@@ -1,4 +1,4 @@
-module Test.Websocket where
+module App.Websocket where
 
 import Prelude
 
