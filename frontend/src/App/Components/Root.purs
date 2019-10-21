@@ -3,44 +3,41 @@ module App.Components.Root where
 import Prelude
 
 import App.API (getContracts)
+import App.API.WS as WS
 import App.Components.Header (header)
 import App.Components.Signal (signal)
 import App.Components.Signals (signals)
 import App.Data.Contracts (Contracts(..))
 import App.Data.Event (Event)
-import App.Data.Event as Event
 import App.Data.ProviderState (ConnectedState)
 import App.Data.ProviderState as ProviderState
 import App.Data.User (User(..))
-import App.Error (printWeb3Error)
 import App.Ethereum.Provider as EthProvider
 import App.HTML (classy)
 import App.HTML.Canceler (pushCanceler, pushCanceler', runCancelers, runCancelers')
 import App.Route (Route)
 import App.Route as Route
 import Contracts.SignalMarket as SignalMarket
+import Contracts.FoamToken as FoamToken
 import Contracts.SignalToken as SignalToken
 import Control.Alt ((<|>))
-import Control.Lazy (fix)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Rec.Class (forever)
-import Control.Parallel (parSequence_)
-import Data.Either (Either(..), either)
-import Data.Foldable (for_, traverse_)
+import Control.Parallel (parSequence)
+import Data.Either (Either(..))
+import Data.Foldable (fold, for_, traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple (Tuple(..), fst, snd)
+import Data.Variant as V
 import Effect (Effect)
-import Effect.Aff (Aff, effectCanceler, fiberCanceler, joinFiber, launchAff, never)
+import Effect.Aff (Aff, Canceler, effectCanceler, fiberCanceler, joinFiber, launchAff, launchAff_, never)
 import Effect.Aff.BRef as BRef
 import Effect.Aff.Bus (BusR, BusW)
 import Effect.Aff.Bus as Bus
-import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
-import Effect.Class.Console (log)
-import Network.Ethereum.Web3 (EventAction(..), Filter, event, eventFilter, runWeb3)
-import Network.Ethereum.Web3.Solidity (class DecodeEvent)
+import Network.Ethereum.Web3 (eventFilter)
 import React.Basic (JSX)
 import React.Basic as React
 import React.Basic.DOM as R
@@ -49,6 +46,7 @@ import Routing.Duplex.Parser (RouteError)
 import Routing.Hash (getHash, setHash)
 import Routing.Hash as RoutingHash
 import Type.Proxy (Proxy(..))
+import Data.Symbol (SProxy(..))
 
 type Props =
   { events :: Tuple (BusR Event) (BusW Event)
@@ -94,10 +92,12 @@ root = React.make component
       let
         setProviderState ps = do
           self.setState _ { providerState = ps}
-          runCancelers' "pullEvents" self
+          runCancelers' "openFilters" self
           for_ (ProviderState.viewConnectedState ps) \con -> do
-            fib <- launchAff $ pullEvents (snd self.props.events) con
-            pushCanceler' "pullEvents" self $ fiberCanceler fib
+            fib <- launchAff do
+              canceler <- openFilters (snd self.props.events) con
+              liftEffect $ pushCanceler' "openFilters" self canceler
+            pushCanceler' "openFilters" self $ fiberCanceler fib
 
         startConnectivityLoop provider contracts@(Contracts {networkId}) = do
           Tuple connectivityBRef connectivityFiber <- EthProvider.live
@@ -171,23 +171,25 @@ root = React.make component
           , className: "Navigation-item"
           }
 
-pullEvents :: (BusW Event) -> ConnectedState -> Aff Unit
-pullEvents bus {provider, contracts: (Contracts c)} = parSequence_
-  [ eventPoll (eventFilter (Proxy :: Proxy SignalMarket.SignalForSale) c.signalMarket) Event.SignalForSale
-  , eventPoll (eventFilter (Proxy :: Proxy SignalMarket.SignalUnlisted) c.signalMarket) Event.SignalUnlisted
-  , eventPoll (eventFilter (Proxy :: Proxy SignalMarket.SignalSold) c.signalMarket) Event.SignalSold
-  , eventPoll (eventFilter (Proxy :: Proxy SignalToken.TrackedToken) c.signalToken) Event.TrackedToken
-  ]
-  where
-    eventPoll
-      :: forall i ni e
-      . DecodeEvent i ni e
-      => Filter e
-      -> (e -> Event)
-      -> Aff Void
-    eventPoll filter f = fix \loop -> do
-      res <- runWeb3 provider $ void $ event filter \t -> do
-        liftAff $ Bus.write (f t) bus
-        pure ContinueEvent
-      either (log <<< printWeb3Error) pure res
-      loop
+
+openFilters :: BusW Event -> ConnectedState -> Aff Canceler
+openFilters bus {provider, contracts: (Contracts c)} = do
+  ws <- WS.open
+  let emit = \e -> launchAff_ $ Bus.write e bus
+  fold <$> parSequence
+    [ WS.event ws
+        (eventFilter (Proxy :: Proxy FoamToken.Transfer) c.foamToken)
+        (V.inj (SProxy :: SProxy "transfer") >>> emit)
+    , WS.event ws
+        (eventFilter (Proxy :: Proxy SignalMarket.SignalForSale) c.signalMarket)
+        (V.inj (SProxy :: SProxy "signalForSale") >>> emit)
+    , WS.event ws
+        (eventFilter (Proxy :: Proxy SignalMarket.SignalUnlisted) c.signalMarket)
+        (V.inj (SProxy :: SProxy "signalUnlisted") >>> emit)
+    , WS.event ws
+        (eventFilter (Proxy :: Proxy SignalMarket.SignalSold) c.signalMarket)
+        (V.inj (SProxy :: SProxy "signalSold") >>> emit)
+    , WS.event ws
+        (eventFilter (Proxy :: Proxy SignalToken.TrackedToken) c.signalToken)
+        (V.inj (SProxy :: SProxy "trackedToken") >>> emit)
+    ]

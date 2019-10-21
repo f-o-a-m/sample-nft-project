@@ -9,6 +9,7 @@ import Prelude
 import Affjax (printResponseFormatError)
 import Affjax as AJ
 import Affjax.ResponseFormat as ResponseFormat
+import App.API.Internal (apiBaseURL)
 import App.Data.Collections (Cursor, Collection)
 import App.Data.Contracts (Contracts)
 import App.Data.Radius (Radius, radiusFromBigNumber)
@@ -62,8 +63,6 @@ get path decode = do
       , statusText: resp.statusText
       , headers: resp.headers
       }
-
-foreign import apiBaseURL :: String
 
 address1 :: Address
 address1 = unsafeFromJust "Must be valid Address 000...1"

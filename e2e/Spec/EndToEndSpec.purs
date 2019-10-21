@@ -1,4 +1,4 @@
-module Test.E2E.Spec.End2EndSpec where
+module E2E.Spec.End2EndSpec where
 
 import Prelude
 
@@ -24,14 +24,14 @@ import Network.Ethereum.Web3.Solidity (class DecodeEvent)
 import Network.Ethereum.Web3.Solidity.Sizes (s256)
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Servant.API as API
+import E2E.End2EndConfig (End2EndConfig)
 import Test.Actions (faucetTokens)
-import Test.E2E.End2EndConfig (End2EndConfig)
 import Test.MarketClient.Client (MetaData(..))
 import Test.MarketClient.Client as Client
 import Test.Spec (SpecT, beforeAll_, describe, it, parallel)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Utils (TestEnv, go, mkSignalAttrGen)
-import Test.Websocket (mkMonitor)
+import App.Websocket (mkMonitor)
 import Type.Proxy (Proxy(..))
 
 

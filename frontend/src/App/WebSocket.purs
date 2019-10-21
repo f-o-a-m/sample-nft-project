@@ -1,8 +1,8 @@
-module Test.Websocket where
+module App.Websocket where
 
 import Prelude
 
-import Control.Coroutine (Consumer, Producer, Transformer, consumer, producer, pullFrom, runProcess, transform, ($~))
+import Control.Coroutine (Consumer, Producer, consumer, producer, pullFrom, runProcess, transform, ($~))
 import Control.Monad.Except (runExcept)
 import Control.Monad.Rec.Class (forever)
 import Data.Either (Either(..))
@@ -12,10 +12,11 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (over)
 import Data.Ord (abs)
 import Data.String (replace, Pattern(..), Replacement(..))
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), snd)
 import Effect (Effect)
 import Effect.Aff (Aff, Milliseconds(..), delay, forkAff, killFiber, launchAff_)
-import Effect.Aff.AVar as AVar
+import Effect.Aff.AVar.RW (AVarRW, AVarW)
+import Effect.Aff.AVar.RW as AVar
 import Effect.Aff.Bus as Bus
 import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
@@ -71,18 +72,19 @@ instance decodeWebSocketMsg :: Decode WebSocketMsg where
   decode = genericDecode (defaultOptions { unwrapSingleConstructors = true })
 
 type WebSocket =
-  { send :: Bus.BusW UpdateSubscriptionMsg
+  { send :: AVarW UpdateSubscriptionMsg
   , receive :: Bus.BusR WebSocketMsg
   }
 
 createWebSocket :: String -> Aff WebSocket
 createWebSocket url' = do
     Tuple incomingBusR incomingBusW <- Bus.split <$> Bus.make
-    Tuple outgoingBusR outgoingBusW <- Bus.split <$> Bus.make
+    outgoingAVarRW <- AVar.empty
+    let outgoingAVarW = snd $ AVar.split outgoingAVarRW
     let url = (replace (Pattern "http") (Replacement "ws") url') <> "ws"
     log ("Connecting to websocket on  " <> url)
-    liftEffect $ createSocket url incomingBusW outgoingBusR $ Milliseconds 1000.0
-    pure { send: outgoingBusW
+    liftEffect $ createSocket url incomingBusW outgoingAVarRW $ Milliseconds 1000.0
+    pure { send: outgoingAVarW
          , receive: incomingBusR
          }
   where
@@ -92,8 +94,8 @@ createWebSocket url' = do
         Left err -> throw $ show err
         Right n -> pure n
 
-    createSocket :: String -> Bus.BusW WebSocketMsg -> Bus.BusR UpdateSubscriptionMsg -> Milliseconds -> Effect Unit
-    createSocket url incomingBus outgoingBus delayMS = do
+    createSocket :: String -> Bus.BusW WebSocketMsg -> AVarRW UpdateSubscriptionMsg -> Milliseconds -> Effect Unit
+    createSocket url incomingBus outgoingAVar delayMS = do
       WS.Connection socket <- WS.newWebSocket (WS.URL url) []
       socket.onmessage $= \r -> do
         incoming <- parseIncoming <<< WS.runMessage <<< WS.runMessageEvent $ r
@@ -102,12 +104,12 @@ createWebSocket url' = do
         launchAff_ do
           delay delayMS
           liftEffect
-            $ createSocket url incomingBus outgoingBus
+            $ createSocket url incomingBus outgoingAVar
             $ over Milliseconds (_ + 500.0) delayMS
       socket.onopen $= \_-> do
         let sendPayload = encodeJSON >>> WS.Message >>> socket.send
         launchAff_ $ forever do
-          msg <- Bus.read outgoingBus
+          msg <- AVar.take outgoingAVar
           liftEffect $ sendPayload msg
 
 -------------------------
@@ -161,8 +163,8 @@ mkMonitor { send, receive } fltr consumer = do
   {changeProducer, writeLoopCanceler} <- changeWSProducer subscriptionID receive
   let process = runProcess $
           (consumer `pullFrom` void (changeProducer $~ eventMapper))
-      cancelWithServer = Bus.write (Cancel subscriptionID) send
-  Bus.write initSubscriptionMsg send
+      cancelWithServer = AVar.put (Cancel subscriptionID) send
+  AVar.put initSubscriptionMsg send
   f <- forkAff process
   pure do
     cancelWithServer
