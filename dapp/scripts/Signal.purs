@@ -5,8 +5,8 @@ module Signal
 
 import Prelude
 
-import App.API (getContracts)
-import App.Data.Contracts (Contracts(..))
+import App.API (getClientEnv, getContracts)
+import App.MarketClient.Client (Contracts(..), assertClientM)
 import Chanterelle.Internal.Utils (getPrimaryAccount)
 import Chanterelle.Test (assertWeb3)
 import Contracts.FoamToken as FoamToken
@@ -41,7 +41,8 @@ import Unsafe (unsafeFromJust)
 
 main :: Effect Unit
 main = void <<< launchAff $ do
-  Contracts {signalToken, foamToken} <- getContracts
+  clientEnv <- liftEffect getClientEnv
+  Contracts {signalToken, foamToken} <- assertClientM clientEnv getContracts
   owner <- liftEffect $ lookupEnv "OWNER_ADDRESS" >>= \addr -> maybe
       (throw "Missing Environment Variable 'OWNER_ADDRESS'")
       pure
