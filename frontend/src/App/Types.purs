@@ -1,4 +1,4 @@
-module Test.MarketClient.Types where
+module App.Types where
 
 import Prelude
 
@@ -51,7 +51,7 @@ instance decodeJsonWithMetadata :: A.DecodeJson a => A.DecodeJson (WithMetaData 
 -- BlockNumberOrdering
 data BlockNumberOrdering = ASC | DESC
 
-instance encodeQueryParamData :: API.EncodeQueryParam BlockNumberOrdering where
+instance encodeBNOQueryParamData :: API.EncodeQueryParam BlockNumberOrdering where
   encodeQueryParam ASC = "asc"
   encodeQueryParam DESC = "desc"
 
@@ -89,7 +89,6 @@ instance decodeJsonContracts :: A.DecodeJson Contracts where
   decodeJson x = Contracts <$> A.decodeJson x
 
 -- foam token transfer
-
 newtype FoamTokenTransfer =
   FoamTokenTransfer { to :: Address
                     , from :: Address

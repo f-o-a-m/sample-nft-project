@@ -1,5 +1,6 @@
 module App.API
-  ( getContracts
+  ( getClientEnv
+  , getContracts
   , getSignals
   , getSignal
   ) where
@@ -11,7 +12,6 @@ import Affjax as AJ
 import Affjax.ResponseFormat as ResponseFormat
 import App.API.Internal (apiBaseURL)
 import App.Data.Collections (Cursor, Collection)
-import App.Data.Contracts (Contracts)
 import App.Data.Radius (Radius, radiusFromBigNumber)
 import App.Data.SaleId (SaleId, saleIdFromBigNumber)
 import App.Data.Signal (Signal(..))
@@ -19,31 +19,86 @@ import App.Data.SignalActivity (SignalActivity(..))
 import App.Data.SignalDetails (SignalDetails(..))
 import App.Data.SignalId (SignalId(..), signalIdFromBigNumber)
 import App.Data.Token (zeroToken)
+import App.Types as Types
 import Control.Error.Util (note)
 import Control.Monad.Error.Class (throwError)
 import Data.Argonaut (Json, decodeJson, getField, (.:))
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Geohash (Geohash, geohashFromHex, geohashFromLngLat)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for)
 import Data.Tuple (Tuple(..), fst, snd)
 import Deploy.Utils (unsafeFromJust)
+import Effect (Effect)
 import Effect.Aff (Aff, delay)
 import Effect.Exception (error)
 import Foreign.Object (Object)
+import MarketClient.Client (ClientM)
 import Network.Ethereum.Core.BigNumber as BN
 import Network.Ethereum.Core.HexString (mkHexString)
 import Network.Ethereum.Core.HexString as H
 import Network.Ethereum.Core.Signatures (Address, mkAddress)
+import Node.Process as NP
 import Record.Extra (sequenceRecord)
+import Servant.API (type (:>))
+import Servant.API as API
+import Servant.Client (ClientEnv(..))
+import Servant.Client as Client
 
-getContracts :: Aff Contracts
-getContracts = get "config/contracts" decodeJson
+getClientEnv :: Effect ClientEnv
+getClientEnv = do
+  mbaseURL <- NP.lookupEnv "API_BASE_URL"
+  let protocol = "http"
+      baseURL = fromMaybe "//localhost:9000/" mbaseURL
+  pure $ ClientEnv {baseURL, protocol: "http"}
 
 type URLPath = String
 
+-- contract/config
+type GetContracts =
+     API.S "config"
+  :> API.S "contracts"
+  :> API.GET Json Types.Contracts
+
+getContracts :: ClientM Types.Contracts
+getContracts =
+  Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetContracts)
+
+-- foam token transfers
+newtype AddressP = AddressP Address
+
+instance encodeAddressPQueryParamData :: API.EncodeQueryParam AddressP where
+  encodeQueryParam (AddressP a) = show a
+
+type GetFoamTokenTransfers =
+     API.S "foam_token"
+  :> API.S "transfers"
+  :> API.QPs ( to :: Array AddressP
+             , from :: Array AddressP
+             , limit :: Maybe Int
+             , offset :: Maybe Int
+             , ordering :: Maybe Types.BlockNumberOrdering
+             )
+  :> API.GET Json (Array (Types.WithMetaData Types.FoamTokenTransfer))
+
+foamTokenTransfers
+  :: API.QueryParams ( to :: Array AddressP
+                     , from :: Array AddressP
+                     , limit :: Maybe Int
+                     , offset :: Maybe Int
+                     , ordering :: Maybe Types.BlockNumberOrdering
+                     )
+  -> ClientM (Array (Types.WithMetaData Types.FoamTokenTransfer))
+foamTokenTransfers =
+  Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetFoamTokenTransfers)
+
+-- signal tokens
+-- signal market for sale
+-- signal market sold
+
+-------
 get :: forall a. URLPath -> (Json -> Either String a) -> Aff a
 get path decode = do
   let
