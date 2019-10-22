@@ -85,11 +85,7 @@ type ContractsR =
   , signalToken  :: Address
   , signalMarket :: Address
   , networkId    :: NetworkId
-  }-- { foamToken :: Receipt
-  -- , signalToken :: Receipt
-  -- , signalMarket :: Receipt
-  -- , networkId :: String
-  -- }
+  }
 
 derive instance newtypeContracts :: Newtype Contracts _
 derive instance genericContracts :: Generic Contracts _
@@ -104,8 +100,6 @@ instance decodeJsonContracts :: A.DecodeJson Contracts where
     , signalToken: (obj .: "signalToken") >>= (_ .: "address")
     , signalMarket: (obj .: "signalMarket") >>= (_ .: "address")
     }
--- instance decodeJsonContracts :: A.DecodeJson Contracts where
---   decodeJson x = Contracts <$> A.decodeJson x
 
 newtype NetworkId = NetworkId String
 

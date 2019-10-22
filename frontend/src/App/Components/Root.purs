@@ -81,8 +81,6 @@ root = React.make component
     didMount self = do
       -- redirect to `/#/` if user is visiting `/`
       whenM (String.null <$> getHash ) $ setHash $ Route.href Route.Signals
-
-      -- contractsFiber <- launchAff $ getContracts
       clientEnv <- liftEffect getClientEnv
       contractsFiber <- launchAff $ assertClientM clientEnv getContracts
       pushCanceler self $ fiberCanceler contractsFiber
