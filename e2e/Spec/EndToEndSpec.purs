@@ -2,17 +2,19 @@ module E2E.Spec.End2EndSpec where
 
 import Prelude
 
-import App.GraphQLApi (getSignalOwnerStats)
+import App.API (AddressP(..), foamTokenTransfers)
+import App.MarketClient.Client (BlockNumberOrdering(..), FoamTokenTransfer(..), MetaData(..), WithMetaData(..), assertClientM)
+import App.Websocket (mkMonitor)
 import Chanterelle.Test (assertWeb3)
 import Contracts.FoamToken as FoamToken
 import Control.Coroutine as C
 import Control.Monad.Error.Class (class MonadError)
 import Control.Monad.Reader (ask)
 import Data.Array (filter, head, (!!))
-import Data.Foldable (length)
 import Data.Lens ((?~))
 import Data.Maybe (Maybe(..), fromJust)
 import Deploy.Utils (mkUIntN)
+import E2E.End2EndConfig (End2EndConfig)
 import Effect.AVar as EAVar
 import Effect.Aff (Aff)
 import Effect.Aff.AVar as AVar
@@ -24,14 +26,10 @@ import Network.Ethereum.Web3.Solidity (class DecodeEvent)
 import Network.Ethereum.Web3.Solidity.Sizes (s256)
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Servant.API as API
-import E2E.End2EndConfig (End2EndConfig)
 import Test.Actions (faucetTokens)
-import Test.MarketClient.Client (MetaData(..))
-import Test.MarketClient.Client as Client
 import Test.Spec (SpecT, beforeAll_, describe, it, parallel)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Utils (TestEnv, go, mkSignalAttrGen)
-import App.Websocket (mkMonitor)
 import Type.Proxy (Proxy(..))
 
 
@@ -119,26 +117,25 @@ sendTokens cfg@{clientEnv, contractAddresses} {logger} {to, from, amount} = do
   logger "Checking FoamToken transaction from API"
   liftAff do
     let params = API.QueryParams
-          { to: [Client.AddressP to]
-          , from: [Client.AddressP from]
+          { to: [AddressP to]
+          , from: [AddressP from]
           , limit: Just 100
           , offset: Just 0
-          , ordering: Just Client.DESC
+          , ordering: Just DESC
           }
-    results <- Client.assertClientM clientEnv $ Client.foamTokenTransfers params
-    Client.WithMetaData {"data": Client.FoamTokenTransfer transfer} <- findByHash transactionHash results
+    results <- assertClientM clientEnv $ foamTokenTransfers params
+    WithMetaData {"data": FoamTokenTransfer transfer} <- findByHash transactionHash results
     from `shouldEqual` transfer.from
     to `shouldEqual` transfer.to
 
 findByHash
   :: forall a.
      HexString
-  -> Array (Client.WithMetaData a)
-  -> Aff (Client.WithMetaData a)
+  -> Array (WithMetaData a)
+  -> Aff (WithMetaData a)
 findByHash hash as =
-  let p (Client.WithMetaData {metaData: MetaData {transactionHash}}) =
+  let p (WithMetaData {metaData: MetaData {transactionHash}}) =
         transactionHash == hash
   in case head $ filter p as of
        Nothing -> unsafeCrashWith ("Failed to find item with metadata hash " <> show hash)
        Just a -> pure a
-

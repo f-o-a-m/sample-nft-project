@@ -6,6 +6,9 @@ module E2E.End2EndConfig
 
 import Prelude
 
+import App.API (getClientEnv, getContracts)
+import App.MarketClient.Client (Contracts(..), assertClientM)
+import App.Websocket (createWebSocket, WebSocket)
 import Chanterelle.Test (assertWeb3)
 import Data.Array ((!!), drop)
 import Data.Maybe (fromJust, fromMaybe)
@@ -17,8 +20,6 @@ import Network.Ethereum.Web3.Api (eth_getAccounts)
 import Node.Process as NP
 import Partial.Unsafe (unsafePartial)
 import Servant.Client (ClientEnv(..))
-import Test.MarketClient.Client as API
-import App.Websocket (createWebSocket, WebSocket)
 
 type End2EndConfig =
   { provider :: Provider
@@ -53,22 +54,6 @@ mkEnd2EndConfig = do
        , ws
        }
   where
-
-  getClientEnv = do
-    mbaseURL <- NP.lookupEnv "API_BASE_URL"
-    let protocol = "http"
-        baseURL = fromMaybe "//localhost:9000/" mbaseURL
-    pure $ ClientEnv {baseURL, protocol: "http"}
-
   getContractAddresses clientEnv = do
-    API.Contracts contracts <- API.assertClientM clientEnv API.getContracts
-    let
-      { foamToken: API.Receipt {address: ft}
-      , signalToken: API.Receipt {address: st}
-      , signalMarket: API.Receipt {address: sm}
-      } = contracts
-    pure { foamToken: ft
-         , signalToken: st
-         , signalMarket: sm
-         }
-
+    Contracts { foamToken, signalToken, signalMarket } <- assertClientM clientEnv getContracts
+    pure { foamToken, signalToken, signalMarket }
