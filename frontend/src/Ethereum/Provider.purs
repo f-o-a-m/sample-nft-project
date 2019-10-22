@@ -15,7 +15,6 @@ module App.Ethereum.Provider
 
 import Prelude
 
-import App.Data.Contracts (NetworkId(..))
 import App.Error (printWeb3Error)
 import Control.Apply (lift2)
 import Control.Lazy (fix)
@@ -38,6 +37,7 @@ import Effect.Exception as Exception
 import Effect.Uncurried (EffectFn1, EffectFn2, EffectFn3, mkEffectFn1, runEffectFn2, runEffectFn3)
 import Network.Ethereum.Web3 (Address, Provider, metamaskProvider, runWeb3)
 import Network.Ethereum.Web3.Api (eth_getAccounts, net_version)
+import Test.MarketClient.Types (NetworkId(..))
 
 
 data Connectivity

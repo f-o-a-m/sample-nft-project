@@ -4,7 +4,6 @@ import Prelude
 
 import App.Components.Avatar (avatar)
 import App.Components.Common (renderToken)
-import App.Data.Contracts (Contracts(..), networkName)
 import App.Data.ProviderState as ProviderState
 import App.Data.Token (FOAM, Token(..), tokenFromBigNumber)
 import App.Error (printCallError, printWeb3Error)
@@ -30,6 +29,7 @@ import Network.Ethereum.Web3.Types (ETHER)
 import React.Basic (JSX)
 import React.Basic as React
 import React.Basic.DOM as R
+import Test.MarketClient.Types (Contracts(..), networkName)
 import Type.Proxy (Proxy(..))
 
 type Props =

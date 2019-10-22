@@ -2,10 +2,10 @@ module App.Data.ProviderState where
 
 import Prelude
 
-import App.Data.Contracts (Contracts)
 import App.Ethereum.Provider (Connectivity(..), Provider', Unknown)
 import Data.Maybe (Maybe(..))
 import Network.Ethereum.Web3 (Address, Provider)
+import Test.MarketClient.Types (Contracts)
 
 
 data State

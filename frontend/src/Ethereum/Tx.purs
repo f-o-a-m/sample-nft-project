@@ -3,7 +3,6 @@ module  Etherium.Tx where
 
 import Prelude
 
-import App.Data.Contracts (Contracts(..), ContractsR)
 import App.Data.ProviderState (ConnectedState)
 import App.Data.SaleId (SaleId(..))
 import App.Data.SignalId (SignalId(..))
@@ -26,6 +25,7 @@ import Etherium.TxOpts (txOpts, txOpts')
 import Network.Ethereum.Web3 (Address, HexString, Provider, TransactionReceipt(..), TransactionStatus(..), Web3, Web3Error, fromMinorUnit, runWeb3, unUIntN)
 import Network.Ethereum.Web3.Api (eth_getTransactionReceipt)
 import Network.Ethereum.Web3.Types (ETHER)
+import Test.MarketClient.Types (Contracts(..), ContractsR)
 
 data Tx
   = UnSell SaleId

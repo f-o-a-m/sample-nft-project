@@ -2,12 +2,11 @@ module App.Components.Root where
 
 import Prelude
 
-import App.API (getContracts)
+import App.API (getClientEnv, getContracts)
 import App.API.WS as WS
 import App.Components.Header (header)
 import App.Components.Signal (signal)
 import App.Components.Signals (signals)
-import App.Data.Contracts (Contracts(..))
 import App.Data.Event (Event)
 import App.Data.ProviderState (ConnectedState)
 import App.Data.ProviderState as ProviderState
@@ -17,8 +16,8 @@ import App.HTML (classy)
 import App.HTML.Canceler (pushCanceler, pushCanceler', runCancelers, runCancelers')
 import App.Route (Route)
 import App.Route as Route
-import Contracts.SignalMarket as SignalMarket
 import Contracts.FoamToken as FoamToken
+import Contracts.SignalMarket as SignalMarket
 import Contracts.SignalToken as SignalToken
 import Control.Alt ((<|>))
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
@@ -28,6 +27,7 @@ import Data.Either (Either(..))
 import Data.Foldable (fold, for_, traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Data.String as String
+import Data.Symbol (SProxy(..))
 import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant as V
@@ -45,8 +45,9 @@ import Routing.Duplex as RD
 import Routing.Duplex.Parser (RouteError)
 import Routing.Hash (getHash, setHash)
 import Routing.Hash as RoutingHash
+import Test.MarketClient.Client (assertClientM)
+import Test.MarketClient.Types (Contracts(..))
 import Type.Proxy (Proxy(..))
-import Data.Symbol (SProxy(..))
 
 type Props =
   { events :: Tuple (BusR Event) (BusW Event)
@@ -82,7 +83,9 @@ root = React.make component
       -- redirect to `/#/` if user is visiting `/`
       whenM (String.null <$> getHash ) $ setHash $ Route.href Route.Signals
 
-      contractsFiber <- launchAff $ getContracts
+      -- contractsFiber <- launchAff $ getContracts
+      clientEnv <- liftEffect getClientEnv
+      contractsFiber <- launchAff $ assertClientM clientEnv getContracts
       pushCanceler self $ fiberCanceler contractsFiber
 
       providerMb <- runMaybeT

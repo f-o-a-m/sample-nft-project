@@ -1,6 +1,6 @@
 module Test.MarketClient.Client
   ( module Types
-  , module MarketClient.Client
+  , module Test.MarketClient.Client
   ) where
 
 import Prelude

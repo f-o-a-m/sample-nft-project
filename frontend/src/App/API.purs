@@ -19,7 +19,6 @@ import App.Data.SignalActivity (SignalActivity(..))
 import App.Data.SignalDetails (SignalDetails(..))
 import App.Data.SignalId (SignalId(..), signalIdFromBigNumber)
 import App.Data.Token (zeroToken)
-import App.Types as Types
 import Control.Error.Util (note)
 import Control.Monad.Error.Class (throwError)
 import Data.Argonaut (Json, decodeJson, getField, (.:))
@@ -35,7 +34,6 @@ import Effect (Effect)
 import Effect.Aff (Aff, delay)
 import Effect.Exception (error)
 import Foreign.Object (Object)
-import MarketClient.Client (ClientM)
 import Network.Ethereum.Core.BigNumber as BN
 import Network.Ethereum.Core.HexString (mkHexString)
 import Network.Ethereum.Core.HexString as H
@@ -46,6 +44,8 @@ import Servant.API (type (:>))
 import Servant.API as API
 import Servant.Client (ClientEnv(..))
 import Servant.Client as Client
+import Test.MarketClient.Client (ClientM)
+import Test.MarketClient.Types as Types
 
 getClientEnv :: Effect ClientEnv
 getClientEnv = do
