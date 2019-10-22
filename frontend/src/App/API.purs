@@ -3,6 +3,8 @@ module App.API
   , getContracts
   , getSignals
   , getSignal
+  , foamTokenTransfers
+  , AddressP(..)
   ) where
 
 import Prelude
@@ -19,6 +21,8 @@ import App.Data.SignalActivity (SignalActivity(..))
 import App.Data.SignalDetails (SignalDetails(..))
 import App.Data.SignalId (SignalId(..), signalIdFromBigNumber)
 import App.Data.Token (zeroToken)
+import App.MarketClient.Client (ClientM)
+import App.MarketClient.Types as Types
 import Control.Error.Util (note)
 import Control.Monad.Error.Class (throwError)
 import Data.Argonaut (Json, decodeJson, getField, (.:))
@@ -44,8 +48,6 @@ import Servant.API (type (:>))
 import Servant.API as API
 import Servant.Client (ClientEnv(..))
 import Servant.Client as Client
-import Test.MarketClient.Client (ClientM)
-import Test.MarketClient.Types as Types
 
 getClientEnv :: Effect ClientEnv
 getClientEnv = do

@@ -10,6 +10,7 @@ import App.Error (printCallError, printWeb3Error)
 import App.Ethereum.Provider as Provider
 import App.HTML (classy, maybeHtml)
 import App.HTML.Canceler (pushCanceler, runCancelers)
+import App.MarketClient.Types (Contracts(..), networkName)
 import Contracts.FoamToken as FoamToken
 import Control.Lazy (fix)
 import Data.Either (Either(..), either)
@@ -29,7 +30,6 @@ import Network.Ethereum.Web3.Types (ETHER)
 import React.Basic (JSX)
 import React.Basic as React
 import React.Basic.DOM as R
-import Test.MarketClient.Types (Contracts(..), networkName)
 import Type.Proxy (Proxy(..))
 
 type Props =

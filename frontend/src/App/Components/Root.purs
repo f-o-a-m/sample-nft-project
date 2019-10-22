@@ -14,6 +14,7 @@ import App.Data.User (User(..))
 import App.Ethereum.Provider as EthProvider
 import App.HTML (classy)
 import App.HTML.Canceler (pushCanceler, pushCanceler', runCancelers, runCancelers')
+import App.MarketClient.Client (assertClientM, Contracts(..))
 import App.Route (Route)
 import App.Route as Route
 import Contracts.FoamToken as FoamToken
@@ -45,8 +46,6 @@ import Routing.Duplex as RD
 import Routing.Duplex.Parser (RouteError)
 import Routing.Hash (getHash, setHash)
 import Routing.Hash as RoutingHash
-import Test.MarketClient.Client (assertClientM)
-import Test.MarketClient.Types (Contracts(..))
 import Type.Proxy (Proxy(..))
 
 type Props =
