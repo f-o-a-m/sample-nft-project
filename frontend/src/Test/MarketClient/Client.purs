@@ -1,4 +1,4 @@
-module MarketClient.Client
+module Test.MarketClient.Client
   ( module Types
   , module MarketClient.Client
   ) where
@@ -14,7 +14,7 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Effect.Exception (error)
 import Servant.Client as Client
-import App.Types (BlockNumberOrdering(..), Contracts(..), FoamTokenTransfer(..), MetaData(..), Receipt(..), WithMetaData(..)) as Types
+import Test.MarketClient.Types (BlockNumberOrdering(..), Contracts(..), FoamTokenTransfer(..), MetaData(..), Receipt(..), WithMetaData(..)) as Types
 
 -- ClientM
 newtype ClientM a = ClientM (ReaderT Client.ClientEnv (ExceptT Client.AjaxError Aff) a)

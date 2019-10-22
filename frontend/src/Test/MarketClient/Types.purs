@@ -1,4 +1,4 @@
-module App.Types where
+module Test.MarketClient.Types where
 
 import Prelude
 
