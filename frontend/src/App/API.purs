@@ -4,6 +4,7 @@ module App.API
   , getSignals
   , getSignal
   , foamTokenTransfers
+  , signalTokenWithSales
   , AddressP(..)
   ) where
 
@@ -21,7 +22,7 @@ import App.Data.SignalActivity (SignalActivity(..))
 import App.Data.SignalDetails (SignalDetails(..))
 import App.Data.SignalId (SignalId(..), signalIdFromBigNumber)
 import App.Data.Token (zeroToken)
-import App.MarketClient.Client (ClientM)
+import App.MarketClient.Client (ClientM, assertClientM)
 import App.MarketClient.Types as Types
 import Control.Error.Util (note)
 import Control.Monad.Error.Class (throwError)
@@ -97,10 +98,42 @@ foamTokenTransfers =
   Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetFoamTokenTransfers)
 
 -- signal tokens
+---- with sales
+type GetSignalTokenWithSales
+     API.S "signal_token"
+  :> API.S "with_sales"
+  :> API.QPs ( limit :: Maybe Int
+             , offset :: Maybe Int
+             )
+  :> API.GET Json (Array (Types.WithMetaData Types.SignalTokenWithSale))
+
+signalTokenWithSales
+  :: API.QueryParams ( limit :: Maybe Int
+                     , offset :: Maybe Int
+                     )
+  -> ClientM (Array (Types.WithMetaData Types.SignalTokenWithSale))
+signalTokenWithSales =
+  Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetSignalTokenWithSales)
+
 -- signal market for sale
 -- signal market sold
 
 -------
+
+-- @TODO: this should be something everything can use
+getM :: forall a r. ClientM r -> (r -> a) -> Aff a
+getM clientRoute f = do
+  clientEnv <- liftEffect getClientEnv
+  respValue <- assertClientM clientEnv clientRoute
+  pure $ f respValue
+
+-- getSignalTokenWithSales :: Cursor -> Aff (Collection Signal)
+-- getSignalTokenWithSales {limit, offset} = do
+--   let params = API.QueryParams { limit: Just limit
+--                                , offset: Just offset
+--                                }
+--   getM (signalTokenWithSales params) \withSales ->
+
 get :: forall a. URLPath -> (Json -> Either String a) -> Aff a
 get path decode = do
   let
@@ -142,10 +175,8 @@ address6 = unsafeFromJust "Must be valid Address 000...6"
 
 signalId1 :: SignalId
 signalId1 = unsafeFromJust "SignalId of 1" $ signalIdFromBigNumber $ BN.embed 101
-
 signalId2 :: SignalId
 signalId2 = unsafeFromJust "SignalId of 2" $ signalIdFromBigNumber $ BN.embed 102
-
 signalId3 :: SignalId
 signalId3 = unsafeFromJust "SignalId of 3" $ signalIdFromBigNumber $ BN.embed 103
 

@@ -7,6 +7,7 @@ import Data.Argonaut as A
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Eq (genericEq)
 import Data.Generic.Rep.Show (genericShow)
+import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
 import Foreign.Class (class Decode)
 import Foreign.Generic (defaultOptions, genericDecode)
@@ -134,3 +135,51 @@ instance decodeFoamTokenTransfer :: Decode FoamTokenTransfer where
 
 instance decodeJsonFoamTokenTransfer :: A.DecodeJson FoamTokenTransfer where
   decodeJson x = FoamTokenTransfer <$> A.decodeJson x
+
+---- signal token with sale
+
+newtype ESale = ESale
+  { owner  :: Address
+  , price  :: BigNumber
+  , saleID :: BigNumber
+  }
+
+derive instance genericESale :: Generic ESale _
+
+instance decodeESale :: Decode ESale where
+  decode = genericDecode defaultOptions
+
+instance decodeJsonESale :: A.DecodeJson ESale where
+  decodeJson x = ESale <$> A.decodeJson x
+
+newtype ESignal = ESignal
+  { cst        :: HexString
+  , geohash    :: HexString
+  , isBurned   :: Boolean
+  , nftAddress :: Address
+  , owner      :: Address
+  , radius     :: BigNumber
+  , staked     :: BigNumber
+  , tokenID    :: BigNumber
+  }
+
+derive instance genericESignal :: Generic ESignal _
+
+instance decodeESignal :: Decode ESignal where
+  decode = genericDecode defaultOptions
+
+instance decodeJsonESignal :: A.DecodeJson ESignal where
+  decodeJson x = ESignal <$> A.decodeJson x
+
+newtype SignalTokenWithSale =
+  SignalTokenWithSale { eSale :: Maybe ESale
+                      , eSignal :: ESignal
+                      }
+
+derive instance genericSignalTokenWithSale :: Generic SignalTokenWithSale _
+
+instance decodeSignalTokenWithSale :: Decode SignalTokenWithSale where
+  decode = genericDecode defaultOptions
+
+instance decodeJsonSignalTokenWithSale :: A.DecodeJson SignalTokenWithSale where
+  decodeJson x = SignalTokenWithSale <$> A.decodeJson x
