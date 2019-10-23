@@ -21,7 +21,7 @@ import App.Data.Signal (Signal(..))
 import App.Data.SignalActivity (SignalActivity(..))
 import App.Data.SignalDetails (SignalDetails(..))
 import App.Data.SignalId (SignalId(..), signalIdFromBigNumber)
-import App.Data.Token (zeroToken)
+import App.Data.Token (Token(..), tokenFromBigNumber, zeroToken)
 import App.MarketClient.Client (ClientM, WithMetaData(..), assertClientM, runClientM)
 import App.MarketClient.Types as Types
 import Control.Error.Util (note)
@@ -43,6 +43,7 @@ import Network.Ethereum.Core.BigNumber as BN
 import Network.Ethereum.Core.HexString (mkHexString)
 import Network.Ethereum.Core.HexString as H
 import Network.Ethereum.Core.Signatures (Address, mkAddress)
+import Network.Ethereum.Web3.Types (ETHER)
 import Node.Process as NP
 import Record.Extra (sequenceRecord)
 import Servant.API (type (:>))
@@ -122,20 +123,32 @@ getSignalTokenWithSales clientEnv {limit, offset} = do
                                }
   getM clientEnv (signalTokenWithSales params) ?f
   where
+    eSaleMbToSaleMb :: Maybe Types.ESale -> Maybe { id :: SaleId, price :: Token ETHER }
+    eSaleMbToSaleMb eSale =
+      case eSale of
+        Nothing -> Nothing
+        Just (Types.ESale { owner, price, saleID }) -> do
+          id <- saleIdFromBigNumber saleID
+          price <- tokenFromBigNumber price
+          pure { id, price }
+
     signalFromSale :: Types.WithMetaData Types.SignalTokenWithSale -> Either String Signal
     signalFromSale (WithMetaData { "data": d }) = do
       let Types.SignalTokenWithSale { eSale, eSignal } = d
           Types.ESignal eSignal = eSignal
+          sale = eSaleMbToSaleMb eSale
+      id <- note "Invalid TokenID" (signalIdFromBigNumber eSignal.tokenID)
+      radius <- note "Invalid Radius" (radiusFromBigNumber eSignal.radius)
+      stake <- note "Invalid Stake" (tokenFromBigNumber eSignal.staked)
       pure $ Signal
-        { id: ?tID
-        , stake: ?staked -- eSignal.staked
+        { id
+        , stake
+        , radius
         , owner: eSignal.owner
-        , geohash: ?geohash -- eSignal.geohash
-        , radius: ?radius -- eSignal.radius
-        , sale: ?sale
+        , geohash: geohashFromHex eSignal.geohash
+        , sale
         }
-      
-      
+
 -- signal market for sale
 -- signal market sold
 

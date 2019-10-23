@@ -161,7 +161,7 @@ newtype ESignal = ESignal
   , owner      :: Address
   , radius     :: BigNumber
   , staked     :: BigNumber
-  , tokenID    :: SignalId
+  , tokenID    :: BigNumber
   }
 
 derive instance genericESignal :: Generic ESignal _
