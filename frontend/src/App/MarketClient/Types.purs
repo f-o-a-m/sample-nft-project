@@ -2,6 +2,7 @@ module App.MarketClient.Types where
 
 import Prelude
 
+import App.Data.SignalId (SignalId(..))
 import Data.Argonaut ((.:))
 import Data.Argonaut as A
 import Data.Generic.Rep (class Generic)
@@ -160,7 +161,7 @@ newtype ESignal = ESignal
   , owner      :: Address
   , radius     :: BigNumber
   , staked     :: BigNumber
-  , tokenID    :: BigNumber
+  , tokenID    :: SignalId
   }
 
 derive instance genericESignal :: Generic ESignal _

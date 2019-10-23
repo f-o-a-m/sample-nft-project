@@ -1,8 +1,8 @@
 module App.API
   ( getClientEnv
   , getContracts
-  , getSignals
-  , getSignal
+  -- , getSignals
+  -- , getSignal
   , foamTokenTransfers
   , signalTokenWithSales
   , AddressP(..)
@@ -22,7 +22,7 @@ import App.Data.SignalActivity (SignalActivity(..))
 import App.Data.SignalDetails (SignalDetails(..))
 import App.Data.SignalId (SignalId(..), signalIdFromBigNumber)
 import App.Data.Token (zeroToken)
-import App.MarketClient.Client (ClientM, assertClientM)
+import App.MarketClient.Client (ClientM, WithMetaData(..), assertClientM, runClientM)
 import App.MarketClient.Types as Types
 import Control.Error.Util (note)
 import Control.Monad.Error.Class (throwError)
@@ -99,7 +99,7 @@ foamTokenTransfers =
 
 -- signal tokens
 ---- with sales
-type GetSignalTokenWithSales
+type GetSignalTokenWithSales = 
      API.S "signal_token"
   :> API.S "with_sales"
   :> API.QPs ( limit :: Maybe Int
@@ -115,24 +115,40 @@ signalTokenWithSales
 signalTokenWithSales =
   Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetSignalTokenWithSales)
 
+getSignalTokenWithSales :: ClientEnv -> Cursor -> Aff (Collection Signal)
+getSignalTokenWithSales clientEnv {limit, offset} = do
+  let params = API.QueryParams { limit: Just limit
+                               , offset: Just offset
+                               }
+  getM clientEnv (signalTokenWithSales params) ?f
+  where
+    signalFromSale :: Types.WithMetaData Types.SignalTokenWithSale -> Either String Signal
+    signalFromSale (WithMetaData { "data": d }) = do
+      let Types.SignalTokenWithSale { eSale, eSignal } = d
+          Types.ESignal eSignal = eSignal
+      pure $ Signal
+        { id: ?tID
+        , stake: ?staked -- eSignal.staked
+        , owner: eSignal.owner
+        , geohash: ?geohash -- eSignal.geohash
+        , radius: ?radius -- eSignal.radius
+        , sale: ?sale
+        }
+      
+      
 -- signal market for sale
 -- signal market sold
 
 -------
 
--- @TODO: this should be something everything can use
-getM :: forall a r. ClientM r -> (r -> a) -> Aff a
-getM clientRoute f = do
-  clientEnv <- liftEffect getClientEnv
-  respValue <- assertClientM clientEnv clientRoute
-  pure $ f respValue
-
--- getSignalTokenWithSales :: Cursor -> Aff (Collection Signal)
--- getSignalTokenWithSales {limit, offset} = do
---   let params = API.QueryParams { limit: Just limit
---                                , offset: Just offset
---                                }
---   getM (signalTokenWithSales params) \withSales ->
+getM :: forall a r. ClientEnv -> ClientM r -> (r -> Either String a) -> Aff a
+getM clientEnv clientRoute f = do
+  resp <- runClientM clientEnv clientRoute
+  case resp of
+    Left err -> throwError (error $ Client.errorToString err)
+    Right res -> case f res of
+      Left err -> throwError (error err)
+      Right res -> pure res
 
 get :: forall a. URLPath -> (Json -> Either String a) -> Aff a
 get path decode = do
@@ -220,110 +236,110 @@ signal3 = Signal
   , sale: Nothing
   }
 
-getSignals :: Cursor -> Aff (Collection Signal)
-getSignals cursor = get
-  ("signal_token/with_sales?limit=" <> show (cursor.limit + 1) <> "&offset=" <> show cursor.offset)
-  \json -> do
-    (jsonArr :: Array (Object Json)) <- decodeJson json
-    (items :: Array Signal) <- for jsonArr \itemJson -> do
-      signalJson <- itemJson .: "data"
-      eSignal <- getField signalJson "eSignal"
-      eSaleMb <- getField signalJson "eSale"
-      saleInfo <- for eSaleMb \eSale -> do
-        owner <- eSale .: "owner"
-        sale <- sequenceRecord
-          { id: eSale .: "saleID"
-          , price: eSale .: "price"
-          }
-        pure (Tuple owner sale)
-      Signal <$> sequenceRecord
-        { id: eSignal .: "tokenID"
-        , stake: eSignal .: "staked"
-        , owner: maybe (eSignal .: "owner") (fst >>> pure) saleInfo
-        , geohash: eSignal .: "geohash" >>= decodeGeoHash
-        , radius: eSignal .: "radius"
-        , sale: pure $ map snd saleInfo
-        }
-    pure if Array.length items > cursor.limit
-      then
-        { items: Array.take cursor.limit items
-        , next: Just $ cursor{offset = cursor.limit + cursor.offset}
-        }
-      else
-        { items
-        , next: Nothing
-        }
+-- getSignals :: Cursor -> Aff (Collection Signal)
+-- getSignals cursor = get
+--   ("signal_token/with_sales?limit=" <> show (cursor.limit + 1) <> "&offset=" <> show cursor.offset)
+--   \json -> do
+--     (jsonArr :: Array (Object Json)) <- decodeJson json
+--     (items :: Array Signal) <- for jsonArr \itemJson -> do
+--       signalJson <- itemJson .: "data"
+--       eSignal <- getField signalJson "eSignal"
+--       eSaleMb <- getField signalJson "eSale"
+--       saleInfo <- for eSaleMb \eSale -> do
+--         owner <- eSale .: "owner"
+--         sale <- sequenceRecord
+--           { id: eSale .: "saleID"
+--           , price: eSale .: "price"
+--           }
+--         pure (Tuple owner sale)
+--       Signal <$> sequenceRecord
+--         { id: eSignal .: "tokenID"
+--         , stake: eSignal .: "staked"
+--         , owner: maybe (eSignal .: "owner") (fst >>> pure) saleInfo
+--         , geohash: eSignal .: "geohash" >>= decodeGeoHash
+--         , radius: eSignal .: "radius"
+--         , sale: pure $ map snd saleInfo
+--         }
+--     pure if Array.length items > cursor.limit
+--       then
+--         { items: Array.take cursor.limit items
+--         , next: Just $ cursor{offset = cursor.limit + cursor.offset}
+--         }
+--       else
+--         { items
+--         , next: Nothing
+--         }
 
-getSignals' :: Cursor -> Aff (Collection Signal)
-getSignals' c = do
-  delay $ Milliseconds 1000.0
-  pure {items: [signal1, signal2, signal3], next: Just c}
+-- getSignals' :: Cursor -> Aff (Collection Signal)
+-- getSignals' c = do
+--   delay $ Milliseconds 1000.0
+--   pure {items: [signal1, signal2, signal3], next: Just c}
 
-getSignal :: SignalId -> Aff SignalDetails
-getSignal (SignalId sid) = get
-  ("signal_market/" <> show sid)
-  \json -> do
-    jsonObj :: Object Json <- decodeJson json
-    jsonSignal <- jsonObj .: "signal"
-    jsonHistory :: Array (Object Json) <- jsonObj .: "history"
-    jsonSignalData <- jsonSignal .: "data"
-    activity <- for jsonHistory \itemJson -> do
-      jsonData <- itemJson .: "data"
-      tag <- jsonData .: "tag"
-      contents <- jsonData .: "contents"
-      case tag of
-        "ListedForSale" ->
-          ListedForSale <$> sequenceRecord
-            { owner: contents .: "seller"
-            , saleId: contents .: "saleID"
-            , price: contents .: "price"
-            }
-        "Sold" -> Sold <$> sequenceRecord
-          { owner: contents .: "soldFrom"
-          , saleId: contents .: "saleID"
-          , price: contents .: "price"
-          , buyer: contents .: "soldTo"
-          }
-        "Unlisted" -> UnlistedFromSale <$> sequenceRecord
-          { owner: contents .: "owner"
-          , saleId: contents .: "saleID"
-          }
-        _ -> throwError $ "Invalid tag: " <> show tag
-    let
-      saleInfo = Array.head activity >>= case _ of
-        ListedForSale { owner, saleId, price } -> Just $ Tuple owner { id: saleId, price }
-        Sold _ -> Nothing
-        UnlistedFromSale _ -> Nothing
-    signal <- Signal <$> sequenceRecord
-      { id: jsonSignalData .: "tokenID"
-      , stake: jsonSignalData .: "staked"
-      , owner: maybe (jsonSignalData .: "owner") (fst >>> pure) saleInfo
-      , geohash: jsonSignalData .: "geohash" >>= decodeGeoHash
-      , radius: jsonSignalData .: "radius"
-      , sale: pure $ map snd saleInfo
-      }
-    pure $ SignalDetails {signal, activity}
+-- getSignal :: SignalId -> Aff SignalDetails
+-- getSignal (SignalId sid) = get
+--   ("signal_market/" <> show sid)
+--   \json -> do
+--     jsonObj :: Object Json <- decodeJson json
+--     jsonSignal <- jsonObj .: "signal"
+--     jsonHistory :: Array (Object Json) <- jsonObj .: "history"
+--     jsonSignalData <- jsonSignal .: "data"
+--     activity <- for jsonHistory \itemJson -> do
+--       jsonData <- itemJson .: "data"
+--       tag <- jsonData .: "tag"
+--       contents <- jsonData .: "contents"
+--       case tag of
+--         "ListedForSale" ->
+--           ListedForSale <$> sequenceRecord
+--             { owner: contents .: "seller"
+--             , saleId: contents .: "saleID"
+--             , price: contents .: "price"
+--             }
+--         "Sold" -> Sold <$> sequenceRecord
+--           { owner: contents .: "soldFrom"
+--           , saleId: contents .: "saleID"
+--           , price: contents .: "price"
+--           , buyer: contents .: "soldTo"
+--           }
+--         "Unlisted" -> UnlistedFromSale <$> sequenceRecord
+--           { owner: contents .: "owner"
+--           , saleId: contents .: "saleID"
+--           }
+--         _ -> throwError $ "Invalid tag: " <> show tag
+--     let
+--       saleInfo = Array.head activity >>= case _ of
+--         ListedForSale { owner, saleId, price } -> Just $ Tuple owner { id: saleId, price }
+--         Sold _ -> Nothing
+--         UnlistedFromSale _ -> Nothing
+--     signal <- Signal <$> sequenceRecord
+--       { id: jsonSignalData .: "tokenID"
+--       , stake: jsonSignalData .: "staked"
+--       , owner: maybe (jsonSignalData .: "owner") (fst >>> pure) saleInfo
+--       , geohash: jsonSignalData .: "geohash" >>= decodeGeoHash
+--       , radius: jsonSignalData .: "radius"
+--       , sale: pure $ map snd saleInfo
+--       }
+--     pure $ SignalDetails {signal, activity}
 
 
-getSignal' :: SignalId -> Aff SignalDetails
-getSignal' sid = do
-  delay $ Milliseconds 1000.0
-  pure $ SignalDetails
-    { signal: signal1
-    , activity:
-        [ ListedForSale
-            { owner: address2
-            , saleId: saleId2
-            , price: zeroToken
-            }
-        , Sold
-            { owner: address2
-            , saleId: saleId3
-            , price: zeroToken
-            , buyer: address1
-            }
-        ]
-    }
+-- getSignal' :: SignalId -> Aff SignalDetails
+-- getSignal' sid = do
+--   delay $ Milliseconds 1000.0
+--   pure $ SignalDetails
+--     { signal: signal1
+--     , activity:
+--         [ ListedForSale
+--             { owner: address2
+--             , saleId: saleId2
+--             , price: zeroToken
+--             }
+--         , Sold
+--             { owner: address2
+--             , saleId: saleId3
+--             , price: zeroToken
+--             , buyer: address1
+--             }
+--         ]
+--     }
 
-decodeGeoHash :: String -> Either String Geohash
-decodeGeoHash str = note "Invalid GeoHash" (H.mkHexString str) <#> geohashFromHex
+-- decodeGeoHash :: String -> Either String Geohash
+-- decodeGeoHash str = note "Invalid GeoHash" (H.mkHexString str) <#> geohashFromHex
