@@ -15,7 +15,7 @@ import App.Websocket (WebSocket, createWebSocket, mkMonitor)
 newtype Connection = Connection WebSocket
 
 open :: Aff Connection
-open = Connection <$> createWebSocket apiBaseURL
+open = Connection <$> createWebSocket ("http:" <> apiBaseURL)
 
 event :: forall i ni e
   . DecodeEvent i ni e

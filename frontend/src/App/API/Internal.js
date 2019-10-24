@@ -7,7 +7,7 @@ exports.apiBaseURL = (function() {
   }
   try {
     if (typeof window.location.protocol === "string") {
-      apiBaseURL = window.location.protocol + apiBaseURL
+      apiBaseURL = apiBaseURL
     }
   } catch (_){
     apiBaseURL = "http:" + apiBaseURL
