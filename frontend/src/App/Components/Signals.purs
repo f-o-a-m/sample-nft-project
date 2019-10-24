@@ -25,6 +25,7 @@ import React.Basic (JSX)
 import React.Basic as React
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture_)
+import Servant.Client (ClientEnv)
 
 type Props =
   { events :: BusR Event
@@ -40,8 +41,8 @@ type State =
 
 type Self = React.Self Props State
 
-signals :: Props -> JSX
-signals = React.make component
+signals :: ClientEnv -> Props -> JSX
+signals cenv = React.make component
   { initialState:
       { signals: initialLinkedCollection
       , showOnlyByUser: false

@@ -25,6 +25,7 @@ import Etherium.Tx as Tx
 import React.Basic (JSX)
 import React.Basic as React
 import React.Basic.DOM as R
+import Servant.Client (ClientEnv)
 
 type Props =
   { events :: BusR Event
@@ -45,8 +46,8 @@ type SignalState =
 
 type Self = React.Self Props State
 
-signal :: Props -> JSX
-signal = React.make component
+signal :: ClientEnv -> Props -> JSX
+signal cenv = React.make component
   { initialState: Nothing
   , render
   , didMount

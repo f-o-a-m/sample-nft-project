@@ -1,8 +1,10 @@
 module App.API
   ( getClientEnv
   , getContracts
-  -- , getSignals
-  -- , getSignal
+  , getSignalTokenWithSales
+  -- @TODO remove
+  , getSignal
+  , getSignals
   , foamTokenTransfers
   , signalTokenWithSales
   , AddressP(..)
@@ -100,7 +102,7 @@ foamTokenTransfers =
 
 -- signal tokens
 ---- with sales
-type GetSignalTokenWithSales = 
+type GetSignalTokenWithSales =
      API.S "signal_token"
   :> API.S "with_sales"
   :> API.QPs ( limit :: Maybe Int

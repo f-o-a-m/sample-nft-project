@@ -2,7 +2,7 @@ module App.Components.Root where
 
 import Prelude
 
-import App.API (getClientEnv, getContracts)
+import App.API (getContracts)
 import App.API.WS as WS
 import App.Components.Header (header)
 import App.Components.Signal (signal)
@@ -46,6 +46,7 @@ import Routing.Duplex as RD
 import Routing.Duplex.Parser (RouteError)
 import Routing.Hash (getHash, setHash)
 import Routing.Hash as RoutingHash
+import Servant.Client (ClientEnv)
 import Type.Proxy (Proxy(..))
 
 type Props =
@@ -64,25 +65,26 @@ data Action
   = SomeAction
   | NewRoute (Either RouteError Route)
 
-root :: Props -> JSX
-root = React.make component
+root :: ClientEnv -> Props -> JSX
+root clientEnv = React.make component
   { initialState:
       { route: Right Route.Signals
       , providerState: ProviderState.Unknown
       }
-  , render
-  , didMount
+  , render -- needs clientEnv
+  , didMount -- needs clientEnv
   , willUnmount
   }
   where
     willUnmount :: Self -> Effect Unit
     willUnmount self = runCancelers self
     didMount :: Self -> Effect Unit
-    didMount self = do
+    didMount = didMount' clientEnv
+    didMount' :: ClientEnv -> Self -> Effect Unit
+    didMount' cenv self = do
       -- redirect to `/#/` if user is visiting `/`
       whenM (String.null <$> getHash ) $ setHash $ Route.href Route.Signals
-      clientEnv <- liftEffect getClientEnv
-      contractsFiber <- launchAff $ assertClientM clientEnv getContracts
+      contractsFiber <- launchAff $ assertClientM cenv getContracts
       pushCanceler self $ fiberCanceler contractsFiber
 
       providerMb <- runMaybeT
@@ -141,16 +143,18 @@ root = React.make component
       pushCanceler self $ effectCanceler routingCanceller
 
     render :: Self -> JSX
-    render self@{state} = R.div_
+    render = render' clientEnv
+    render' :: ClientEnv -> Self -> JSX
+    render' cenv self@{state} = R.div_
       [ header { providerState: state.providerState }
       , navigation state.route
       , classy R.div "Content" $ pure case state.route of
           Left err -> classy R.h1 "Content-404" [ R.text "404" ]
-          Right (Route.Signals) -> signals
+          Right (Route.Signals) -> (signals cenv)
             { events: fst self.props.events
             , user
             }
-          Right (Route.Signal sid) -> React.keyed (show sid) $ signal
+          Right (Route.Signal sid) -> React.keyed (show sid) $ (signal cenv)
             { events: fst self.props.events
             , user
             , sid

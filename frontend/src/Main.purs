@@ -2,6 +2,7 @@ module Main where
 
 import Prelude
 
+import App.API (getClientEnv)
 import App.Components.Root (root)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
@@ -15,8 +16,9 @@ import Web.HTML.Window (document)
 
 main :: Effect Unit
 main = do
+  clientEnv <- getClientEnv
   mbRootNode <- getElementById "root" =<< (map toNonElementParentNode $ document =<< window)
   events <- Bus.split <$> Bus.make
   case mbRootNode of
     Nothing -> throw "Root element not found."
-    Just rootNode -> render (root {events}) rootNode
+    Just rootNode -> render (root clientEnv {events}) rootNode
