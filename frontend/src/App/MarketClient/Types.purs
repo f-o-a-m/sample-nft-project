@@ -2,6 +2,7 @@ module App.MarketClient.Types where
 
 import Prelude
 
+import Control.Monad.Error.Class (throwError)
 import Data.Argonaut ((.:))
 import Data.Argonaut as A
 import Data.Generic.Rep (class Generic)
@@ -207,7 +208,15 @@ instance decodeSignalMarketHistoryEntry :: Decode SignalMarketHistoryEntry where
   decode = genericDecode defaultOptions
 
 instance decodeJsonSignalMarketHistoryEntry :: A.DecodeJson SignalMarketHistoryEntry where
-  decodeJson x = A.decodeJson x
+  decodeJson x = do
+    jsonData <- A.decodeJson x
+    tag <- jsonData .: "tag"
+    contents <- jsonData .: "contents"
+    case tag of
+      "ListedForSale" -> ListedForSale <$> A.decodeJson contents
+      "Sold" -> Sold <$> A.decodeJson contents
+      "Unlisted" -> Unlisted <$> A.decodeJson contents
+      _ -> throwError $ "Invalid tag: " <> show tag
 
 newtype SignalTokenWithHistory =
   SignalTokenWithHistory { signal :: WithMetaData ESignal
