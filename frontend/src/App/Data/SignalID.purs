@@ -31,7 +31,7 @@ instance decodeJsonSignalId :: DecodeJson SignalId where
       $ signalIdFromBigNumber bn
 
 instance signalIdToCapture :: ToCapture SignalId where
-  toCapture = show
+  toCapture (SignalId sid) = show sid
 
 signalIdToBigNumber :: SignalId -> BigNumber
 signalIdToBigNumber = un SignalId >>> unUIntN

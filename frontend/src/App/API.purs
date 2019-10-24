@@ -150,7 +150,7 @@ getSignalTokenWithSales cursor =
 
 -- signal market
 type GetSignalMarketSignalHistory =
-     API.S "signal_token"
+     API.S "signal_market"
   :> API.CAP "token_id" SignalId
   :> API.GET Json SignalTokenWithHistory
 
