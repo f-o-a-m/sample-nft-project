@@ -183,3 +183,41 @@ instance decodeSignalTokenWithSale :: Decode SignalTokenWithSale where
 
 instance decodeJsonSignalTokenWithSale :: A.DecodeJson SignalTokenWithSale where
   decodeJson x = SignalTokenWithSale <$> A.decodeJson x
+
+---- signal market with history
+
+-- @NOTE: these records are truncated for simplicity
+data SignalMarketHistory =
+    ListedForSale { price :: BigNumber
+                  , saleID :: BigNumber
+                  , seller :: Address
+                  }
+  | Sold { price :: BigNumber
+         , saleID :: BigNumber
+         , soldFrom :: Address
+         , soldTo :: Address
+         }
+  | Unlisted { saleID :: BigNumber
+             , owner :: Address
+             }
+
+derive instance genericSignalMarketHistory :: Generic SignalMarketHistory _
+
+instance decodeSignalMarketHistory :: Decode SignalMarketHistory where
+  decode = genericDecode defaultOptions
+
+instance decodeJsonSignalMarketHistory :: A.DecodeJson SignalMarketHistory where
+  decodeJson x = A.decodeJson x
+
+newtype SignalTokenWithHistory =
+  SignalTokenWithHistory { signal :: WithMetaData ESignal
+                         , history :: Array (WithMetaData SignalMarketHistory)
+                         }
+
+derive instance genericSignalTokenWithHistory :: Generic SignalTokenWithHistory _
+
+instance decodeSignalTokenWithHistory :: Decode SignalTokenWithHistory where
+  decode = genericDecode defaultOptions
+
+instance decodeJsonSignalTokenWithHistory :: A.DecodeJson SignalTokenWithHistory where
+  decodeJson x = SignalTokenWithHistory <$> A.decodeJson x

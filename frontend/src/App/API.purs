@@ -24,7 +24,7 @@ import App.Data.SignalDetails (SignalDetails(..))
 import App.Data.SignalId (SignalId(..), signalIdFromBigNumber)
 import App.Data.Token (Token, tokenFromBigNumber, zeroToken)
 import App.MarketClient.Client (BlockNumberOrdering, ClientM, Contracts, FoamTokenTransfer, WithMetaData(..), runClientM)
-import App.MarketClient.Types (ESale(..), ESignal(..), SignalTokenWithSale(..))
+import App.MarketClient.Types (ESale(..), ESignal(..), SignalTokenWithHistory, SignalTokenWithSale(..))
 import Control.Error.Util (note)
 import Control.Monad.Error.Class (throwError)
 import Data.Argonaut (Json, decodeJson, (.:))
@@ -163,10 +163,20 @@ getSignalTokenWithSales clientEnv cursor =
            then { items: Array.take limit items
                 , next: Just $ c{offset = limit + offset}
                 }
-           else { items, next: Nothing}
+           else { items, next: Nothing }
 
--- signal market for sale
--- signal market sold
+-- signal market
+type GetSignalMarketSignalHistory =
+     API.S "signal_token"
+  :> API.CAP "token_id" Int
+  :> API.GET Json SignalTokenWithHistory
+
+signalMarketSignalHistory :: API.Capture "token_id" Int -> ClientM SignalTokenWithHistory
+signalMarketSignalHistory =
+  Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetSignalMarketSignalHistory)
+
+---- signal market for sale
+---- signal market sold
 
 -------
 
