@@ -2,8 +2,7 @@ module App.API
   ( getClientEnv
   , getContracts
   , getSignalTokenWithSales
-  -- @TODO remove
-  , getSignal
+  , getSignalTokenWithHistory
   , foamTokenTransfers
   , signalTokenWithSales
   , AddressP(..)
@@ -11,42 +10,35 @@ module App.API
 
 import Prelude
 
-import Affjax (printResponseFormatError)
-import Affjax as AJ
-import Affjax.ResponseFormat as ResponseFormat
-import App.API.Internal (apiBaseURL)
 import App.Data.Collections (Cursor, Collection)
 import App.Data.Radius (Radius, radiusFromBigNumber)
 import App.Data.SaleId (SaleId, saleIdFromBigNumber)
 import App.Data.Signal (Signal(..))
-import App.Data.SignalActivity (SignalActivity(..))
+import App.Data.SignalActivity as Activity
 import App.Data.SignalDetails (SignalDetails(..))
-import App.Data.SignalId (SignalId(..), signalIdFromBigNumber)
+import App.Data.SignalId (SignalId, signalIdFromBigNumber)
 import App.Data.Token (Token, tokenFromBigNumber, zeroToken)
 import App.MarketClient.Client (BlockNumberOrdering, ClientM, Contracts, FoamTokenTransfer, WithMetaData(..), runClientM)
-import App.MarketClient.Types (ESale(..), ESignal(..), SignalTokenWithHistory, SignalTokenWithSale(..))
+import App.MarketClient.Types (ESale(..), ESignal(..), SignalMarketHistoryEntry(..), SignalTokenWithHistory(..), SignalTokenWithSale(..))
 import Control.Error.Util (note)
 import Control.Monad.Error.Class (throwError)
-import Data.Argonaut (Json, decodeJson, (.:))
+import Data.Argonaut (Json)
 import Data.Array as Array
 import Data.Either (Either(..))
-import Data.Geohash (Geohash, geohashFromHex, geohashFromLngLat)
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Geohash (geohashFromHex, geohashFromLngLat)
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Symbol (SProxy(..))
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for)
-import Data.Tuple (Tuple(..), fst, snd)
 import Deploy.Utils (unsafeFromJust)
 import Effect (Effect)
 import Effect.Aff (Aff, delay)
 import Effect.Exception (error)
-import Foreign.Object (Object)
 import Network.Ethereum.Core.BigNumber as BN
 import Network.Ethereum.Core.HexString (mkHexString)
-import Network.Ethereum.Core.HexString as H
 import Network.Ethereum.Core.Signatures (Address, mkAddress)
 import Network.Ethereum.Web3.Types (ETHER)
 import Node.Process as NP
-import Record.Extra (sequenceRecord)
 import Servant.API (type (:>))
 import Servant.API as API
 import Servant.Client (ClientEnv(..))
@@ -168,15 +160,57 @@ getSignalTokenWithSales clientEnv cursor =
 -- signal market
 type GetSignalMarketSignalHistory =
      API.S "signal_token"
-  :> API.CAP "token_id" Int
+  :> API.CAP "token_id" SignalId
   :> API.GET Json SignalTokenWithHistory
 
-signalMarketSignalHistory :: API.Capture "token_id" Int -> ClientM SignalTokenWithHistory
+signalMarketSignalHistory :: API.Capture "token_id" SignalId -> ClientM SignalTokenWithHistory
 signalMarketSignalHistory =
   Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetSignalMarketSignalHistory)
 
----- signal market for sale
----- signal market sold
+getSignalTokenWithHistory :: ClientEnv -> SignalId -> Aff SignalDetails
+getSignalTokenWithHistory clientEnv signalId = 
+  getM clientEnv (signalMarketSignalHistory captureArg) toResponse
+  where
+    captureArg = API.capture (SProxy :: SProxy "token_id") signalId
+
+    historyToActivity
+      :: WithMetaData SignalMarketHistoryEntry
+      -> Either String Activity.SignalActivity
+    historyToActivity (WithMetaData { "data": entry }) = do
+      case entry of
+        ListedForSale listed -> do
+          saleId <- note "Invalid saleID" (saleIdFromBigNumber listed.saleID)
+          price <- note "Invalid price" (tokenFromBigNumber listed.price)
+          pure $ Activity.ListedForSale { owner: listed.seller, saleId, price }
+        Sold sold -> do
+          saleId <- note "Invalid saleID" (saleIdFromBigNumber sold.saleID)
+          price <- note "Invalid price" (tokenFromBigNumber sold.price)
+          pure $ Activity.Sold { owner: sold.soldFrom, buyer: sold.soldTo, saleId, price }
+        Unlisted {saleID, owner} -> do
+          saleId <- note "Invalid saleID" (saleIdFromBigNumber saleID)
+          pure $ Activity.UnlistedFromSale { owner, saleId }
+
+    eSignalToSignal
+      :: WithMetaData ESignal
+      -> Maybe { id :: SaleId, price :: Token ETHER }
+      -> Either String Signal
+    eSignalToSignal (WithMetaData { "data": ESignal eSignal@{owner} }) sale = do
+      let geohash = geohashFromHex eSignal.geohash
+      id <- note "Invalid TokenID" (signalIdFromBigNumber eSignal.tokenID)
+      radius <- note "Invalid Radius" (radiusFromBigNumber eSignal.radius)
+      stake <- note "Invalid Stake" (tokenFromBigNumber eSignal.staked)
+      pure $ Signal { id, stake, owner, geohash, radius, sale }
+
+    toResponse :: SignalTokenWithHistory -> Either String SignalDetails
+    toResponse (SignalTokenWithHistory stwh) = do
+      activity <- for stwh.history historyToActivity
+      let
+        saleInfo = Array.head activity >>= case _ of
+          Activity.ListedForSale { owner, saleId, price } -> Just { id: saleId, price }
+          Activity.Sold _ -> Nothing
+          Activity.UnlistedFromSale _ -> Nothing
+      signal <- eSignalToSignal stwh.signal saleInfo
+      pure $ SignalDetails { signal, activity }
 
 -------
 
@@ -188,26 +222,6 @@ getM clientEnv clientRoute f = do
     Right val -> case f val of
       Left err -> throwError (error err)
       Right res -> pure res
-
-get :: forall a. URLPath -> (Json -> Either String a) -> Aff a
-get path decode = do
-  let
-    request = AJ.defaultRequest { url = apiBaseURL <> path, responseFormat = ResponseFormat.json }
-    retryPolicy = AJ.defaultRetryPolicy {timeout = Nothing}
-  resp <- AJ.retry retryPolicy AJ.request request
-  -- resp <- AJ.request request
-  case resp.body of
-    Left err -> throwAPIError resp "AffJax error" $ printResponseFormatError err
-    Right json -> case decode json of
-      Left err -> throwAPIError resp "DecodeJson error" err
-      Right res -> pure res
-  where
-    throwAPIError resp msg err = throwError $ error $ msg <> ": " <> show
-      { error: err
-      , status: resp.status
-      , statusText: resp.statusText
-      , headers: resp.headers
-      }
 
 address1 :: Address
 address1 = unsafeFromJust "Must be valid Address 000...1"
@@ -275,64 +289,18 @@ signal3 = Signal
   , sale: Nothing
   }
 
-getSignal :: SignalId -> Aff SignalDetails
-getSignal (SignalId sid) = get
-  ("signal_market/" <> show sid)
-  \json -> do
-    jsonObj :: Object Json <- decodeJson json
-    jsonSignal <- jsonObj .: "signal"
-    jsonHistory :: Array (Object Json) <- jsonObj .: "history"
-    jsonSignalData <- jsonSignal .: "data"
-    activity <- for jsonHistory \itemJson -> do
-      jsonData <- itemJson .: "data"
-      tag <- jsonData .: "tag"
-      contents <- jsonData .: "contents"
-      case tag of
-        "ListedForSale" ->
-          ListedForSale <$> sequenceRecord
-            { owner: contents .: "seller"
-            , saleId: contents .: "saleID"
-            , price: contents .: "price"
-            }
-        "Sold" -> Sold <$> sequenceRecord
-          { owner: contents .: "soldFrom"
-          , saleId: contents .: "saleID"
-          , price: contents .: "price"
-          , buyer: contents .: "soldTo"
-          }
-        "Unlisted" -> UnlistedFromSale <$> sequenceRecord
-          { owner: contents .: "owner"
-          , saleId: contents .: "saleID"
-          }
-        _ -> throwError $ "Invalid tag: " <> show tag
-    let
-      saleInfo = Array.head activity >>= case _ of
-        ListedForSale { owner, saleId, price } -> Just $ Tuple owner { id: saleId, price }
-        Sold _ -> Nothing
-        UnlistedFromSale _ -> Nothing
-    signal <- Signal <$> sequenceRecord
-      { id: jsonSignalData .: "tokenID"
-      , stake: jsonSignalData .: "staked"
-      , owner: maybe (jsonSignalData .: "owner") (fst >>> pure) saleInfo
-      , geohash: jsonSignalData .: "geohash" >>= decodeGeoHash
-      , radius: jsonSignalData .: "radius"
-      , sale: pure $ map snd saleInfo
-      }
-    pure $ SignalDetails {signal, activity}
-
-
 getSignal' :: SignalId -> Aff SignalDetails
 getSignal' sid = do
   delay $ Milliseconds 1000.0
   pure $ SignalDetails
     { signal: signal1
     , activity:
-        [ ListedForSale
+        [ Activity.ListedForSale
             { owner: address2
             , saleId: saleId2
             , price: zeroToken
             }
-        , Sold
+        , Activity.Sold
             { owner: address2
             , saleId: saleId3
             , price: zeroToken
@@ -340,6 +308,3 @@ getSignal' sid = do
             }
         ]
     }
-
-decodeGeoHash :: String -> Either String Geohash
-decodeGeoHash str = note "Invalid GeoHash" (H.mkHexString str) <#> geohashFromHex

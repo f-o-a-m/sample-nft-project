@@ -187,7 +187,7 @@ instance decodeJsonSignalTokenWithSale :: A.DecodeJson SignalTokenWithSale where
 ---- signal market with history
 
 -- @NOTE: these records are truncated for simplicity
-data SignalMarketHistory =
+data SignalMarketHistoryEntry =
     ListedForSale { price :: BigNumber
                   , saleID :: BigNumber
                   , seller :: Address
@@ -201,17 +201,17 @@ data SignalMarketHistory =
              , owner :: Address
              }
 
-derive instance genericSignalMarketHistory :: Generic SignalMarketHistory _
+derive instance genericSignalMarketHistoryEntry :: Generic SignalMarketHistoryEntry _
 
-instance decodeSignalMarketHistory :: Decode SignalMarketHistory where
+instance decodeSignalMarketHistoryEntry :: Decode SignalMarketHistoryEntry where
   decode = genericDecode defaultOptions
 
-instance decodeJsonSignalMarketHistory :: A.DecodeJson SignalMarketHistory where
+instance decodeJsonSignalMarketHistoryEntry :: A.DecodeJson SignalMarketHistoryEntry where
   decodeJson x = A.decodeJson x
 
 newtype SignalTokenWithHistory =
   SignalTokenWithHistory { signal :: WithMetaData ESignal
-                         , history :: Array (WithMetaData SignalMarketHistory)
+                         , history :: Array (WithMetaData SignalMarketHistoryEntry)
                          }
 
 derive instance genericSignalTokenWithHistory :: Generic SignalTokenWithHistory _
