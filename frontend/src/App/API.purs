@@ -10,6 +10,7 @@ module App.API
 
 import Prelude
 
+import App.API.Internal (apiBaseURL)
 import App.Data.Collections (Cursor, Collection)
 import App.Data.Radius (Radius, radiusFromBigNumber)
 import App.Data.SaleId (SaleId, saleIdFromBigNumber)
@@ -63,8 +64,8 @@ contracts :: ClientM Contracts
 contracts =
   Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetContracts)
 
-getContracts :: ClientEnv -> Aff Contracts
-getContracts clientEnv = getM clientEnv contracts pure
+getContracts :: Aff Contracts
+getContracts = getM contracts pure
 
 -- foam token transfers
 newtype AddressP = AddressP Address
@@ -112,9 +113,9 @@ signalTokenWithSales
 signalTokenWithSales =
   Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetSignalTokenWithSales)
 
-getSignalTokenWithSales :: ClientEnv -> Cursor -> Aff (Collection Signal)
-getSignalTokenWithSales clientEnv cursor =
-  getM clientEnv (signalTokenWithSales params) (toResponse cursor)
+getSignalTokenWithSales :: Cursor -> Aff (Collection Signal)
+getSignalTokenWithSales cursor =
+  getM (signalTokenWithSales params) (toResponse cursor)
   where
     params = API.QueryParams { limit: Just cursor.limit
                              , offset: Just cursor.offset
@@ -167,9 +168,9 @@ signalMarketSignalHistory :: API.Capture "token_id" SignalId -> ClientM SignalTo
 signalMarketSignalHistory =
   Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetSignalMarketSignalHistory)
 
-getSignalTokenWithHistory :: ClientEnv -> SignalId -> Aff SignalDetails
-getSignalTokenWithHistory clientEnv signalId = 
-  getM clientEnv (signalMarketSignalHistory captureArg) toResponse
+getSignalTokenWithHistory :: SignalId -> Aff SignalDetails
+getSignalTokenWithHistory signalId =
+  getM (signalMarketSignalHistory captureArg) toResponse
   where
     captureArg = API.capture (SProxy :: SProxy "token_id") signalId
 
@@ -214,8 +215,11 @@ getSignalTokenWithHistory clientEnv signalId =
 
 -------
 
-getM :: forall a r. ClientEnv -> ClientM r -> (r -> Either String a) -> Aff a
-getM clientEnv clientRoute f = do
+getM :: forall a r. ClientM r -> (r -> Either String a) -> Aff a
+getM clientRoute f = do
+  let clientEnv = ClientEnv { protocol: "http"
+                            , baseURL: apiBaseURL
+                            }
   resp <- runClientM clientEnv clientRoute
   case resp of
     Left err -> throwError (error $ Client.errorToString err)

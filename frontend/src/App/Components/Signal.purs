@@ -25,7 +25,6 @@ import Etherium.Tx as Tx
 import React.Basic (JSX)
 import React.Basic as React
 import React.Basic.DOM as R
-import Servant.Client (ClientEnv)
 
 type Props =
   { events :: BusR Event
@@ -46,8 +45,8 @@ type SignalState =
 
 type Self = React.Self Props State
 
-signal :: ClientEnv -> Props -> JSX
-signal clientEnv = React.make component
+signal :: Props -> JSX
+signal = React.make component
   { initialState: Nothing
   , render
   , didMount
@@ -59,7 +58,7 @@ signal clientEnv = React.make component
 
     didMount :: Self -> Effect Unit
     didMount self = do
-      signalsFiber <- launchAff $ getSignalTokenWithHistory clientEnv self.props.sid >>= \(SignalDetails {signal:s, activity}) -> do
+      signalsFiber <- launchAff $ getSignalTokenWithHistory self.props.sid >>= \(SignalDetails {signal:s, activity}) -> do
         liftEffect $ self.setState \_ -> Just { tx: Nothing, price: Nothing, signal:s, activity }
       liveFib <- launchAff $ forever $ Bus.read self.props.events >>= \event -> liftEffect do
         when (eventToSignalId event == Just self.props.sid) do

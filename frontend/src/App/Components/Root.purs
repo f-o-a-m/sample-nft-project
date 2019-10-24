@@ -46,7 +46,6 @@ import Routing.Duplex as RD
 import Routing.Duplex.Parser (RouteError)
 import Routing.Hash (getHash, setHash)
 import Routing.Hash as RoutingHash
-import Servant.Client (ClientEnv)
 import Type.Proxy (Proxy(..))
 
 type Props =
@@ -65,14 +64,14 @@ data Action
   = SomeAction
   | NewRoute (Either RouteError Route)
 
-root :: ClientEnv -> Props -> JSX
-root clientEnv = React.make component
+root :: Props -> JSX
+root = React.make component
   { initialState:
       { route: Right Route.Signals
       , providerState: ProviderState.Unknown
       }
-  , render -- needs clientEnv
-  , didMount -- needs clientEnv
+  , render
+  , didMount
   , willUnmount
   }
   where
@@ -82,7 +81,7 @@ root clientEnv = React.make component
     didMount self = do
       -- redirect to `/#/` if user is visiting `/`
       whenM (String.null <$> getHash ) $ setHash $ Route.href Route.Signals
-      contractsFiber <- launchAff $ getContracts clientEnv
+      contractsFiber <- launchAff getContracts
       pushCanceler self $ fiberCanceler contractsFiber
 
       providerMb <- runMaybeT
@@ -146,11 +145,11 @@ root clientEnv = React.make component
       , navigation state.route
       , classy R.div "Content" $ pure case state.route of
           Left err -> classy R.h1 "Content-404" [ R.text "404" ]
-          Right (Route.Signals) -> (signals clientEnv)
+          Right (Route.Signals) -> signals
             { events: fst self.props.events
             , user
             }
-          Right (Route.Signal sid) -> React.keyed (show sid) $ (signal clientEnv)
+          Right (Route.Signal sid) -> React.keyed (show sid) $ signal
             { events: fst self.props.events
             , user
             , sid
