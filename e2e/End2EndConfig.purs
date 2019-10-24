@@ -7,7 +7,7 @@ module E2E.End2EndConfig
 import Prelude
 
 import App.API (getClientEnv, getContracts)
-import App.MarketClient.Client (Contracts(..), assertClientM)
+import App.MarketClient.Client (Contracts(..))
 import App.Websocket (createWebSocket, WebSocket)
 import Chanterelle.Test (assertWeb3)
 import Data.Array ((!!), drop)
@@ -55,5 +55,5 @@ mkEnd2EndConfig = do
        }
   where
   getContractAddresses clientEnv = do
-    Contracts { foamToken, signalToken, signalMarket } <- assertClientM clientEnv getContracts
+    Contracts { foamToken, signalToken, signalMarket } <- getContracts clientEnv
     pure { foamToken, signalToken, signalMarket }

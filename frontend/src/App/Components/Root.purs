@@ -14,7 +14,7 @@ import App.Data.User (User(..))
 import App.Ethereum.Provider as EthProvider
 import App.HTML (classy)
 import App.HTML.Canceler (pushCanceler, pushCanceler', runCancelers, runCancelers')
-import App.MarketClient.Client (assertClientM, Contracts(..))
+import App.MarketClient.Client (Contracts(..))
 import App.Route (Route)
 import App.Route as Route
 import Contracts.FoamToken as FoamToken
@@ -82,7 +82,7 @@ root clientEnv = React.make component
     didMount self = do
       -- redirect to `/#/` if user is visiting `/`
       whenM (String.null <$> getHash ) $ setHash $ Route.href Route.Signals
-      contractsFiber <- launchAff $ assertClientM clientEnv getContracts
+      contractsFiber <- launchAff $ getContracts clientEnv
       pushCanceler self $ fiberCanceler contractsFiber
 
       providerMb <- runMaybeT

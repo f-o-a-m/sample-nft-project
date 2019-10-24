@@ -4,7 +4,6 @@ module App.API
   , getSignalTokenWithSales
   -- @TODO remove
   , getSignal
-  , getSignals
   , foamTokenTransfers
   , signalTokenWithSales
   , AddressP(..)
@@ -24,11 +23,11 @@ import App.Data.SignalActivity (SignalActivity(..))
 import App.Data.SignalDetails (SignalDetails(..))
 import App.Data.SignalId (SignalId(..), signalIdFromBigNumber)
 import App.Data.Token (Token, tokenFromBigNumber, zeroToken)
-import App.MarketClient.Client (ClientM, WithMetaData(..), runClientM)
-import App.MarketClient.Types as Types
+import App.MarketClient.Client (BlockNumberOrdering, ClientM, Contracts, FoamTokenTransfer, WithMetaData(..), runClientM)
+import App.MarketClient.Types (ESale(..), ESignal(..), SignalTokenWithSale(..))
 import Control.Error.Util (note)
 import Control.Monad.Error.Class (throwError)
-import Data.Argonaut (Json, decodeJson, getField, (.:))
+import Data.Argonaut (Json, decodeJson, (.:))
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Geohash (Geohash, geohashFromHex, geohashFromLngLat)
@@ -66,11 +65,14 @@ type URLPath = String
 type GetContracts =
      API.S "config"
   :> API.S "contracts"
-  :> API.GET Json Types.Contracts
+  :> API.GET Json Contracts
 
-getContracts :: ClientM Types.Contracts
-getContracts =
+contracts :: ClientM Contracts
+contracts =
   Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetContracts)
+
+getContracts :: ClientEnv -> Aff Contracts
+getContracts clientEnv = getM clientEnv contracts pure
 
 -- foam token transfers
 newtype AddressP = AddressP Address
@@ -85,18 +87,18 @@ type GetFoamTokenTransfers =
              , from :: Array AddressP
              , limit :: Maybe Int
              , offset :: Maybe Int
-             , ordering :: Maybe Types.BlockNumberOrdering
+             , ordering :: Maybe BlockNumberOrdering
              )
-  :> API.GET Json (Array (Types.WithMetaData Types.FoamTokenTransfer))
+  :> API.GET Json (Array (WithMetaData FoamTokenTransfer))
 
 foamTokenTransfers
   :: API.QueryParams ( to :: Array AddressP
                      , from :: Array AddressP
                      , limit :: Maybe Int
                      , offset :: Maybe Int
-                     , ordering :: Maybe Types.BlockNumberOrdering
+                     , ordering :: Maybe BlockNumberOrdering
                      )
-  -> ClientM (Array (Types.WithMetaData Types.FoamTokenTransfer))
+  -> ClientM (Array (WithMetaData FoamTokenTransfer))
 foamTokenTransfers =
   Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetFoamTokenTransfers)
 
@@ -108,13 +110,13 @@ type GetSignalTokenWithSales =
   :> API.QPs ( limit :: Maybe Int
              , offset :: Maybe Int
              )
-  :> API.GET Json (Array (Types.WithMetaData Types.SignalTokenWithSale))
+  :> API.GET Json (Array (WithMetaData SignalTokenWithSale))
 
 signalTokenWithSales
   :: API.QueryParams ( limit :: Maybe Int
                      , offset :: Maybe Int
                      )
-  -> ClientM (Array (Types.WithMetaData Types.SignalTokenWithSale))
+  -> ClientM (Array (WithMetaData SignalTokenWithSale))
 signalTokenWithSales =
   Client.makeClientRoute (API.RouteProxy :: API.RouteProxy GetSignalTokenWithSales)
 
@@ -126,18 +128,24 @@ getSignalTokenWithSales clientEnv cursor =
                              , offset: Just cursor.offset
                              }
 
-    eSaleMbToSaleMb :: Maybe Types.ESale -> Maybe { id :: SaleId, price :: Token ETHER }
+    eSaleMbToSaleMb
+      :: Maybe ESale
+      -> Maybe { id :: SaleId
+               , price :: Token ETHER
+               }
     eSaleMbToSaleMb eSaleMb =
       case eSaleMb of
         Nothing -> Nothing
-        Just (Types.ESale eSale) -> do
+        Just (ESale eSale) -> do
           id <- saleIdFromBigNumber eSale.saleID
           price <- tokenFromBigNumber eSale.price
           pure { id, price }
 
-    signalFromSale :: Types.WithMetaData Types.SignalTokenWithSale -> Either String Signal
-    signalFromSale (WithMetaData { "data": Types.SignalTokenWithSale { eSale, eSignal }}) = do
-      let Types.ESignal eSignal@{owner} = eSignal
+    signalFromSale
+      :: WithMetaData SignalTokenWithSale
+      -> Either String Signal
+    signalFromSale (WithMetaData { "data": SignalTokenWithSale { eSale, eSignal }}) = do
+      let ESignal eSignal@{owner} = eSignal
           geohash = geohashFromHex eSignal.geohash
           sale = eSaleMbToSaleMb eSale
       id <- note "Invalid TokenID" (signalIdFromBigNumber eSignal.tokenID)
@@ -145,7 +153,10 @@ getSignalTokenWithSales clientEnv cursor =
       stake <- note "Invalid Stake" (tokenFromBigNumber eSignal.staked)
       pure $ Signal { id, stake, radius, owner, geohash, sale }
 
-    toResponse :: Cursor -> Array (Types.WithMetaData Types.SignalTokenWithSale) -> Either String (Collection Signal)
+    toResponse
+      :: Cursor
+      -> Array (WithMetaData SignalTokenWithSale)
+      -> Either String (Collection Signal)
     toResponse c@{ limit, offset } arr = do
       items <- for arr \s -> signalFromSale s
       pure if Array.length items > limit
@@ -253,45 +264,6 @@ signal3 = Signal
   , radius: radius3
   , sale: Nothing
   }
-
-getSignals :: Cursor -> Aff (Collection Signal)
-getSignals cursor = get
-  ("signal_token/with_sales?limit=" <> show (cursor.limit + 1) <> "&offset=" <> show cursor.offset)
-  \json -> do
-    (jsonArr :: Array (Object Json)) <- decodeJson json
-    (items :: Array Signal) <- for jsonArr \itemJson -> do
-      signalJson <- itemJson .: "data"
-      eSignal <- getField signalJson "eSignal"
-      eSaleMb <- getField signalJson "eSale"
-      saleInfo <- for eSaleMb \eSale -> do
-        owner <- eSale .: "owner"
-        sale <- sequenceRecord
-          { id: eSale .: "saleID"
-          , price: eSale .: "price"
-          }
-        pure (Tuple owner sale)
-      Signal <$> sequenceRecord
-        { id: eSignal .: "tokenID"
-        , stake: eSignal .: "staked"
-        , owner: maybe (eSignal .: "owner") (fst >>> pure) saleInfo
-        , geohash: eSignal .: "geohash" >>= decodeGeoHash
-        , radius: eSignal .: "radius"
-        , sale: pure $ map snd saleInfo
-        }
-    pure if Array.length items > cursor.limit
-      then
-        { items: Array.take cursor.limit items
-        , next: Just $ cursor{offset = cursor.limit + cursor.offset}
-        }
-      else
-        { items
-        , next: Nothing
-        }
-
-getSignals' :: Cursor -> Aff (Collection Signal)
-getSignals' c = do
-  delay $ Milliseconds 1000.0
-  pure {items: [signal1, signal2, signal3], next: Just c}
 
 getSignal :: SignalId -> Aff SignalDetails
 getSignal (SignalId sid) = get

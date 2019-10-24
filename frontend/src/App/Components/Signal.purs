@@ -47,7 +47,7 @@ type SignalState =
 type Self = React.Self Props State
 
 signal :: ClientEnv -> Props -> JSX
-signal cenv = React.make component
+signal clientEnv = React.make component
   { initialState: Nothing
   , render
   , didMount
