@@ -79,12 +79,10 @@ root clientEnv = React.make component
     willUnmount :: Self -> Effect Unit
     willUnmount self = runCancelers self
     didMount :: Self -> Effect Unit
-    didMount = didMount' clientEnv
-    didMount' :: ClientEnv -> Self -> Effect Unit
-    didMount' cenv self = do
+    didMount self = do
       -- redirect to `/#/` if user is visiting `/`
       whenM (String.null <$> getHash ) $ setHash $ Route.href Route.Signals
-      contractsFiber <- launchAff $ assertClientM cenv getContracts
+      contractsFiber <- launchAff $ assertClientM clientEnv getContracts
       pushCanceler self $ fiberCanceler contractsFiber
 
       providerMb <- runMaybeT
@@ -143,18 +141,16 @@ root clientEnv = React.make component
       pushCanceler self $ effectCanceler routingCanceller
 
     render :: Self -> JSX
-    render = render' clientEnv
-    render' :: ClientEnv -> Self -> JSX
-    render' cenv self@{state} = R.div_
+    render self@{state} = R.div_
       [ header { providerState: state.providerState }
       , navigation state.route
       , classy R.div "Content" $ pure case state.route of
           Left err -> classy R.h1 "Content-404" [ R.text "404" ]
-          Right (Route.Signals) -> (signals cenv)
+          Right (Route.Signals) -> (signals clientEnv)
             { events: fst self.props.events
             , user
             }
-          Right (Route.Signal sid) -> React.keyed (show sid) $ (signal cenv)
+          Right (Route.Signal sid) -> React.keyed (show sid) $ (signal clientEnv)
             { events: fst self.props.events
             , user
             , sid
