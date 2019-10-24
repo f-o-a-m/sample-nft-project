@@ -6,12 +6,14 @@ module E2E.End2EndConfig
 
 import Prelude
 
-import App.API (getClientEnv, getContracts)
+import App.API (getContracts)
 import App.MarketClient.Client (Contracts(..))
+import App.MarketClient.Types (NetworkId)
 import App.Websocket (createWebSocket, WebSocket)
 import Chanterelle.Test (assertWeb3)
 import Data.Array ((!!), drop)
 import Data.Maybe (fromJust, fromMaybe)
+import Effect (Effect)
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
@@ -34,7 +36,15 @@ type ContractAddresses =
   { foamToken :: Address
   , signalToken :: Address
   , signalMarket  :: Address
+  , networkId :: NetworkId
   }
+
+getClientEnv :: Effect ClientEnv
+getClientEnv = do
+  mbaseURL <- NP.lookupEnv "API_BASE_URL"
+  let protocol = "http"
+      baseURL = fromMaybe "//localhost:9000/" mbaseURL
+  pure $ ClientEnv {baseURL, protocol: "http"}
 
 mkEnd2EndConfig :: Aff End2EndConfig
 mkEnd2EndConfig = do
@@ -43,7 +53,7 @@ mkEnd2EndConfig = do
     httpProvider url
   clientEnv@(ClientEnv{baseURL, protocol}) <- liftEffect getClientEnv
   accounts <- liftAff $ assertWeb3 provider eth_getAccounts
-  contractAddresses <- getContractAddresses clientEnv
+  Contracts contractAddresses <- getContracts
   let apiURL = protocol <> ":" <> baseURL
   ws <- createWebSocket apiURL <* delay (Milliseconds 5000.0)
   pure { provider
@@ -53,7 +63,3 @@ mkEnd2EndConfig = do
        , faucetAddress: unsafePartial fromJust $ accounts !! 0
        , ws
        }
-  where
-  getContractAddresses clientEnv = do
-    Contracts { foamToken, signalToken, signalMarket } <- getContracts clientEnv
-    pure { foamToken, signalToken, signalMarket }

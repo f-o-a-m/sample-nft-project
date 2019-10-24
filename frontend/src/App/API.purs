@@ -1,6 +1,5 @@
 module App.API
-  ( getClientEnv
-  , getContracts
+  ( getContracts
   , getSignalTokenWithSales
   , getSignalTokenWithHistory
   , foamTokenTransfers
@@ -27,30 +26,21 @@ import Data.Argonaut (Json)
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Geohash (geohashFromHex, geohashFromLngLat)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for)
 import Deploy.Utils (unsafeFromJust)
-import Effect (Effect)
 import Effect.Aff (Aff, delay)
 import Effect.Exception (error)
 import Network.Ethereum.Core.BigNumber as BN
 import Network.Ethereum.Core.HexString (mkHexString)
 import Network.Ethereum.Core.Signatures (Address, mkAddress)
 import Network.Ethereum.Web3.Types (ETHER)
-import Node.Process as NP
 import Servant.API (type (:>))
 import Servant.API as API
 import Servant.Client (ClientEnv(..))
 import Servant.Client as Client
-
-getClientEnv :: Effect ClientEnv
-getClientEnv = do
-  mbaseURL <- NP.lookupEnv "API_BASE_URL"
-  let protocol = "http"
-      baseURL = fromMaybe "//localhost:9000/" mbaseURL
-  pure $ ClientEnv {baseURL, protocol: "http"}
 
 type URLPath = String
 

@@ -5,7 +5,7 @@ module Faucet
 
 import Prelude
 
-import App.API (getClientEnv, getContracts)
+import App.API (getContracts)
 import App.MarketClient.Client (Contracts(..))
 import Chanterelle.Internal.Utils (getPrimaryAccount, pollTransactionReceipt)
 import Contracts.FoamToken as FoamToken
@@ -29,8 +29,7 @@ import Unsafe (unsafeFromJust)
 
 main :: Effect Unit
 main = void <<< launchAff $ do
-  clientEnv <- liftEffect getClientEnv
-  (Contracts {foamToken}) <- getContracts clientEnv
+  (Contracts {foamToken}) <- getContracts
   faucetAddrEnv <- liftEffect $ lookupEnv "FAUCET_ADDRESS" >>= maybe (throw "Missing Environment Variable 'FAUCET_ADDRESS'") pure
   valueEnv <- liftEffect $ fromMaybe "" <$> lookupEnv "FAUCET_VALUE"
   provider <- liftEffect $ httpProvider "http://localhost:8545"
