@@ -17,7 +17,6 @@ import Control.Monad.Error.Class (class MonadError)
 import Control.Monad.Reader (ask)
 import Data.Array (filter, head, (!!))
 import Data.Array as Array
-import Data.Geohash (geohashToBS32)
 import Data.Lens ((?~))
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Newtype (unwrap)
@@ -162,7 +161,6 @@ interactSignalMarket cfg@{clientEnv, provider, contractAddresses} env@{logger, s
     let { tokenID } = unwrap trackMint
     SignalDetails { signal: Signal s } <- getSignalTokenWithHistory (SignalId tokenID)
     s.owner `shouldEqual` account1
-    geohashToBS32 s.geohash `shouldEqual` geohash
     s.radius `shouldEqual` Radius radius
   logger "Attempting to mark signal for sale"
   { signalForSale } <- markSignalForSale env { trackMint, signalToken, signalMarket, provider, account1 }
@@ -172,7 +170,6 @@ interactSignalMarket cfg@{clientEnv, provider, contractAddresses} env@{logger, s
     let { tokenId } = unwrap signalForSale
     SignalDetails { signal: Signal s } <- getSignalTokenWithHistory (SignalId tokenId)
     s.owner `shouldEqual` account1
-    geohashToBS32 s.geohash `shouldEqual` geohash
     s.radius `shouldEqual` Radius radius
   -- check with_sales
   logger $ "Checking api/with_sales count"
@@ -197,7 +194,6 @@ interactSignalMarket cfg@{clientEnv, provider, contractAddresses} env@{logger, s
     let { tokenId } = unwrap event
     SignalDetails { signal: Signal s } <- getSignalTokenWithHistory (SignalId tokenId)
     s.owner `shouldEqual` account2
-    geohashToBS32 s.geohash `shouldEqual` geohash
     s.radius `shouldEqual` Radius radius
 
 findByHash
