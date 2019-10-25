@@ -113,13 +113,13 @@ getSignalTokenWithSales cursor =
                              , offset: Just cursor.offset
                              }
 
-    eSaleMbToSaleMb
+    eSaleMbToSaleInfo
       :: Maybe ESale
       -> Maybe (Tuple Address
                 { id :: SaleId
                 , price :: Token ETHER
                 })
-    eSaleMbToSaleMb eSaleMb =
+    eSaleMbToSaleInfo eSaleMb =
       case eSaleMb of
         Nothing -> Nothing
         Just (ESale eSale@{owner}) -> do
@@ -133,12 +133,12 @@ getSignalTokenWithSales cursor =
     signalFromSale (WithMetaData { "data": SignalTokenWithSale { eSale, eSignal }}) = do
       let ESignal eSignal@{owner} = eSignal
           geohash = geohashFromHex eSignal.geohash
-          saleMb = eSaleMbToSaleMb eSale
-          sale = map snd saleMb
+          saleInfo = eSaleMbToSaleInfo eSale
+          sale = map snd saleInfo
       id <- note "Invalid TokenID" (signalIdFromBigNumber eSignal.tokenID)
       radius <- note "Invalid Radius" (radiusFromBigNumber eSignal.radius)
       stake <- note "Invalid Stake" (tokenFromBigNumber eSignal.staked)
-      owner <- maybe (pure eSignal.owner) (fst >>> pure) saleMb
+      owner <- maybe (pure eSignal.owner) (fst >>> pure) saleInfo
       pure $ Signal { id, stake, radius, owner, geohash, sale }
 
     toResponse
@@ -190,13 +190,13 @@ getSignalTokenWithHistory signalId =
       :: WithMetaData ESignal
       -> Maybe (Tuple Address { id :: SaleId, price :: Token ETHER })
       -> Either String Signal
-    eSignalToSignal (WithMetaData { "data": ESignal eSignal }) saleMb = do
+    eSignalToSignal (WithMetaData { "data": ESignal eSignal }) saleInfo = do
       let geohash = geohashFromHex eSignal.geohash
-          sale = map snd saleMb
+          sale = map snd saleInfo
       id <- note "Invalid TokenID" (signalIdFromBigNumber eSignal.tokenID)
       radius <- note "Invalid Radius" (radiusFromBigNumber eSignal.radius)
       stake <- note "Invalid Stake" (tokenFromBigNumber eSignal.staked)
-      owner <- maybe (pure eSignal.owner) (fst >>> pure) saleMb
+      owner <- maybe (pure eSignal.owner) (fst >>> pure) saleInfo
       pure $ Signal { id, stake, owner, geohash, radius, sale }
 
     toResponse :: SignalTokenWithHistory -> Either String SignalDetails
