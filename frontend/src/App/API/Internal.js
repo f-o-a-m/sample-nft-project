@@ -7,10 +7,12 @@ exports.apiBaseURL = (function() {
   }
   try {
     if (typeof window.location.protocol === "string") {
-      apiBaseURL = apiBaseURL
+      apiBaseURL = window.location.protocol + apiBaseURL
     }
   } catch (_){
     apiBaseURL = "http:" + apiBaseURL
   }
-  return apiBaseURL
+  return { baseURL: process.env.API_BASE_URL,
+           protocol: window.location.protocol
+         }
 }());

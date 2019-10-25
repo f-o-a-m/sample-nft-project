@@ -207,8 +207,10 @@ getSignalTokenWithHistory signalId =
 
 getM :: forall a r. ClientM r -> (r -> Either String a) -> Aff a
 getM clientRoute f = do
+  -- @NOTE: these are concatted somewhere with a `:`
+  -- so protocol is set to just "http"
   let clientEnv = ClientEnv { protocol: "http"
-                            , baseURL: apiBaseURL
+                            , baseURL: apiBaseURL.baseURL
                             }
   resp <- runClientM clientEnv clientRoute
   case resp of
