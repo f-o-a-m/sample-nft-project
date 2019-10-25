@@ -26,11 +26,12 @@ import Data.Argonaut (Json)
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Geohash (geohashFromHex, geohashFromLngLat)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.String (codePointFromChar, takeWhile)
 import Data.Symbol (SProxy(..))
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for)
+import Data.Tuple (Tuple(..), fst, snd)
 import Deploy.Utils (unsafeFromJust)
 import Effect.Aff (Aff, delay)
 import Effect.Exception (error)
@@ -114,16 +115,17 @@ getSignalTokenWithSales cursor =
 
     eSaleMbToSaleMb
       :: Maybe ESale
-      -> Maybe { id :: SaleId
-               , price :: Token ETHER
-               }
+      -> Maybe (Tuple Address
+                { id :: SaleId
+                , price :: Token ETHER
+                })
     eSaleMbToSaleMb eSaleMb =
       case eSaleMb of
         Nothing -> Nothing
-        Just (ESale eSale) -> do
+        Just (ESale eSale@{owner}) -> do
           id <- saleIdFromBigNumber eSale.saleID
           price <- tokenFromBigNumber eSale.price
-          pure { id, price }
+          pure $ Tuple owner { id, price }
 
     signalFromSale
       :: WithMetaData SignalTokenWithSale
@@ -131,10 +133,12 @@ getSignalTokenWithSales cursor =
     signalFromSale (WithMetaData { "data": SignalTokenWithSale { eSale, eSignal }}) = do
       let ESignal eSignal@{owner} = eSignal
           geohash = geohashFromHex eSignal.geohash
-          sale = eSaleMbToSaleMb eSale
+          saleMb = eSaleMbToSaleMb eSale
+          sale = map snd saleMb
       id <- note "Invalid TokenID" (signalIdFromBigNumber eSignal.tokenID)
       radius <- note "Invalid Radius" (radiusFromBigNumber eSignal.radius)
       stake <- note "Invalid Stake" (tokenFromBigNumber eSignal.staked)
+      owner <- maybe (pure eSignal.owner) (fst >>> pure) saleMb
       pure $ Signal { id, stake, radius, owner, geohash, sale }
 
     toResponse
@@ -184,13 +188,15 @@ getSignalTokenWithHistory signalId =
 
     eSignalToSignal
       :: WithMetaData ESignal
-      -> Maybe { id :: SaleId, price :: Token ETHER }
+      -> Maybe (Tuple Address { id :: SaleId, price :: Token ETHER })
       -> Either String Signal
-    eSignalToSignal (WithMetaData { "data": ESignal eSignal@{owner} }) sale = do
+    eSignalToSignal (WithMetaData { "data": ESignal eSignal }) saleMb = do
       let geohash = geohashFromHex eSignal.geohash
+          sale = map snd saleMb
       id <- note "Invalid TokenID" (signalIdFromBigNumber eSignal.tokenID)
       radius <- note "Invalid Radius" (radiusFromBigNumber eSignal.radius)
       stake <- note "Invalid Stake" (tokenFromBigNumber eSignal.staked)
+      owner <- maybe (pure eSignal.owner) (fst >>> pure) saleMb
       pure $ Signal { id, stake, owner, geohash, radius, sale }
 
     toResponse :: SignalTokenWithHistory -> Either String SignalDetails
@@ -198,7 +204,8 @@ getSignalTokenWithHistory signalId =
       activity <- for stwh.history historyToActivity
       let
         saleInfo = Array.head activity >>= case _ of
-          Activity.ListedForSale { owner, saleId, price } -> Just { id: saleId, price }
+          Activity.ListedForSale { owner, saleId, price } ->
+            Just $ Tuple owner { id: saleId, price }
           Activity.Sold _ -> Nothing
           Activity.UnlistedFromSale _ -> Nothing
       signal <- eSignalToSignal stwh.signal saleInfo
