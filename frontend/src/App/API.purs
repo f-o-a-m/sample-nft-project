@@ -27,6 +27,7 @@ import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Geohash (geohashFromHex, geohashFromLngLat)
 import Data.Maybe (Maybe(..))
+import Data.String (codePointFromChar, takeWhile)
 import Data.Symbol (SProxy(..))
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for)
@@ -207,11 +208,13 @@ getSignalTokenWithHistory signalId =
 
 getM :: forall a r. ClientM r -> (r -> Either String a) -> Aff a
 getM clientRoute f = do
-  -- @NOTE: these are concatted somewhere with a `:`
-  -- so protocol is set to just "http"
-  let clientEnv = ClientEnv { protocol: "http"
-                            , baseURL: apiBaseURL.baseURL
-                            }
+  let clientEnv =
+        -- protocol is suffixed with a `:`
+        -- the env already concats with a `:`
+        ClientEnv { protocol:
+                    takeWhile (_ /= codePointFromChar ':') apiBaseURL.protocol
+                  , baseURL: apiBaseURL.baseURL
+                  }
   resp <- runClientM clientEnv clientRoute
   case resp of
     Left err -> throwError (error $ Client.errorToString err)

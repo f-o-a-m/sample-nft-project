@@ -15,7 +15,9 @@ import Network.Ethereum.Web3.Solidity (class DecodeEvent)
 newtype Connection = Connection WebSocket
 
 url :: String
-url = apiBaseURL.protocol <> apiBaseURL.baseURL
+url =
+  -- protocol is suffixed with a `:`
+  apiBaseURL.protocol <> apiBaseURL.baseURL
 
 open :: Aff Connection
 open = Connection <$> createWebSocket url
