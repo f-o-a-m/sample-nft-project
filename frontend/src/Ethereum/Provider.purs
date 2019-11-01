@@ -15,8 +15,8 @@ module App.Ethereum.Provider
 
 import Prelude
 
-import App.Data.Contracts (NetworkId(..))
 import App.Error (printWeb3Error)
+import App.MarketClient.Types (NetworkId(..))
 import Control.Apply (lift2)
 import Control.Lazy (fix)
 import Data.Array ((!!))

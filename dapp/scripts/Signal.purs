@@ -6,7 +6,7 @@ module Signal
 import Prelude
 
 import App.API (getContracts)
-import App.Data.Contracts (Contracts(..))
+import App.MarketClient.Client (Contracts(..))
 import Chanterelle.Internal.Utils (getPrimaryAccount)
 import Chanterelle.Test (assertWeb3)
 import Contracts.FoamToken as FoamToken

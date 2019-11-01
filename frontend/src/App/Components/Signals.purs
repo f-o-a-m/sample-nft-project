@@ -2,7 +2,7 @@ module App.Components.Signals where
 
 import Prelude
 
-import App.API (getSignals)
+import App.API (getSignalTokenWithSales)
 import App.Components.Common (SignalState, renderSignal)
 import App.Data.Collections (LinkedCollection, Cursor, initialCursor, initialLinkedCollection, insertCollection)
 import App.Data.Event (Event, eventToSignal, eventToSignalUpdate)
@@ -58,7 +58,7 @@ signals = React.make component
 
     load self cursor = do
       liftEffect $ self.setState _ {signals{loading = true}}
-      signalsFiber <- launchAff $ getSignals cursor >>= \{items, next} -> do
+      signalsFiber <- launchAff $ getSignalTokenWithSales cursor >>= \{items, next} -> do
         liftEffect $ self.setState \s -> s {signals = s.signals `insertCollection` {next, items: items <#> injSignal}}
       pushCanceler self $ fiberCanceler signalsFiber
 

@@ -3,11 +3,11 @@ module  Etherium.Tx where
 
 import Prelude
 
-import App.Data.Contracts (Contracts(..), ContractsR)
 import App.Data.ProviderState (ConnectedState)
 import App.Data.SaleId (SaleId(..))
 import App.Data.SignalId (SignalId(..))
 import App.Data.Token (Token(..))
+import App.MarketClient.Types (Contracts(..), ContractsR)
 import Contracts.SignalMarket as SignalMarket
 import Contracts.SignalToken as SignalToken
 import Control.Lazy (fix)

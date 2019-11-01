@@ -3,6 +3,7 @@ module App.API.WS (Connection, open, event) where
 import Prelude
 
 import App.API.Internal (apiBaseURL)
+import App.Websocket (WebSocket, createWebSocket, mkMonitor)
 import Control.Coroutine as C
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
@@ -10,12 +11,16 @@ import Effect.Aff (Aff, Canceler(..))
 import Effect.Class (liftEffect)
 import Network.Ethereum.Web3 (Filter)
 import Network.Ethereum.Web3.Solidity (class DecodeEvent)
-import App.Websocket (WebSocket, createWebSocket, mkMonitor)
 
 newtype Connection = Connection WebSocket
 
+url :: String
+url =
+  -- protocol is suffixed with a `:`
+  apiBaseURL.protocol <> apiBaseURL.baseURL
+
 open :: Aff Connection
-open = Connection <$> createWebSocket apiBaseURL
+open = Connection <$> createWebSocket url
 
 event :: forall i ni e
   . DecodeEvent i ni e

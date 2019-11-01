@@ -6,7 +6,7 @@ module Faucet
 import Prelude
 
 import App.API (getContracts)
-import App.Data.Contracts (Contracts(..))
+import App.MarketClient.Client (Contracts(..))
 import Chanterelle.Internal.Utils (getPrimaryAccount, pollTransactionReceipt)
 import Contracts.FoamToken as FoamToken
 import Data.Either (Either(..))

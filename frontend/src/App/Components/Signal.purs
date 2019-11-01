@@ -2,7 +2,7 @@ module App.Components.Signal where
 
 import Prelude
 
-import App.API (getSignal)
+import App.API (getSignalTokenWithHistory)
 import App.Components.Avatar (avatar)
 import App.Components.Common (renderSignal, renderToken)
 import App.Data.Event (Event, eventToSignalId, eventToSignalActivity, eventToSignalUpdate)
@@ -58,7 +58,7 @@ signal = React.make component
 
     didMount :: Self -> Effect Unit
     didMount self = do
-      signalsFiber <- launchAff $ getSignal self.props.sid >>= \(SignalDetails {signal:s, activity}) -> do
+      signalsFiber <- launchAff $ getSignalTokenWithHistory self.props.sid >>= \(SignalDetails {signal:s, activity}) -> do
         liftEffect $ self.setState \_ -> Just { tx: Nothing, price: Nothing, signal:s, activity }
       liveFib <- launchAff $ forever $ Bus.read self.props.events >>= \event -> liftEffect do
         when (eventToSignalId event == Just self.props.sid) do

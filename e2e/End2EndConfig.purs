@@ -6,9 +6,14 @@ module E2E.End2EndConfig
 
 import Prelude
 
+import App.API (getContracts)
+import App.MarketClient.Client (Contracts(..))
+import App.MarketClient.Types (NetworkId)
+import App.Websocket (createWebSocket, WebSocket)
 import Chanterelle.Test (assertWeb3)
 import Data.Array ((!!), drop)
 import Data.Maybe (fromJust, fromMaybe)
+import Effect (Effect)
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
@@ -17,8 +22,6 @@ import Network.Ethereum.Web3.Api (eth_getAccounts)
 import Node.Process as NP
 import Partial.Unsafe (unsafePartial)
 import Servant.Client (ClientEnv(..))
-import Test.MarketClient.Client as API
-import App.Websocket (createWebSocket, WebSocket)
 
 type End2EndConfig =
   { provider :: Provider
@@ -33,7 +36,15 @@ type ContractAddresses =
   { foamToken :: Address
   , signalToken :: Address
   , signalMarket  :: Address
+  , networkId :: NetworkId
   }
+
+getClientEnv :: Effect ClientEnv
+getClientEnv = do
+  mbaseURL <- NP.lookupEnv "API_BASE_URL"
+  let protocol = "http"
+      baseURL = fromMaybe "//localhost:9000/" mbaseURL
+  pure $ ClientEnv {baseURL, protocol: "http"}
 
 mkEnd2EndConfig :: Aff End2EndConfig
 mkEnd2EndConfig = do
@@ -42,7 +53,7 @@ mkEnd2EndConfig = do
     httpProvider url
   clientEnv@(ClientEnv{baseURL, protocol}) <- liftEffect getClientEnv
   accounts <- liftAff $ assertWeb3 provider eth_getAccounts
-  contractAddresses <- getContractAddresses clientEnv
+  Contracts contractAddresses <- getContracts
   let apiURL = protocol <> ":" <> baseURL
   ws <- createWebSocket apiURL <* delay (Milliseconds 5000.0)
   pure { provider
@@ -52,23 +63,3 @@ mkEnd2EndConfig = do
        , faucetAddress: unsafePartial fromJust $ accounts !! 0
        , ws
        }
-  where
-
-  getClientEnv = do
-    mbaseURL <- NP.lookupEnv "API_BASE_URL"
-    let protocol = "http"
-        baseURL = fromMaybe "//localhost:9000/" mbaseURL
-    pure $ ClientEnv {baseURL, protocol: "http"}
-
-  getContractAddresses clientEnv = do
-    API.Contracts contracts <- API.assertClientM clientEnv API.getContracts
-    let
-      { foamToken: API.Receipt {address: ft}
-      , signalToken: API.Receipt {address: st}
-      , signalMarket: API.Receipt {address: sm}
-      } = contracts
-    pure { foamToken: ft
-         , signalToken: st
-         , signalMarket: sm
-         }
-

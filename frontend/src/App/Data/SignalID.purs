@@ -12,6 +12,7 @@ import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, un)
 import Network.Ethereum.Web3 (BigNumber, UIntN, uIntNFromBigNumber, unUIntN)
 import Network.Ethereum.Web3.Solidity.Sizes (S256, s256)
+import Servant.API (class ToCapture)
 
 
 newtype SignalId = SignalId (UIntN S256)
@@ -28,6 +29,9 @@ instance decodeJsonSignalId :: DecodeJson SignalId where
   decodeJson = decodeJson >=> \bn -> note'
     (\_ -> "Expected To get valid SignalId but got: " <> show bn)
       $ signalIdFromBigNumber bn
+
+instance signalIdToCapture :: ToCapture SignalId where
+  toCapture (SignalId sid) = show sid
 
 signalIdToBigNumber :: SignalId -> BigNumber
 signalIdToBigNumber = un SignalId >>> unUIntN

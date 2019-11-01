@@ -4,13 +4,13 @@ import Prelude
 
 import App.Components.Avatar (avatar)
 import App.Components.Common (renderToken)
-import App.Data.Contracts (Contracts(..), networkName)
 import App.Data.ProviderState as ProviderState
 import App.Data.Token (FOAM, Token(..), tokenFromBigNumber)
 import App.Error (printCallError, printWeb3Error)
 import App.Ethereum.Provider as Provider
 import App.HTML (classy, maybeHtml)
 import App.HTML.Canceler (pushCanceler, runCancelers)
+import App.MarketClient.Types (Contracts(..), networkName)
 import Contracts.FoamToken as FoamToken
 import Control.Lazy (fix)
 import Data.Either (Either(..), either)
